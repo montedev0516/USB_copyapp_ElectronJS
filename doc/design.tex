@@ -40,7 +40,7 @@ internet connection.
 \newpage
 
 \section{Definitions}
-Client User - Every USB's Customer/Client company.\\
+Client / Client User - Every USB's Customer/Client company.\\
 End User - Client User's end users.\\
 Content - Client Users' content to be secured.\\
 Data - Client User's data that will not be secured.\\
@@ -96,6 +96,76 @@ and the \verb+WEBAPP+, as shown in Figure \ref{fig:mainmods}.
 \label{fig:mainmods}
 \end{figure}
 
+\subsection{Filesystem \& Encryption}
+Single files are encrypted using a unique symetric AES cypher, using a
+key generated based on a combination of the following information:
+\begin{itemize}
+\item Device serial number 
+\item Device firmware version
+\item Global Salt 
+\item Per-device nonce.  \emph{This must be stored in the code in an
+      obfuscated manner.}
+\end{itemize}
+This key is stored in memory by the web server, and is used to decrypt
+\verb+*.evusb+ files before serving them to the renderer.
+
+An option for implementation is \verb+p3x-aes-folder+.
+
+\subsection{Webapp}
+
+The webapp is responsible for:
+\begin{itemize}
+\item Launching the web server when the device is attached to 
+      a compatible computer.
+\item Launching a browser (e.g. Chromium embedded), which will allow
+      the end user to browse, view, and play content.
+\item Decrypting content files
+\item Displaying content files 
+\end{itemize}
+
+An option for implementation is \verb+electronJS+, which includes some 
+integration with node and chromium embedded.
+
+\subsection{Loader}
+
+The content is locked to a specific device.  That means the system includes
+a simple loader that will:
+\begin{enumerate}
+\item Read a device's serial number.
+\item Generate a nonce
+\item Store the obfuscated key on the device
+\item Encrypt protected content
+\item Load data to the device.
+\end{enumerate}
+
+\section{Use Cases}
+
+\begin{enumerate}
+\item Loading Content
+    \begin{enumerate}
+    \item Client provides content to Every USB.
+    \item Every USB runs the {\bf Loader} to load the data.
+    \item The {\bf Loader} iterates through each attached (blank) USB drive,
+          encryptes the data based on the device's nonce and serial number,
+          and copies the data.
+    \end{enumerate}
+
+\item Viewing Content
+    \begin{enumerate}
+    \item End user receives the USB drive (via postal mail, trade show 
+          promotional material, or other means).
+    \item End user inserts the drive into a compatible machine.  The 
+          system will run automatically.  NOTE: this should not require
+          any elevated priviledges to run.
+    \item The system starts the web server, launches the viewer (chromium
+          embedded), and presents the main menu.
+    \item The end user selects content to view.
+    \item If the end use opens the drive as a media storage device, and 
+          copies a media file off of the drive, it is encrypted and not
+          viewable using standard tools.
+    \end{enumerate}
+
+\end{enumerate}
 
 \section{Potential Resources}
 The following are open source libraries and projects which may be used in the
@@ -105,7 +175,8 @@ project, either as a foundation for work or as a guideline.
 \item \url{https://www.nodejs.org}
 \item \url{https://www.npmjs.com/package/p3x-aes-folder}
 \item \url{https://github.com/tessel/node-usb/tree/master/src}
-\item \url{https://github.com/limpkin/mooltiapp}
+\item \url{https://github.com/limpkin/mooltiapp} (For retrieving 
+      firmware version and device IDs)
 \item \url{http://janaxelson.com/hidpage.htm}
 \item \url{https://github.com/kuscsik/chromiumembedded}
 \end{itemize}
