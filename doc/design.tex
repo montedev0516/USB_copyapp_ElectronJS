@@ -40,7 +40,7 @@ internet connection.
 \newpage
 
 \section{Definitions}
-Client / Client User - Every USB's Customer/Client company.\\
+Client / Client User - {\it Every USB}'s Customer/Client company.\\
 End User - Client User's end users.\\
 Content - Client Users' content to be secured.\\
 Data - Client User's data that will not be secured.\\
@@ -60,7 +60,7 @@ with DRM enabled.
 player/viewer included in the device, or when the device is disconnected from 
 the end user's computer.
 \item Provide a content menu displayed through a Chromium embedded web browser.
-\item Allow the user to browse and view content files from within the
+\item Allow the end user to browse and view content files from within the
 Chromium embedded web browser.  This browser is included as part of
 the system, and is required to run on all supported operating
 systems.\\
@@ -68,7 +68,11 @@ systems.\\
 \item Should “attempt” to forward-prepare for additional phases.
 \item Versioning and documentation is essential for understanding
 future remote update rollout capability in existing versions already
-in use by Every USB’s client’s end users.
+in use by {\it Every USB}’s client’s end users.
+\item Allow {\it Every USB} to batch load drives without user interaction.  That is,
+the software must be configurable once, and then delivered as an image
+to the production company to load on drives in batches up to 10,000 at
+a time.
 
 \end{enumerate}
 
@@ -100,13 +104,22 @@ and the \verb+WEBAPP+, as shown in Figure \ref{fig:mainmods}.
 Single files are encrypted using a unique symetric AES cypher, using a
 key generated based on a combination of the following information:
 \begin{itemize}
-\item Device serial number 
+\item Masked device serial number (mask depends on batch size). 
 \item Device firmware version
-\item Global Salt 
-\item Per-device nonce.  \emph{This must be stored in the code in an
+\item Global Salt (static, only changes with major versions)
+\item Per-batch nonce.  \emph{This must be stored in the code in an
       obfuscated manner.}
 \end{itemize}
-This key is stored in memory by the web server, and is used to decrypt
+
+{\bf Serial Number}: The serial number is masked based on the size of
+the batch to be loaded.  For example, if a serial number is 32 bits,
+and the batch size is 256 drives, then the mask would be \verb+0xffffff00+.
+This means the key used for each one of the drives will be calculated
+using the same input variables, and the encrypted data can remain
+the same across all drives in the batch.
+
+{\bf Key}: After it is calculated based on the variables above,
+this key is stored in memory by the web server, and is used to decrypt
 \verb+*.evusb+ files before serving them to the renderer.
 
 An option for implementation is \verb+p3x-aes-folder+.
@@ -143,11 +156,15 @@ a simple loader that will:
 \begin{enumerate}
 \item Loading Content
     \begin{enumerate}
-    \item Client provides content to Every USB.
-    \item Every USB runs the {\bf Loader} to load the data.
-    \item The {\bf Loader} iterates through each attached (blank) USB drive,
-          encryptes the data based on the device's nonce and serial number,
-          and copies the data.
+    \item Client provides content to {\it Every USB}.
+    \item {\it Every USB} runs the {\bf Loader} to load the data.
+    \item OPTION 1: The {\bf Loader} iterates through each attached
+          (blank) USB drive, encryptes the data based on the device's nonce
+          and serial number, and copies the data.
+    \item OPTION 2: The {\bf Loader} generates an image suitable for
+          loading during production time.  The serial number range and
+          batch size must be known before production.  NOTE: Production
+          is often done using a 3rd party production company.
     \end{enumerate}
 
 \item Viewing Content
