@@ -1,0 +1,16 @@
+{
+  "name": "everyusb",
+  "version": "0.0.1",
+  "description": "Every USB Content System",
+  "main": "index.js",
+  "repository": "git@github.com:chromahoen/secure-usb-content.git",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "~1.7.8"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "author": "David Dombrowsky"
+}
