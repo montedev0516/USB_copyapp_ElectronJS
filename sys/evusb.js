@@ -14,7 +14,10 @@ $(function(){
     $.ajax({ accepts: "application/json" });
 
     $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
-        $("#loading").text('Status: ' + data.status);
+        $("#loading").html(
+            'Status: ' + data.status + '<br/>' +
+            '<a href="' + cfg.LAUNCH_URL + '">Launch</a>'
+        )
     });
 
 });

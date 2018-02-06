@@ -1,3 +1,4 @@
 {
-    "SERVER_PORT": 29500
+    "SERVER_PORT": 29500,
+    "LAUNCH_URL": "./content/index.html"
 }
