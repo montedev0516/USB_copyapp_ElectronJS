@@ -25,3 +25,6 @@ function createWindow() {
 }
 
 app.on('ready', createWindow);
+
+// start the server
+require('./server.js');

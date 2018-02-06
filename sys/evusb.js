@@ -2,11 +2,19 @@
 // renderer
 //
 
+var cfg = require('./config.json');
 global.$ = $;
 
-$(function(){
-    console.log('We rockin the jQuery XYOYOYXX');
+const URL="http://localhost:" + cfg.SERVER_PORT;
 
-    $("#header").text("HELLO WORLD");
+$(function(){
+    console.log('Document loaded, jQuery booted.');
+
+
+    $.ajax({ accepts: "application/json" });
+
+    $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
+        $("#loading").text('Status: ' + data.status);
+    });
 
 });
