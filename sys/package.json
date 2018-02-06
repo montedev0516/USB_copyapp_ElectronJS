@@ -4,7 +4,10 @@
   "description": "Every USB Content System",
   "main": "index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
-  "dependencies": {},
+  "dependencies": {
+    "express": "^4.16.2",
+    "jquery": "^3.3.1"
+  },
   "devDependencies": {
     "electron": "~1.7.8"
   },
