@@ -9,6 +9,7 @@ function makePassword(serial, firmvers, salt, nonce, bytes) {
             j = 0;
         }
         res.push(bytes[i] ^ s[j]);
+        j++;
     }
 
     return new Buffer(res);
