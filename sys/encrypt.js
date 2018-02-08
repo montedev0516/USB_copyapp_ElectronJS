@@ -4,8 +4,15 @@ const crypto = require('crypto');
 const fs = require('fs');
 const pwsys = require('./src/password');
 
+var doEncrypt = true;
 var files = [];
+
 for (var i = 2; i < process.argv.length; i++) {
+    if (process.argv[i] === '-d') {
+        doEncrypt = false;
+        continue;
+    }
+
     var fn = process.argv[i];
     if (fs.existsSync(fn)) {
         files.push(fn);
@@ -15,12 +22,21 @@ for (var i = 2; i < process.argv.length; i++) {
     }
 }
 
-var secret = pwsys.makepw('123','1.2','whatever','whatwhat');
 
 if (files.length > 0) {
     console.log('encrypting ' + files.length + ' files');
 
-    var cipher = crypto.createCipher('aes-256-cbc', secret);
+    var cipher;
+
+    if (doEncrypt) {
+        var [bytes, secret] = pwsys.makeNewPassword('123','1.2','whatever','whatwhat');
+        cipher = crypto.createCipher('aes-256-cbc', secret);
+        fs.writeFileSync('bytes.dat', bytes);
+    } else {
+        var bytes = fs.readFileSync('bytes.dat');
+        var secret = pwsys.makePassword('123','1.2','whatever','whatwhat', bytes);
+        cipher = crypto.createDecipher('aes-256-cbc', secret);
+    }
 
     for (fn in files) {
         var fnout = files[fn] + '.evusb';

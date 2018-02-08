@@ -1,7 +1,6 @@
 const crypto = require('crypto');
 
-exports.makepw = (serial, firmvers, salt, nonce) => {
-    var bytes = new Buffer(crypto.randomBytes(2048));
+function makePassword(serial, firmvers, salt, nonce, bytes) {
     var s = new Buffer(serial + firmvers + salt + nonce);
     var res = [];
     var j = 0;
@@ -15,3 +14,9 @@ exports.makepw = (serial, firmvers, salt, nonce) => {
     return new Buffer(res);
 }
 
+exports.makeNewPassword = (serial, firmvers, salt, nonce) => {
+    var bytes = new Buffer(crypto.randomBytes(2048));
+    return [bytes, makePassword(serial, firmvers, salt, nonce, bytes)];
+}
+
+exports.makePassword = makePassword;
