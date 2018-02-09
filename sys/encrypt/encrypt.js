@@ -2,7 +2,10 @@
 
 const crypto = require('crypto');
 const fs = require('fs');
-const pwsys = require('./src/password');
+const pwsys = require('../src/password');
+
+const enccfg = require('./encrypt-config.json');
+const srvcfg = require('../config.json');
 
 var doEncrypt = true;
 var files = [];
@@ -28,13 +31,23 @@ if (files.length > 0) {
 
     var cipher;
 
+    let serial = pwsys.getSerial(enccfg);
+    let vers = pwsys.getVersion(enccfg);
+
     if (doEncrypt) {
-        var [bytes, secret] = pwsys.makeNewPassword('123','1.2','whatever','whatwhat');
+        var [bytes, secret] = pwsys.makeNewPassword(serial,
+                                                    vers,
+                                                    srvcfg.salt,
+                                                    enccfg.apiKey);
         cipher = crypto.createCipher('aes-256-cbc', secret);
         fs.writeFileSync('bytes.dat', bytes);
     } else {
         var bytes = fs.readFileSync('bytes.dat');
-        var secret = pwsys.makePassword('123','1.2','whatever','whatwhat', bytes);
+        var secret = pwsys.makePassword(serial,
+                                        vers,
+                                        srvcfg.salt,
+                                        enccfg.apiKey,
+                                        bytes);
         cipher = crypto.createDecipher('aes-256-cbc', secret);
     }
 

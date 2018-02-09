@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
-function makePassword(serial, firmvers, salt, nonce, bytes) {
-    var s = new Buffer(serial + firmvers + salt + nonce);
+function makePassword(serial, firmvers, salt, apikey, bytes) {
+    var s = new Buffer(serial + firmvers + salt + apikey);
     var res = [];
     var j = 0;
     for (var i = 0; i < bytes.length; i++) {
@@ -15,9 +15,25 @@ function makePassword(serial, firmvers, salt, nonce, bytes) {
     return new Buffer(res);
 }
 
-exports.makeNewPassword = (serial, firmvers, salt, nonce) => {
+exports.makeNewPassword = (serial, firmvers, salt, apikey) => {
     var bytes = new Buffer(crypto.randomBytes(2048));
-    return [bytes, makePassword(serial, firmvers, salt, nonce, bytes)];
+    return [bytes, makePassword(serial, firmvers, salt, apikey, bytes)];
 }
 
 exports.makePassword = makePassword;
+
+exports.getSerial = (enccfg) => {
+    return [
+        enccfg.vid,
+        enccfg.pid,
+        enccfg.descString1,
+        enccfg.descString2,
+        enccfg.descString3].join(":");
+}
+
+exports.getVersion = (enccfg) => {
+    return [
+        enccfg.mfg,
+        enccfg.prod,
+        enccfg.serial].join(".");
+}
