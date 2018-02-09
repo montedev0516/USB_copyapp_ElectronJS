@@ -39,7 +39,12 @@ if (files.length > 0) {
     }
 
     for (fn in files) {
-        var fnout = files[fn] + '.evusb';
+        var fnout;
+        if (doEncrypt) {
+            fnout = files[fn] + '.lock';
+        } else {
+            fnout = files[fn].replace('.lock','');
+        }
         var input = fs.createReadStream(files[fn]);
         var output = fs.createWriteStream(fnout);
 
