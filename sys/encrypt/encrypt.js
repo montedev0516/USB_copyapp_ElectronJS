@@ -33,6 +33,8 @@ if (files.length > 0) {
 
     let serial = pwsys.getSerial(enccfg);
     let vers = pwsys.getVersion(enccfg);
+    console.log('serial: ' + serial);
+    console.log('vers  : ' + vers);
 
     if (doEncrypt) {
         var [bytes, secret] = pwsys.makeNewPassword(serial,

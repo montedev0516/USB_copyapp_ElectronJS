@@ -17,7 +17,7 @@ function createWindow() {
     mainWindow = new electron.BrowserWindow();
 
     mainWindow.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
-        details.requestHeaders['x-api-key'] = 'whatwhat'; //secret
+        details.requestHeaders['x-api-key'] = '0e4c73b2bb4e40bfaf8a71be2fa4fb39'; // TODO: this is secret
         details.requestHeaders['session-id'] = sessionId;
         callback({cancel:false, requestHeaders: details.requestHeaders});
     });
