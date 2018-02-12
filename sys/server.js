@@ -9,7 +9,7 @@ const pwsys = require('./src/password');
 const crypto = require('crypto');
 const usb = require('usb');
 
-var _uuid = 'c02bb8c7-8cca-4805-9711-0545a471103f'; //null;
+var _uuid = null;
 var _agent = null;
 
 var app = express();
