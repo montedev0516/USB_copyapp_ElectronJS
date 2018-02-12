@@ -22,18 +22,18 @@ exports.makeNewPassword = (serial, firmvers, salt, apikey) => {
 
 exports.makePassword = makePassword;
 
-exports.getSerial = (enccfg, descLength) => {
+exports.getSerial = (enccfg, srvcfg) => {
     return [
         enccfg.vid,
         enccfg.pid,
         enccfg.descString1,
         enccfg.descString2,
-        enccfg.descString3.substr(0, descLength)].join(":");
+        enccfg.descString3.substr(0, srvcfg.serialLength)].join(":");
 }
 
-exports.getVersion = (enccfg) => {
+exports.getVersion = (enccfg, srvcfg) => {
     return [
         enccfg.mfg,
         enccfg.prod,
-        enccfg.serial].join(".");
+        srvcfg.useDeviceSerialNum ?  enccfg.serial : 'X'].join(".");
 }

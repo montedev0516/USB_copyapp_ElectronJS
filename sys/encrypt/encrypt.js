@@ -59,8 +59,8 @@ function go(idx, serial, vers, secret) {
 if (files.length > 0) {
     console.log('encrypting ' + files.length + ' files');
 
-    let serial = pwsys.getSerial(enccfg, srvcfg.serialLength);
-    let vers = pwsys.getVersion(enccfg);
+    let serial = pwsys.getSerial(enccfg, srvcfg);
+    let vers = pwsys.getVersion(enccfg, srvcfg);
     console.log('serial: ' + serial);
     console.log('vers  : ' + vers);
     console.log('apikey: ' + enccfg.apiKey);

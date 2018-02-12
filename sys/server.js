@@ -56,8 +56,8 @@ for (var device of devices) {
                     "descString3": descs[3]
                 };
 
-                serial = pwsys.getSerial(usbcfg, cfg.serialLength);
-                firmVers = pwsys.getVersion(usbcfg);
+                serial = pwsys.getSerial(usbcfg, cfg);
+                firmVers = pwsys.getVersion(usbcfg, cfg);
                 console.log('serial : ' + serial);
                 console.log('vers   : ' + firmVers);
                 return Promise.resolve();
