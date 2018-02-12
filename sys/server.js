@@ -59,7 +59,7 @@ for (var device of devices) {
                 serial = pwsys.getSerial(usbcfg);
                 firmVers = pwsys.getVersion(usbcfg);
                 console.log('serial : ' + serial);
-                console.log('version: ' + firmVers);
+                console.log('vers   : ' + firmVers);
                 return Promise.resolve();
             }).then(() => {device.close();})
         ;
@@ -107,7 +107,7 @@ app.get('/x', function(req, res) {
     let type = req.query.t;
     let key = req.get('x-api-key');
     console.log('decrypt: ' + fname);
-    console.log('key: ' + key);
+    console.log('apikey : ' + key);
     fs.readFile(fname, (err, data) => {
         if (err) {
             console.log('READ ERROR: ' + err);

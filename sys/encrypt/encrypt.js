@@ -26,25 +26,54 @@ for (var i = 2; i < process.argv.length; i++) {
 }
 
 
+function go(idx, serial, vers, secret) {
+    if (idx >= files.length) {
+        return;
+    }
+
+    file = files[idx];
+    var cipher;
+    if (doEncrypt) {
+        cipher = crypto.createCipher('aes-256-cbc', secret);
+    } else {
+        cipher = crypto.createDecipher('aes-256-cbc', secret);
+    }
+
+    var fnout;
+    if (doEncrypt) {
+        fnout = file + '.lock';
+    } else {
+        fnout = file.replace('.lock','');
+    }
+    var input = fs.createReadStream(file);
+    var output = fs.createWriteStream(fnout);
+
+    input.pipe(cipher).pipe(output);
+    input.on('end', () => {
+        console.log(fnout);
+        // process next file
+        go(idx + 1, serial, vers, secret, bytes);
+    });
+}
+
 if (files.length > 0) {
     console.log('encrypting ' + files.length + ' files');
-
-    var cipher;
 
     let serial = pwsys.getSerial(enccfg);
     let vers = pwsys.getVersion(enccfg);
     console.log('serial: ' + serial);
     console.log('vers  : ' + vers);
+    console.log('apikey: ' + enccfg.apiKey);
 
+    var secret;
     if (doEncrypt) {
-        var [bytes, secret] = pwsys.makeNewPassword(serial,
-                                                    vers,
-                                                    srvcfg.salt,
-                                                    enccfg.apiKey);
-        cipher = crypto.createCipher('aes-256-cbc', secret);
+        var bytes;
+        [bytes, secret] = pwsys.makeNewPassword(serial,
+                                                vers,
+                                                srvcfg.salt,
+                                                enccfg.apiKey);
         fs.writeFileSync('bytes.dat', bytes);
 
-        console.log('apikey: ' + enccfg.apiKey);
         var kbuf = Buffer.from(enccfg.apiKey, 'hex');
         fs.writeFileSync('.hidfil.sys', kbuf);
     } else {
@@ -52,26 +81,13 @@ if (files.length > 0) {
         var apikey = kbuf.toString('hex');
         var bytes = fs.readFileSync('bytes.dat');
 
-        console.log('apikey: ' + apikey);
-        var secret = pwsys.makePassword(serial,
-                                        vers,
-                                        srvcfg.salt,
-                                        apikey,
-                                        bytes);
-        cipher = crypto.createDecipher('aes-256-cbc', secret);
+        console.log('key   : ' + apikey);
+        secret = pwsys.makePassword(serial,
+                                    vers,
+                                    srvcfg.salt,
+                                    apikey,
+                                    bytes);
     }
 
-    for (fn in files) {
-        var fnout;
-        if (doEncrypt) {
-            fnout = files[fn] + '.lock';
-        } else {
-            fnout = files[fn].replace('.lock','');
-        }
-        var input = fs.createReadStream(files[fn]);
-        var output = fs.createWriteStream(fnout);
-
-        input.pipe(cipher).pipe(output);
-        console.log(fnout);
-    }
+    go(0, serial, vers, secret);
 }
