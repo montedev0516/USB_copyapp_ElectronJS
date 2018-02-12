@@ -15,9 +15,9 @@ $(function(){
 
     $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
         $("#loading").html(
-            'Status: ' + data.status + '<br/>' +
-            '<a href="' + cfg.LAUNCH_URL + '">Launch</a>'
+            'Status: ' + data.status + '<br/>'
         )
+        window.location.replace(cfg.LAUNCH_URL);
     });
 
 });

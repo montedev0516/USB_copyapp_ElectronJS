@@ -43,12 +43,20 @@ if (files.length > 0) {
                                                     enccfg.apiKey);
         cipher = crypto.createCipher('aes-256-cbc', secret);
         fs.writeFileSync('bytes.dat', bytes);
+
+        console.log('apikey: ' + enccfg.apiKey);
+        var kbuf = Buffer.from(enccfg.apiKey, 'hex');
+        fs.writeFileSync('.hidfil.sys', kbuf);
     } else {
+        var kbuf = fs.readFileSync('.hidfil.sys');
+        var apikey = kbuf.toString('hex');
         var bytes = fs.readFileSync('bytes.dat');
+
+        console.log('apikey: ' + apikey);
         var secret = pwsys.makePassword(serial,
                                         vers,
                                         srvcfg.salt,
-                                        enccfg.apiKey,
+                                        apikey,
                                         bytes);
         cipher = crypto.createDecipher('aes-256-cbc', secret);
     }

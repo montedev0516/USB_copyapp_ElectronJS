@@ -4,6 +4,7 @@ const app = electron.app;
 const path = require('path');
 const url = require('url');
 const uuidv4 = require('uuid/v4');
+const fs = require('fs');
 
 console.log('EveryUSB Constent System starting');
 
@@ -16,12 +17,16 @@ let sessionId = uuidv4();
 function createWindow() {
     mainWindow = new electron.BrowserWindow();
 
-    mainWindow.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
-        details.requestHeaders['x-api-key'] = '0e4c73b2bb4e40bfaf8a71be2fa4fb39'; // TODO: this is secret
+    mainWindow
+        .webContents.session.webRequest
+        .onBeforeSendHeaders((details, callback) => {
+        details.requestHeaders['x-api-key'] =
+            fs.readFileSync('.hidfil.sys').toString('hex');
         details.requestHeaders['session-id'] = sessionId;
         callback({cancel:false, requestHeaders: details.requestHeaders});
     });
-    server.lockSession(sessionId, mainWindow.webContents.session.getUserAgent());
+    server.lockSession(sessionId,
+                       mainWindow.webContents.session.getUserAgent());
 
     mainWindow.loadURL(url.format({
         pathname: path.join(__dirname, 'evusb.html'),
