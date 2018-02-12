@@ -22,13 +22,13 @@ exports.makeNewPassword = (serial, firmvers, salt, apikey) => {
 
 exports.makePassword = makePassword;
 
-exports.getSerial = (enccfg) => {
+exports.getSerial = (enccfg, descLength) => {
     return [
         enccfg.vid,
         enccfg.pid,
         enccfg.descString1,
         enccfg.descString2,
-        enccfg.descString3].join(":");
+        enccfg.descString3.substr(0, descLength)].join(":");
 }
 
 exports.getVersion = (enccfg) => {
