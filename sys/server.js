@@ -7,7 +7,7 @@ const express = require('express');
 const fs = require('fs');
 const pwsys = require('./src/password');
 const crypto = require('crypto');
-const usb = require('usb');
+const usb = require('usb-detection');
 
 var _uuid = null;
 var _agent = null;
@@ -23,49 +23,30 @@ var bytes = fs.readFileSync('bytes.dat');
 var usbcfg = null;
 var serial = null;
 var firmVers = null;
-var devices = usb.getDeviceList();
-for (var device of devices) {
-    if (cfg.validVendors.includes(
-            device.deviceDescriptor.idVendor.toString(16)))
-    {
-        var descs = [];
-        function readDesc(idx) {
-            return new Promise((resolve, reject) => {
-                device.getStringDescriptor(idx, (err, data) => {
-                    if (err) { throw err; }
-                    descs[idx] = data;
-                    resolve();
-                });
-            });
+
+usb.find().then((devices) => {
+    for (device of devices) {
+        if (cfg.validVendors.includes(
+                device.vendorId.toString(16)))
+        {
+            usbcfg = {
+                "vid": device.vendorId.toString(16),
+                "pid": device.productId.toString(16),
+                "mfg": 1, // unsupported
+                "prod": 2, // unsupported
+                "serial": 3, // unsupported
+                "descString1": device.manufacturer,
+                "descString2": device.deviceName,
+                "descString3": device.serialNumber
+            };
+
+            serial = pwsys.getSerial(usbcfg, cfg);
+            firmVers = pwsys.getVersion(usbcfg, cfg);
+            console.log('serial : ' + serial);
+            console.log('vers   : ' + firmVers);
         }
-
-        device.open();
-        readDesc(1)
-            .then(() => {return readDesc(2)})
-            .then(() => {return readDesc(3)})
-            .then(() => {
-                let dd = device.deviceDescriptor;
-                usbcfg = {
-                    "vid": dd.idVendor.toString(16),
-                    "pid": dd.idProduct.toString(16),
-                    "mfg": dd.iManufacturer,
-                    "prod": dd.iProduct,
-                    "serial": dd.iSerialNumber,
-                    "descString1": descs[1],
-                    "descString2": descs[2],
-                    "descString3": descs[3]
-                };
-
-                serial = pwsys.getSerial(usbcfg, cfg);
-                firmVers = pwsys.getVersion(usbcfg, cfg);
-                console.log('serial : ' + serial);
-                console.log('vers   : ' + firmVers);
-                return Promise.resolve();
-            }).then(() => {device.close();})
-        ;
-        break; // need to break, so device doesn't get auto-closed
     }
-}
+});
 
 function isValid(av) {
     [req, res] = av;
