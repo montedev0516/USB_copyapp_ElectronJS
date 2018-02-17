@@ -35,8 +35,8 @@ usb.find().then((devices) => {
                 "mfg": 1, // unsupported
                 "prod": 2, // unsupported
                 "serial": 3, // unsupported
-                "descString1": device.manufacturer,
-                "descString2": device.deviceName,
+                "descString1": "", // device.manufacturer, // not cross-platform
+                "descString2": "", // device.deviceName, // not cross-platform
                 "descString3": device.serialNumber
             };
 

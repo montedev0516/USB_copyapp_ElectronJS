@@ -4,8 +4,8 @@
     "mfg": "1",
     "prod": "2",
     "serial": "3",
-    "descString1": "Generic",
-    "descString2": "Mass Storage",
+    "descString1": "",
+    "descString2": "",
     "descString3": "09119257",
     "apiKey": "0e4c73b2bb4e40bfaf8a71be2fa4fb39"
 }
