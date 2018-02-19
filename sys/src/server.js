@@ -5,7 +5,7 @@ var cfg = require('./config.json');
 
 const express = require('express');
 const fs = require('fs');
-const pwsys = require('./src/password');
+const pwsys = require('./password');
 const crypto = require('crypto');
 const usb = require('usb-detection');
 

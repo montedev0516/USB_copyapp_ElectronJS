@@ -29,7 +29,7 @@ function createWindow() {
                        mainWindow.webContents.session.getUserAgent());
 
     mainWindow.loadURL(url.format({
-        pathname: path.join(__dirname, 'evusb.html'),
+        pathname: path.join(__dirname, '../evusb.html'),
         protocol: 'file:',
         slashes: true
     }));

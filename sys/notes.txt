@@ -1,3 +1,5 @@
 
 Node file browser: https://github.com/sumitchawla/file-browser.git
 
+Electron forge:
+$ npm install -g electron-forge
