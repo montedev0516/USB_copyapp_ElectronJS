@@ -7,7 +7,14 @@ const express = require('express');
 const fs = require('fs');
 const pwsys = require('./src/password');
 const crypto = require('crypto');
-const usb = require('usb-detection');
+const os = require('os');
+
+var usb; // not cross platform
+if (os.platform() === 'linux') {
+    usb = require('usb-detection.linux');
+} else {
+    usb = require('usb-detection.win32');
+}
 
 var _uuid = null;
 var _agent = null;
