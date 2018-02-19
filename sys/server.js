@@ -115,7 +115,7 @@ app.get('/x', function(req, res) {
 
 });
 
-app.listen(cfg.SERVER_PORT, () => {
+app.listen(cfg.SERVER_PORT, 'localhost', () => {
     console.log('Listening on ' + cfg.SERVER_PORT);
 });
 
