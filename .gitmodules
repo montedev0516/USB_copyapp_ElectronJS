@@ -1,0 +1,6 @@
+[submodule "repo/file-browser"]
+	path = repo/file-browser
+	url = https://github.com/sumitchawla/file-browser.git
+[submodule "repo/node-usb-detection"]
+	path = repo/node-usb-detection
+	url = https://github.com/ddombrowsky/node-usb-detection.git
