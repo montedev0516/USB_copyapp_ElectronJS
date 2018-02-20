@@ -41,7 +41,8 @@
         ]
       },
       "electronPackagerConfig": {
-        "packageManager": "npm"
+        "packageManager": "npm",
+        "ignore": ["content.orig", "encrypt"]
       },
       "electronWinstallerConfig": {
         "name": "everyusb"

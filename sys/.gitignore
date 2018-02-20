@@ -5,3 +5,4 @@ bytes.dat
 .hidfil.sys
 content.orig
 out/
+.cache

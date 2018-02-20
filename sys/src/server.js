@@ -89,7 +89,7 @@ app.get('/status', function(req, res) {
 app.get('/x', function(req, res) {
     if (!isValid([req, res])) { return; }
 
-    let fname = './content/' + req.query.f; // TODO now: sanitize this filename
+    let fname = path.join(__dirname, '../content/') + req.query.f; // TODO now: sanitize this filename
     let type = req.query.t;
     let key = req.get('x-api-key');
     console.log('decrypt: ' + fname);
