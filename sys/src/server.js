@@ -3,6 +3,7 @@
 //
 var cfg = require('./config.json');
 
+const path = require('path');
 const express = require('express');
 const fs = require('fs');
 const pwsys = require('./password');
@@ -17,7 +18,7 @@ var app = express();
 // Get the random bytes buffer used for encryption.  This /could/
 // also be encrypted, but it would be trivially easy to get the secret
 // to decrypt it, so why?
-var bytes = fs.readFileSync('bytes.dat');
+var bytes = fs.readFileSync(path.join(__dirname, '../bytes.dat'));
 
 // get drive info
 var usbcfg = null;
@@ -25,7 +26,8 @@ var serial = null;
 var firmVers = null;
 
 usb.find().then((devices) => {
-    for (device of devices) {
+    for (let i=0; i < devices.length; i++) {
+        let device = devices[i];
         if (cfg.validVendors.includes(
                 device.vendorId.toString(16)))
         {
@@ -46,10 +48,13 @@ usb.find().then((devices) => {
             console.log('vers   : ' + firmVers);
         }
     }
+}).catch((err) => {
+    console.log(err);
+    process.exit(-1);
 });
 
 function isValid(av) {
-    [req, res] = av;
+    var [req, res] = av;
 
     // no valid device present, exit.
     if (usbcfg == null) {
