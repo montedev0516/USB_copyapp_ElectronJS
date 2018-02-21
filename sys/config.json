@@ -4,5 +4,6 @@
     "salt": "c17155ee526f4f39bad7d262395a26ad",
     "validVendors": ["58f"],
     "serialLength": 5,
-    "useDeviceSerialNum": false
+    "useDeviceSerialNum": false,
+    "fileBrowserEnabled": true
 }

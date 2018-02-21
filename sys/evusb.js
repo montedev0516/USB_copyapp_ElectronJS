@@ -5,7 +5,7 @@
 var cfg = require('./config.json');
 global.$ = $;
 
-const URL="http://localhost:" + cfg.SERVER_PORT;
+const URL = "http://localhost:" + cfg.SERVER_PORT;
 
 $(function(){
     console.log('Document loaded, jQuery booted.');
@@ -17,7 +17,11 @@ $(function(){
         $("#loading").html(
             'Status: ' + data.status + '<br/>'
         )
-        window.location.replace(cfg.LAUNCH_URL);
+        if (cfg.fileBrowserEnabled) {
+            window.location.replace(URL);
+        } else {
+            window.location.replace(cfg.LAUNCH_URL);
+        }
     });
 
 });

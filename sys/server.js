@@ -3,11 +3,17 @@
 //
 var cfg = require('./config.json');
 
+const path = require('path');
 const express = require('express');
 const fs = require('fs');
 const pwsys = require('./src/password');
 const crypto = require('crypto');
 const os = require('os');
+
+var filebrowser;
+if (cfg.fileBrowserEnabled) {
+    filebrowser = require('file-browser');
+}
 
 var usb; // not cross platform
 if (os.platform() === 'linux') {
@@ -121,6 +127,31 @@ app.get('/x', function(req, res) {
     });
 
 });
+
+if (cfg.fileBrowserEnabled) {
+    var contentDir = path.join(__dirname, 'content');
+
+    app.use(express.static(filebrowser.moduleroot));
+    filebrowser.setcwd(contentDir);
+    app.get('/files', filebrowser.get);
+    app.get('/', (req, res) => {
+        res.redirect('lib/template.html');
+    });
+
+    var options = {
+        root: contentDir
+    };
+
+    app.get('/b', (req, res) => {
+        let file = req.query.f;
+        res.sendFile(file, options, (err) => {
+            if (err) {
+                console.log('ERROR: ' + err);
+            }
+        });
+    });
+
+}
 
 app.listen(cfg.SERVER_PORT, 'localhost', () => {
     console.log('Listening on ' + cfg.SERVER_PORT);
