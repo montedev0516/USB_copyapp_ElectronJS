@@ -53,8 +53,8 @@ function createWindow() {
 
         win.webContents.on('dom-ready', () =>
             win.webContents.executeJavaScript(
-                "document.querySelector('viewer-pdf-toolbar')" +
-                    ".style.display = \"none\"")
+                "tb = document.querySelector('viewer-pdf-toolbar'); " +
+                "if (tb) { tb.style.display = \"none\" }")
         );
 
         mainWindow.newGuest = win;

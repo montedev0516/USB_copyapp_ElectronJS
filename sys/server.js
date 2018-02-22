@@ -9,6 +9,7 @@ const fs = require('fs');
 const pwsys = require('./src/password');
 const crypto = require('crypto');
 const os = require('os');
+const mime = require('mime-types');
 
 var filebrowser;
 if (cfg.fileBrowserEnabled) {
@@ -94,14 +95,7 @@ app.get('/status', function(req, res) {
     });
 });
 
-app.get('/x', function(req, res) {
-    if (!isValid([req, res])) { return; }
-
-    let fname = './content/' + req.query.f; // TODO now: sanitize this filename
-    let type = req.query.t;
-    let key = req.get('x-api-key');
-    console.log('decrypt: ' + fname);
-    console.log('apikey : ' + key);
+function decrypt(key, fname, type, res) {
     fs.readFile(fname, (err, data) => {
         if (err) {
             console.log('READ ERROR: ' + err);
@@ -125,7 +119,16 @@ app.get('/x', function(req, res) {
             }
         }
     });
+}
 
+app.get('/x', function(req, res) {
+    if (!isValid([req, res])) { return; }
+
+    let fname = './content/' + req.query.f; // TODO now: sanitize this filename
+    let type = req.query.t;
+    let key = req.get('x-api-key');
+
+    decrypt(key, fname, type, res);
 });
 
 if (cfg.fileBrowserEnabled) {
@@ -135,6 +138,7 @@ if (cfg.fileBrowserEnabled) {
     filebrowser.setcwd(contentDir);
     app.get('/files', filebrowser.get);
     app.get('/', (req, res) => {
+        if (!isValid([req, res])) { return; }
         res.redirect('lib/template.html');
     });
 
@@ -143,12 +147,21 @@ if (cfg.fileBrowserEnabled) {
     };
 
     app.get('/b', (req, res) => {
+        if (!isValid([req, res])) { return; }
         let file = req.query.f;
-        res.sendFile(file, options, (err) => {
-            if (err) {
-                console.log('sendFile ERROR: ' + err);
-            }
-        });
+        let match = file.match(/\.([^.]*)\.lock/);
+        if (match) {
+            let fname = path.join(contentDir, file);
+            let type = mime.lookup(match[1]);
+            let key = req.get('x-api-key');
+            decrypt(key, fname, type, res);
+        } else {
+            res.sendFile(file, options, (err) => {
+                if (err) {
+                    console.log('sendFile ERROR: ' + err);
+                }
+            });
+        }
     });
 
 }

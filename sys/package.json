@@ -8,6 +8,7 @@
     "express": "^4.16.2",
     "file-browser": "file:../repo/file-browser",
     "jquery": "^3.3.1",
+    "mime-types": "^2.1.18",
     "usb-detection": "file:../repo/node-usb-detection",
     "uuid": "^3.2.1"
   },
