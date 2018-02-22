@@ -1,3 +1,3 @@
 #!/bin/sh
 
-exec ./node_modules/electron/dist.linux/electron index.js
+exec ./electron.linux/electron index.js
