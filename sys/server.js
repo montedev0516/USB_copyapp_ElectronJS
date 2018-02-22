@@ -146,7 +146,7 @@ if (cfg.fileBrowserEnabled) {
         let file = req.query.f;
         res.sendFile(file, options, (err) => {
             if (err) {
-                console.log('ERROR: ' + err);
+                console.log('sendFile ERROR: ' + err);
             }
         });
     });

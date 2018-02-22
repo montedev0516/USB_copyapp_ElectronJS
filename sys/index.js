@@ -15,7 +15,13 @@ let mainWindow;
 let sessionId = uuidv4();
 
 function createWindow() {
-    mainWindow = new electron.BrowserWindow();
+    mainWindow = new electron.BrowserWindow({
+	width: 800,
+	height: 600,
+	webPreferences: {
+	    plugins: true
+	}
+    });
 
     mainWindow
         .webContents.session.webRequest
@@ -34,9 +40,27 @@ function createWindow() {
         slashes: true
     }));
 
-    //mainWindow.webContents.openDevTools()
+    mainWindow.webContents.on('new-window', (event, url) => {
+        event.preventDefault();
+        var win = new electron.BrowserWindow({
+            width: 800,
+            height: 600,
+            webPreferences: {
+                plugins: true
+            }
+        });
+        win.loadURL(url);
 
-    mainWindow.on('closed', function() {
+        win.webContents.on('dom-ready', () =>
+            win.webContents.executeJavaScript(
+                "document.querySelector('viewer-pdf-toolbar')" +
+                    ".style.display = \"none\"")
+        );
+
+        mainWindow.newGuest = win;
+    });
+
+    mainWindow.on('closed', () => {
         mainWindow = null;
     });
 }
