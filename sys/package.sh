@@ -1,5 +1,7 @@
 #!/bin/sh
 
+mkdir out || exit
+
 if [ -d out/dist ] ; then
     echo "out/dist not empty"
     exit 1
