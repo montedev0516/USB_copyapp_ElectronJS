@@ -34,6 +34,8 @@ function createWindow() {
     server.lockSession(sessionId,
                        mainWindow.webContents.session.getUserAgent());
 
+    mainWindow.maximize();
+
     mainWindow.loadURL(url.format({
         pathname: path.join(__dirname, 'evusb.html'),
         protocol: 'file:',

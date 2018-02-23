@@ -18,6 +18,7 @@ $(function(){
             loadStat($passed);
         } else {
             loadStat($locked);
+            return;
         }
         if (cfg.fileBrowserEnabled) {
             window.location.replace(URL);
