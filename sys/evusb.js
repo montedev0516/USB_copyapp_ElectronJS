@@ -14,7 +14,7 @@ $(function(){
     $.ajax({ accepts: "application/json" });
 
     $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
-        if (data.status) {
+        if (data.running) {
             loadStat($passed);
         } else {
             loadStat($locked);

@@ -69,7 +69,8 @@ function isValid(av) {
 
     // no valid device present, exit.
     if (usbcfg == null) {
-        throw "No valid USB device present";
+        console.error("No valid USB device present");
+        return false;
     }
 
     if (_uuid == null || _agent == null) {
@@ -89,12 +90,17 @@ function isValid(av) {
 }
 
 app.get('/status', function(req, res) {
-    if (!isValid([req, res])) { return; }
-
-    res.json({
-        "running": true,
-        "status": "running"
-    });
+    if (!isValid([req, res])) {
+        res.json({
+            "running": false,
+            "status": "blocked"
+        });
+    } else {
+        res.json({
+            "running": true,
+            "status": "running"
+        });
+    }
 });
 
 function decrypt(key, fname, type, res) {
