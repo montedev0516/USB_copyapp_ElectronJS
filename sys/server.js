@@ -129,10 +129,12 @@ function decrypt(key, fname, type, res) {
     });
 }
 
+var contentDir = path.join(__dirname, 'content');
+
 app.get('/x', function(req, res) {
     if (!isValid([req, res])) { return; }
 
-    let fname = './content/' + req.query.f; // TODO now: sanitize this filename
+    let fname = path.join(contentDir, req.query.f); // TODO now: sanitize this filename
     let type = req.query.t;
     let key = req.get('x-api-key');
 
@@ -140,8 +142,6 @@ app.get('/x', function(req, res) {
 });
 
 if (cfg.fileBrowserEnabled) {
-    var contentDir = path.join(__dirname, 'content');
-
     app.use(express.static(filebrowser.moduleroot));
     filebrowser.setcwd(contentDir);
     app.get('/files', filebrowser.get);
@@ -171,7 +171,8 @@ if (cfg.fileBrowserEnabled) {
             });
         }
     });
-
+} else {
+    app.use(express.static(contentDir));
 }
 
 app.listen(cfg.SERVER_PORT, 'localhost');
