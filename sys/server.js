@@ -19,6 +19,8 @@ if (cfg.fileBrowserEnabled) {
 var usb; // not cross platform
 if (os.platform() === 'linux') {
     usb = require('usb-detection.linux');
+} else if (os.platform() === 'darwin') {
+    usb = require('usb-detection.darwin');
 } else {
     usb = require('usb-detection.win32');
 }
