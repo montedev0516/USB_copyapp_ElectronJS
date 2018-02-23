@@ -14,9 +14,11 @@ $(function(){
     $.ajax({ accepts: "application/json" });
 
     $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
-        $("#loading").html(
-            'Status: ' + data.status + '<br/>'
-        )
+        if (data.status) {
+            loadStat($passed);
+        } else {
+            loadStat($locked);
+        }
         if (cfg.fileBrowserEnabled) {
             window.location.replace(URL);
         } else {
