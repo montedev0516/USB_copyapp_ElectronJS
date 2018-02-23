@@ -4,19 +4,28 @@ const crypto = require('crypto');
 const fs = require('fs');
 const pwsys = require('../src/password');
 
-const enccfg = require('./encrypt-config.json');
 const srvcfg = require('../config.json');
 
-var doEncrypt = true;
 var files = [];
 
-for (var i = 2; i < process.argv.length; i++) {
-    if (process.argv[i] === '-d') {
-        doEncrypt = false;
-        continue;
-    }
+if (process.argv[2] === '-h' || process.argv[2] === '--help') {
+    console.error('Usage: ' + process.argv[1] + '[--config file.json]');
+    console.error('      file.json: default -> encrypt-config.json');
+    process.exit(0);
+}
 
-    var fn = process.argv[i];
+var enccfg = require('./encrypt-config.json');
+if (process.argv[2] === '--config') {
+    enccfg = require(process.argv[3]);
+} else {
+    enccfg = require('./encrypt-config.json');
+}
+
+var doEncrypt = enccfg.encrypt;
+
+// validate files
+for (var i = 0; i < enccfg.files.length; i++) {
+    var fn = enccfg.files[i];
     if (fs.existsSync(fn)) {
         files.push(fn);
     } else {
@@ -24,7 +33,6 @@ for (var i = 2; i < process.argv.length; i++) {
         process.exit(-1);
     }
 }
-
 
 function go(idx, serial, vers, secret) {
     if (idx >= files.length) {
@@ -45,12 +53,13 @@ function go(idx, serial, vers, secret) {
     } else {
         fnout = file.replace('.lock','');
     }
+    fnout = fnout.replace(enccfg.inputPathTrim, enccfg.outputPathPrefix);
     var input = fs.createReadStream(file);
     var output = fs.createWriteStream(fnout);
 
     input.pipe(cipher).pipe(output);
     input.on('end', () => {
-        console.log(fnout);
+        console.log('wrote ' + fnout);
         // process next file
         go(idx + 1, serial, vers, secret, bytes);
     });

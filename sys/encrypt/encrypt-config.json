@@ -7,5 +7,12 @@
     "descString1": "",
     "descString2": "",
     "descString3": "09119257",
-    "apiKey": "0e4c73b2bb4e40bfaf8a71be2fa4fb39"
+    "apiKey": "0e4c73b2bb4e40bfaf8a71be2fa4fb39",
+    "encrypt": true,
+    "inputPathTrim": "content.orig",
+    "outputPathPrefix": "content",
+"files": [
+"content.orig/jabba-philosophy.png"
+,"content.orig/xkcd_epoch_fail.png"
+]
 }
