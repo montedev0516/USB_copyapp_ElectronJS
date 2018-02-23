@@ -58,8 +58,8 @@ usb.find().then((devices) => {
 
             serial = pwsys.getSerial(usbcfg, cfg);
             firmVers = pwsys.getVersion(usbcfg, cfg);
-            console.log('serial : ' + serial);
-            console.log('vers   : ' + firmVers);
+            //console.log('serial : ' + serial);
+            //console.log('vers   : ' + firmVers);
         }
     }
 });
@@ -168,9 +168,7 @@ if (cfg.fileBrowserEnabled) {
 
 }
 
-app.listen(cfg.SERVER_PORT, 'localhost', () => {
-    console.log('Listening on ' + cfg.SERVER_PORT);
-});
+app.listen(cfg.SERVER_PORT, 'localhost');
 
 exports.lockSession = (uuid, agent) => {
     _uuid = uuid;
