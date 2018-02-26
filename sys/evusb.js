@@ -5,14 +5,9 @@
 var cfg = require('./config.json');
 global.$ = $;
 
-const URL = "http://localhost:" + cfg.SERVER_PORT;
+const URL = "https://localhost:" + cfg.SERVER_PORT;
 
-$(function(){
-    console.log('Document loaded, jQuery booted.');
-
-
-    $.ajax({ accepts: "application/json" });
-
+function checkLoad(retry) {
     $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
         if (data.running) {
             loadStat($passed);
@@ -25,6 +20,20 @@ $(function(){
         } else {
             window.location.replace(cfg.LAUNCH_URL);
         }
+    }).fail(function(jqXHR, textStatus, err) {
+        console.log('Error reading statys, retry ' + retry);
+        if (retry > 0) {
+            setTimeout(() => {checkLoad(retry - 1)}, 333);
+        } else {
+            loadStat($locked);
+        }
     });
+}
 
+$(function(){
+    console.log('Document loaded, jQuery booted.');
+
+    $.ajax({ accepts: "application/json" });
+
+    checkLoad(10);
 });

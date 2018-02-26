@@ -1,5 +1,6 @@
 const electron = require('electron');
 const app = electron.app;
+app.commandLine.appendSwitch('ignore-certificate-errors');
 
 const path = require('path');
 const url = require('url');

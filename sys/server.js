@@ -10,6 +10,7 @@ const pwsys = require('./src/password');
 const crypto = require('crypto');
 const os = require('os');
 const mime = require('mime-types');
+const https = require('https');
 
 var filebrowser;
 if (cfg.fileBrowserEnabled) {
@@ -29,6 +30,10 @@ var _uuid = null;
 var _agent = null;
 
 var app = express();
+
+// load keyfiles for SSL
+var privkey = fs.readFileSync('cert/key.pem', 'utf8');
+var certificate = fs.readFileSync('cert/cert.pem', 'utf8');
 
 // Get the random bytes buffer used for encryption.  This /could/
 // also be encrypted, but it would be trivially easy to get the secret
@@ -60,6 +65,10 @@ usb.find().then((devices) => {
             firmVers = pwsys.getVersion(usbcfg, cfg);
             //console.log('serial : ' + serial);
             //console.log('vers   : ' + firmVers);
+
+            startServer();
+
+            break;
         }
     }
 });
@@ -90,7 +99,13 @@ function isValid(av) {
 }
 
 app.get('/status', function(req, res) {
-    if (!isValid([req, res])) {
+    let valid = isValid([req, res]);
+    if (res.headersSent) {
+        // already responded with "unauthorized"
+        return;
+    }
+
+    if (!valid) {
         res.json({
             "running": false,
             "status": "blocked"
@@ -102,6 +117,7 @@ app.get('/status', function(req, res) {
         });
     }
 });
+
 
 function decrypt(key, fname, type, res) {
     fs.readFile(fname, (err, data) => {
@@ -198,7 +214,19 @@ if (cfg.fileBrowserEnabled) {
     });
 }
 
-app.listen(cfg.SERVER_PORT, 'localhost');
+function startServer() {
+    server = https.createServer({
+        "key": privkey,
+        "cert": certificate,
+        "passphrase": serial
+    }, app);
+
+    server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
+        if (err) {
+            console.log('ERROR starting server: ' + err);
+        }
+    });
+}
 
 exports.lockSession = (uuid, agent) => {
     _uuid = uuid;
