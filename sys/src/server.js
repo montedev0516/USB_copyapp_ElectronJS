@@ -6,7 +6,7 @@ var cfg = require('./config.json');
 const path = require('path');
 const express = require('express');
 const fs = require('fs');
-const pwsys = require('./src/password');
+const pwsys = require('./password');
 const crypto = require('crypto');
 const os = require('os');
 const mime = require('mime-types');
@@ -145,7 +145,7 @@ function decrypt(key, fname, type, res) {
     });
 }
 
-var contentDir = path.join(__dirname, 'content');
+var contentDir = path.join(__dirname, '../content');
 
 app.get('/x', function(req, res) {
     if (!isValid([req, res])) { return; }

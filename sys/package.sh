@@ -19,6 +19,5 @@ rm -r node_modules/electron*
 rm -r node_modules/.bin
 cp ../../scripts/* .
 tar xvf ../content.tar.xz
-cp ../../*.js ../../evusb.html ../../config.json .
 cp -r ../../src .
 
