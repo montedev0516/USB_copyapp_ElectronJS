@@ -157,7 +157,7 @@ if (cfg.fileBrowserEnabled) {
     app.get('/b', (req, res) => {
         if (!isValid([req, res])) { return; }
         let file = req.query.f;
-        let match = file.match(/\.([^.]*)\.lock/);
+        let match = file.match(/\.([^.]*)\.lock$/);
         if (match) {
             let fname = path.join(contentDir, file);
             let type = mime.lookup(match[1]);
@@ -172,7 +172,28 @@ if (cfg.fileBrowserEnabled) {
         }
     });
 } else {
-    app.use(express.static(contentDir));
+    // detect *.lock files, and decrypt if needed
+    app.use((req, res) => {
+        let file = req.path;
+        let encfile = path.join(contentDir, file + '.lock');
+
+        fs.stat(encfile, (err, stats) => {
+            let match = encfile.match(/\.([^.]*)\.lock$/);
+            if ((err == null) && match) {
+                let type = mime.lookup(match[1]);
+                let key = req.get('x-api-key');
+                decrypt(key, encfile, type, res);
+            } else {
+                // standard file fetch
+                res.sendFile(file, {root: contentDir}, (err) => {
+                    if (err) {
+                        console.log('sendFile (static) ERROR: ' + err);
+                        res.sendStatus(404);
+                    }
+                });
+            }
+        });
+    });
 }
 
 app.listen(cfg.SERVER_PORT, 'localhost');
