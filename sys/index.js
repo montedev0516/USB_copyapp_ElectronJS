@@ -42,6 +42,8 @@ function createWindow() {
         slashes: true
     }));
 
+    mainWindow.webContents.on('dom-ready', () => onDomReady(mainWindow));
+
     mainWindow.webContents.on('new-window', (event, url) => {
         event.preventDefault();
         var win = new electron.BrowserWindow({
@@ -53,11 +55,7 @@ function createWindow() {
         });
         win.loadURL(url);
 
-        win.webContents.on('dom-ready', () =>
-            win.webContents.executeJavaScript(
-                "tb = document.querySelector('viewer-pdf-toolbar'); " +
-                "if (tb) { tb.style.display = \"none\" }")
-        );
+        win.webContents.on('dom-ready', () => onDomReady(win));
 
         mainWindow.newGuest = win;
     });
@@ -65,6 +63,12 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
+}
+
+function onDomReady(win) {
+    win.webContents.executeJavaScript(
+        "tb = document.querySelector('viewer-pdf-toolbar'); " +
+        "if (tb) { tb.style.display = \"none\" }")
 }
 
 app.on('ready', createWindow);
