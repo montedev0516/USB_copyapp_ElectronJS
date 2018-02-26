@@ -174,7 +174,7 @@ if (cfg.fileBrowserEnabled) {
 } else {
     // detect *.lock files, and decrypt if needed
     app.use((req, res) => {
-        let file = req.path;
+        let file = decodeURI(req.path);
         let encfile = path.join(contentDir, file + '.lock');
 
         fs.stat(encfile, (err, stats) => {
