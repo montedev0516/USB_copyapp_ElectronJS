@@ -1,23 +1,14 @@
 #!/bin/sh
 
-mkdir out || exit
-
-if [ -d out/dist ] ; then
-    echo "out/dist not empty"
-    exit 1
-fi
+[ ! -d out ] && mkdir out
 
 set -x
 
 tar cfJ out/content.tar.xz content/ bytes.dat .hidfil.sys
 
-mkdir out/dist && cd out/dist
+rm node_modules/file-browser node_modules/usb-detection*
+rm -f package-lock.json
 
-cp -L -r ../../node_modules .
-mv node_modules/electron/dist electron.linux
-rm -r node_modules/electron*
-rm -r node_modules/.bin
-cp ../../scripts/* .
-tar xvf ../content.tar.xz
-cp -r ../../src .
-
+electron-forge package
+cp -r ../repo/file-browser ./out/everyusb-linux-x64/resources/app/node_modules/
+cp -r ../repo/node-usb-detection ./out/everyusb-linux-x64/resources/app/node_modules/usb-detection.linux
