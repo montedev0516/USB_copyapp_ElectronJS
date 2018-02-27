@@ -5,6 +5,8 @@
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {
+    "electron-compile": "^6.4.2",
+    "electron-squirrel-startup": "^1.0.0",
     "express": "^4.16.2",
     "file-browser": "file:../repo/file-browser",
     "jquery": "^3.3.1",
@@ -13,13 +15,51 @@
     "uuid": "^3.2.1"
   },
   "devDependencies": {
-    "electron": "~1.8.2",
+    "babel-plugin-transform-async-to-generator": "^6.24.1",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-react": "^6.24.1",
+    "electron-forge": "^5.1.1",
+    "electron-prebuilt-compile": "1.8.2",
     "electron-rebuild": "~1.7.3"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ./src/index.js",
-    "prepare": "./link.sh"
+    "start": "electron-forge start",
+    "prepare": "./link.sh",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
-  "author": "David Dombrowsky"
+  "author": "David Dombrowsky",
+  "config": {
+    "forge": {
+      "make_targets": {
+        "win32": [
+          "squirrel"
+        ],
+        "darwin": [
+          "zip"
+        ],
+        "linux": [
+          "deb",
+          "rpm"
+        ]
+      },
+      "electronPackagerConfig": {
+        "packageManager": "npm"
+      },
+      "electronWinstallerConfig": {
+        "name": "everyusb"
+      },
+      "electronInstallerDebian": {},
+      "electronInstallerRedhat": {},
+      "github_repository": {
+        "owner": "",
+        "name": ""
+      },
+      "windowsStoreConfig": {
+        "packageName": "",
+        "name": "everyusb"
+      }
+    }
+  }
 }
