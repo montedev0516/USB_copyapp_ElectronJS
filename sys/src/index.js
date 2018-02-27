@@ -64,6 +64,7 @@ function createWindow() {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
+        process.exit(0);
     });
 }
 
