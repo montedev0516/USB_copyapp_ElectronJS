@@ -1,6 +1,6 @@
 #!/bin/sh
 
-OS=`/usr/bin/uname -s`
+OS=`/bin/uname -s`
 
 if [ $OS = "Linux" ] ; then
     link=node_modules/usb-detection.linux
@@ -12,5 +12,5 @@ else
 fi
 
 if [ ! -L $link ] ; then 
-    /usr/bin/ln -vs usb-detection $link
+    /bin/ln -vs usb-detection $link
 fi
