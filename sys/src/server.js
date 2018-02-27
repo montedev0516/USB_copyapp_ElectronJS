@@ -40,7 +40,7 @@ var certificate = fs.readFileSync(
 // Get the random bytes buffer used for encryption.  This /could/
 // also be encrypted, but it would be trivially easy to get the secret
 // to decrypt it, so why?
-var bytes = fs.readFileSync('bytes.dat');
+var bytes = fs.readFileSync(path.join(__dirname, '../bytes.dat'));
 
 // get drive info
 var usbcfg = null;

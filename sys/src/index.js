@@ -28,7 +28,8 @@ function createWindow() {
         .webContents.session.webRequest
         .onBeforeSendHeaders((details, callback) => {
         details.requestHeaders['x-api-key'] =
-            fs.readFileSync('.hidfil.sys').toString('hex');
+            fs.readFileSync(path.join(__dirname, '../.hidfil.sys'))
+              .toString('hex');
         details.requestHeaders['session-id'] = sessionId;
         callback({cancel:false, requestHeaders: details.requestHeaders});
     });
