@@ -1,6 +1,11 @@
 
-Node file browser: https://github.com/sumitchawla/file-browser.git
+* Node file browser: https://github.com/sumitchawla/file-browser.git
 
-generating self-signed certificates:
+* generating self-signed certificates:
 
 openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem -out cert/cert.pem -days 3650
+
+* make sure npm uses the right python for windows build:
+
+npm config set python "`cygpath -w /cygdrive/c/Python27/python.exe`"
+
