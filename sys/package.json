@@ -26,7 +26,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron-forge start",
-    "prepare": "./link.sh",
     "package": "electron-forge package",
     "make": "electron-forge make"
   },
