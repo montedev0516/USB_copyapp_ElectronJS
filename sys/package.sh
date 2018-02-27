@@ -6,7 +6,7 @@ set -x
 
 tar cfJ out/content.tar.xz content/ bytes.dat .hidfil.sys
 
-rm node_modules/file-browser node_modules/usb-detection*
+rm -f node_modules/file-browser node_modules/usb-detection*
 rm -f package-lock.json
 
 ( cd default_app ; asar pack . ../default_app.asar )

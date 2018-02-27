@@ -48,7 +48,9 @@
         "ignore": [
           "content.orig",
           "content.test",
-          "encrypt"
+          "default_app$",
+          "encrypt",
+          ".+.sh"
         ]
       },
       "electronWinstallerConfig": {
