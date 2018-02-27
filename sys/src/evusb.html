@@ -39,30 +39,8 @@
     </style>
 </head>
 <body>
-    <script>
-        $info =     `<div id="info">
-                        <div>Company Name</div>
-                        <div>Company Contact</div>
-                        <div>Company Email</div>
-                        <div>Company Website</div>
-                    </div>`;
-        $locked =   `<div class="hw locked">
-                        <img src="src/img/locked.png" class="center" /> ${$info} 
-                    </div>`;
-        $passed =   `<div class="hw passed">
-                        <img src="src/img/passed.png" class="center" /> ${$info} 
-                    </div>`;
-        $loading = `<div class="hw loading">
-                        <img src="src/img/loading.png" class="center" /> ${$info} 
-                    </div>`;
-    </script>
     <div id="status" class="hw"></div>
     <script>
-        function loadStat(status) {
-            //expcects "$locked", "$passed" or "$loading" as input. $loading is default.
-            $('#status').html(status);
-        }
-        loadStat($loading);
         require('./evusb.js');
     </script>
 </body>

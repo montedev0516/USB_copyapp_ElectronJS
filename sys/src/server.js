@@ -46,7 +46,8 @@ var serial = null;
 var firmVers = null;
 
 usb.find().then((devices) => {
-    for (device of devices) {
+    for (let i=0; i < devices.length; i++) {
+        let device = devices[i];
         if (cfg.validVendors.includes(
                 device.vendorId.toString(16)))
         {
@@ -74,7 +75,7 @@ usb.find().then((devices) => {
 });
 
 function isValid(av) {
-    [req, res] = av;
+    var [req, res] = av;
 
     // no valid device present, exit.
     if (usbcfg == null) {
@@ -215,7 +216,7 @@ if (cfg.fileBrowserEnabled) {
 }
 
 function startServer() {
-    server = https.createServer({
+    var server = https.createServer({
         "key": privkey,
         "cert": certificate,
         "passphrase": serial
