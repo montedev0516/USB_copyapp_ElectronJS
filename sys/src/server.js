@@ -32,8 +32,10 @@ var _agent = null;
 var app = express();
 
 // load keyfiles for SSL
-var privkey = fs.readFileSync('cert/key.pem', 'utf8');
-var certificate = fs.readFileSync('cert/cert.pem', 'utf8');
+var privkey = fs.readFileSync(
+    path.join(__dirname, '../cert/key.pem'), 'utf8');
+var certificate = fs.readFileSync(
+    path.join(__dirname, '../cert/cert.pem'), 'utf8');
 
 // Get the random bytes buffer used for encryption.  This /could/
 // also be encrypted, but it would be trivially easy to get the secret

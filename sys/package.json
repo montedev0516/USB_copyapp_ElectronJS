@@ -34,18 +34,22 @@
     "forge": {
       "make_targets": {
         "win32": [
-          "squirrel"
+          "zip"
         ],
         "darwin": [
           "zip"
         ],
         "linux": [
-          "deb",
-          "rpm"
+          "zip"
         ]
       },
       "electronPackagerConfig": {
-        "packageManager": "npm"
+        "packageManager": "npm",
+        "ignore": [
+          "content.orig",
+          "content.test",
+          "encrypt"
+        ]
       },
       "electronWinstallerConfig": {
         "name": "everyusb"
