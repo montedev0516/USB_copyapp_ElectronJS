@@ -9,3 +9,14 @@ openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem -out cert/cert.pem -days
 
 npm config set python "`cygpath -w /cygdrive/c/Python27/python.exe`"
 
+* Default app:
+** The "default" app must be included as a subdir of the electron executable,
+   and therefore needs to be duplicated for each platform.  This is
+   just a thin redirect to the common resources directory (specified on the
+   command line).
+** This is also where the icon is defined.
+** build with:
+
+cd default_app ; asar pack  . ../default_app.asar
+
+
