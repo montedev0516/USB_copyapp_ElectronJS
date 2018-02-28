@@ -1,17 +1,13 @@
 const {app, dialog} = require('electron')
 
-const fs = require('fs')
-const Module = require('module')
-const path = require('path')
+const fs = require('fs');
+const Module = require('module');
+const path = require('path');
 
-// Parse command line options.
-const argv = process.argv.slice(1)
-const file = argv[0];
+// load root file
+const file = path.join(__dirname, '../../../resources/app/src/index.js');
 
 function loadApplicationPackage (packagePath) {
-  // Add a flag indicating app is started from default app.
-  process.defaultApp = true
-
   try {
     // Override app name and version.
     packagePath = path.resolve(packagePath)
