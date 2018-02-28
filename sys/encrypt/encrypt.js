@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const pwsys = require('../src/password');
 
-const srvcfg = require('../config.json');
+const srvcfg = require('../src/config.json');
 
 var files = [];
 
