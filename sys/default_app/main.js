@@ -5,6 +5,7 @@ const Module = require('module');
 const path = require('path');
 
 // load root file
+//const file = path.join(__dirname, '../../../../sys/resources/app/src/index.js');
 const file = path.join(__dirname, '../../../resources/app/src/index.js');
 
 function loadApplicationPackage (packagePath) {
