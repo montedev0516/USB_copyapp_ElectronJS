@@ -10,7 +10,9 @@ const URL = "https://localhost:" + cfg.SERVER_PORT;
 function checkLoad(retry) {
     $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
         if (data.running) {
-            loadStat(passed);
+            /* This causes the screen to flash before loading the
+             * landing page.  Probably not necessary. 
+            loadStat(passed); */
         } else {
             loadStat(locked);
             return;
