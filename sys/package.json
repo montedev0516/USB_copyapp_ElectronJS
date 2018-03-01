@@ -47,11 +47,14 @@
       "electronPackagerConfig": {
         "packageManager": "npm",
         "ignore": [
-          "content.orig",
-          "content.test",
+          "content\\.orig",
+          "content\\.test",
           "default_app$",
           "encrypt",
-          ".+.sh"
+          "content\\..*",
+          "trash",
+          "README\\.md",
+          ".+\\.sh"
         ]
       },
       "electronWinstallerConfig": {
