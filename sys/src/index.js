@@ -7,7 +7,7 @@ const url = require('url');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 
-console.log('EveryUSB Constent System starting');
+console.log('System starting');
 
 // start the server
 const server = require('./server.js');

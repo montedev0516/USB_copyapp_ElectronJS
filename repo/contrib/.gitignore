@@ -2,3 +2,5 @@ electron.darwin
 electron.linux
 electron.win32
 node_modules
+usb-detection.darwin
+usb-detection.win32

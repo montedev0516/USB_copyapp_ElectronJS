@@ -8,24 +8,35 @@ tar cfJ out/content.tar.xz content/ bytes.dat .hidfil.sys
 
 ( cd default_app ; asar pack . ../default_app.asar )
 
+# production names for app are different, and defined in the package file
+mv package.json encrypt/package.json.save
+cp encrypt/package.json.prod ./package.json
+
 electron-forge package || exit
-if [ -d ./out/everyusb-linux-x64 ] ; then
-    dir=everyusb-linux-x64
+if [ -d ./out/load-content-linux-x64 ] ; then
+    dir=load-content-linux-x64
     suffix=linux
-elif [ -d ./out/everyusb-darwin-x64 ] ; then
-    dir=everyusb-darwin-x64/everyusb.app/Contents
+elif [ -d ./out/load-content-darwin-x64 ] ; then
+    dir=load-content-darwin-x64/load-content.app/Contents
     suffix=darwin
-elif [ -d ./out/everyusb-win32-ia32 ] ; then
-    dir=everyusb-win32-ia32
+elif [ -d ./out/load-content-win32-ia32 ] ; then
+    dir=load-content-win32-ia32
     suffix=win32
 else
     echo "ERROR: no output dir present"
     exit -1
 fi
 
+rm package.json
+mv encrypt/package.json.save ./package.json
+
 mv ./out/$dir/resources/app/node_modules/usb-detection ./out/$dir/resources/app/node_modules/usb-detection.$suffix
 
 cd ./out/$dir || exit
+
+# no readmes
+find . -iname \*.md -delete
+
 if [ $suffix = darwin ] ; then
     mv resources ../..
     mkdir resources

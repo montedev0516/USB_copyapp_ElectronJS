@@ -58,7 +58,7 @@
         ]
       },
       "electronWinstallerConfig": {
-        "name": "load-content"
+        "name": "everyusb"
       },
       "electronInstallerDebian": {},
       "electronInstallerRedhat": {},
@@ -68,7 +68,7 @@
       },
       "windowsStoreConfig": {
         "packageName": "",
-        "name": "load-content"
+        "name": "everyusb"
       }
     }
   }
