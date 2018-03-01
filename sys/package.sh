@@ -38,13 +38,18 @@ else
     mv ../resources/app/default_app.asar ./resources
 fi
 
-obf=`which javascript-obfuscator`
+cd ..
+
+rm ./resources/app/package*
+
+# note this requires uglify-es@3
+obf=`which uglifyjs`
 
 if [ -n "$obf" ] ; then
-    cd ..
     find ./resources/app/src -name \*.js -exec sh -c '
         n=f_.tmp
-        '$obf' "'{}'" -o $n
+        '$obf' --compress --output $n -- "'{}'"
         mv $n "'{}'"
     ' \;
 fi
+
