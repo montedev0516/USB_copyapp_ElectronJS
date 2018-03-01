@@ -1,7 +1,7 @@
 {
-  "name": "everyusb",
+  "name": "usbcopypro",
   "version": "0.0.1",
-  "description": "Every USB Content System",
+  "description": "USBCopyPro Content System",
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {

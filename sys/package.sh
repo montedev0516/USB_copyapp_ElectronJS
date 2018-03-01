@@ -1,7 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+SYSNAME=usbcopypro
+
+cd `dirname $0` || exit
+_pwd=`pwd`
 
 [ ! -d out ] && mkdir out
 
+set -e
 set -x
 
 tar cfJ out/content.tar.xz content/ bytes.dat .hidfil.sys
@@ -12,15 +17,15 @@ tar cfJ out/content.tar.xz content/ bytes.dat .hidfil.sys
 mv package.json encrypt/package.json.save
 cp encrypt/package.json.prod ./package.json
 
-electron-forge package || exit
-if [ -d ./out/load-content-linux-x64 ] ; then
-    dir=load-content-linux-x64
+electron-forge package 
+if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
+    dir=${SYSNAME}-linux-x64
     suffix=linux
-elif [ -d ./out/load-content-darwin-x64 ] ; then
-    dir=load-content-darwin-x64/load-content.app/Contents
+elif [ -d ./out/${SYSNAME}-darwin-x64 ] ; then
+    dir=${SYSNAME}-darwin-x64/${SYSNAME}.app/Contents
     suffix=darwin
-elif [ -d ./out/load-content-win32-ia32 ] ; then
-    dir=load-content-win32-ia32
+elif [ -d ./out/${SYSNAME}-win32-ia32 ] ; then
+    dir=${SYSNAME}-win32-ia32
     suffix=win32
 else
     echo "ERROR: no output dir present"
@@ -32,7 +37,10 @@ mv encrypt/package.json.save ./package.json
 
 mv ./out/$dir/resources/app/node_modules/usb-detection ./out/$dir/resources/app/node_modules/usb-detection.$suffix
 
-cd ./out/$dir || exit
+cd ./out/$dir/resources/app/node_modules
+tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
+
+cd $_pwd/out/$dir
 
 # no readmes
 find . -iname \*.md -delete
@@ -49,7 +57,7 @@ else
     mv ../resources/app/default_app.asar ./resources
 fi
 
-cd ..
+cd $_pwd/out
 
 rm ./resources/app/package*
 
