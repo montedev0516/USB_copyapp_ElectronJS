@@ -26,7 +26,7 @@ fi
 mv ./out/$dir/resources/app/node_modules/usb-detection ./out/$dir/resources/app/node_modules/usb-detection.$suffix
 
 cd ./out/$dir || exit
-if [ $suffix == darwin ] ; then
+if [ $suffix = darwin ] ; then
     mv resources ../..
     mkdir resources
     mv ../../resources/electron.asar ../../resources/*.lproj ../../resources/*.icns ./resources
@@ -38,3 +38,13 @@ else
     mv ../resources/app/default_app.asar ./resources
 fi
 
+obf=`which javascript-obfuscator`
+
+if [ -n "$obf" ] ; then
+    cd ..
+    find ./resources/app/src -name \*.js -exec sh -c '
+        n=f_.tmp
+        '$obf' "'{}'" -o $n
+        mv $n "'{}'"
+    ' \;
+fi
