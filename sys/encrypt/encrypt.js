@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const pwsys = require('../src/password');
+const path = require('path');
 
 const srvcfg = require('../src/config.json');
 
@@ -54,6 +55,11 @@ function go(idx, serial, vers, secret) {
         fnout = file.replace('.lock','');
     }
     fnout = fnout.replace(enccfg.inputPathTrim, enccfg.outputPathPrefix);
+    let dir = path.dirname(fnout);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
     var input = fs.createReadStream(file);
     var output = fs.createWriteStream(fnout);
 
