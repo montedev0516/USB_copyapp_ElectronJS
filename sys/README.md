@@ -14,19 +14,36 @@ npm install -g uglify-es
 
 ## Installation
 
-In this `sys` directory, run
+First, the submodules must be packaged.  This only needs to be done
+once.  Download them with:
+```bash
+git submodule init
+git submodule update
+```
+Then package:
+```bash
+cd repo/file-browser
+npm pack
+cd ../node-usb-detection
+npm pack
+```
+Then, change to the `sys` directory and run
 ```bash
 npm install
+```
+Finally, link the platform-dependent modules:
+```bash
+./link.sh
 ```
 
 ## Running
 
-In this `sys` directory, run
+In the `sys` directory, run
 ```bash
 npm start
 ```
-This will launch the system, including the web server and the chromium browser
-window pointed to the launch page.
+This will launch the system using `electron-forge`, including the web
+server and the chromium browser window pointed to the launch page.
 
 ## Packaging
 
