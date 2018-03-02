@@ -1,11 +1,22 @@
 #!/bin/bash
 
-vid="58f"
-pid="6387"
-ser="68EC2"
-FILES='\( -name \*.html -o -name \*.png -o -name \*.svg -o -name \*.jpg -o -name \*.xml \)'
+if [ -f encrypt-settings.sh ] ; then
+    source encrypt-settings.sh
+else
+    read -p "vid: " vid
+    read -p "pid: " pid
+    read -p "ser: " ser
+    read -p "FILES: " FILES
+    cat > encrypt-settings.sh <<EOT
+vid="$vid"
+pid="$pid"
+ser="$ser"
+FILES='$FILES'
+EOT
+fi
 
 CFG=encrypt/encrypt-config.json
+apikey=`uuidgen | tr -d '-'`
 
 set -x
 
@@ -32,7 +43,7 @@ cat > $CFG <<EOT
     "descString1": "",
     "descString2": "",
     "descString3": "$ser",
-    "apiKey": "9a3d15365e34483abd588c8dff3c8d8a",
+    "apiKey": "$apikey",
     "encrypt": true,
     "inputPathTrim": "content.orig",
     "outputPathPrefix": "content",

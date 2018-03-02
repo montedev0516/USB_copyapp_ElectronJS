@@ -37,6 +37,7 @@ for (var i = 0; i < enccfg.files.length; i++) {
 
 function go(idx, serial, vers, secret) {
     if (idx >= files.length) {
+        console.log('\nencrypted ' + files.length + ' files');
         return;
     }
 
@@ -65,7 +66,7 @@ function go(idx, serial, vers, secret) {
 
     input.pipe(cipher).pipe(output);
     input.on('end', () => {
-        console.log('wrote ' + fnout);
+        process.stdout.write('\r' + (idx + 1) + '    ');
         // process next file
         go(idx + 1, serial, vers, secret, bytes);
     });
