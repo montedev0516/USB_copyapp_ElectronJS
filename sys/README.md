@@ -30,6 +30,9 @@ window pointed to the launch page.
 
 ## Packaging
 
+Note: this assumes encrypted content already exists in the `content/` dir.  For
+encryption instructions, see [encryption](./encrypt/README.md).
+
 In the `sys` directory, run
 ```
 ./package.sh

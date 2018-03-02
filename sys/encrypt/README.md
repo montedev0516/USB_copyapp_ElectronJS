@@ -23,6 +23,7 @@ value, the vendor ID, and the length of the serial ID to match on.  e.g.:
 }
 ```
 For example, a serial length of 5 will match 09119257 and 0911999.
+
 2. Craft the encryption variables into a shell script
 named `encrypt-settings.sh`.  This consists of:
   * vid, pid, and the serial, which construct the key.
@@ -35,6 +36,7 @@ pid="f83f"
 ser="FOO1234567"
 FILES='\( -name \*.html -o -name \*.png -o -name \*.svg -o -name \*.jpg -o -name \*.xml \)'
 ```
+
 3. Run the encryption shell script:
 ```
 ./encrypt.sh
