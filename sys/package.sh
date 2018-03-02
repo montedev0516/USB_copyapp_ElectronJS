@@ -13,7 +13,9 @@ tar cfJ out/content.tar.xz content/ bytes.dat .hidfil.sys
 
 ( cd default_app ; asar pack . ../default_app.asar )
 
-electron-forge package 
+find node_modules -maxdepth 1 -type l -delete
+
+$(npm bin)/electron-forge package
 if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
     dir=${SYSNAME}-linux-x64
     suffix=linux
