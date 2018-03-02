@@ -148,7 +148,7 @@ function decrypt(key, fname, type, res) {
     });
 }
 
-var contentDir = path.join(__dirname, '../content');
+var contentDir = path.join(__dirname, '../content.asar');
 
 app.get('/x', function(req, res) {
     if (!isValid([req, res])) { return; }

@@ -56,3 +56,5 @@ echo "}" >> $CFG
 
 export pwout="$vid:$pid:::$ser"
 openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem -out cert/cert.pem -days 3650 -passout env:pwout -config openssl.cnf
+
+asar pack content content.asar

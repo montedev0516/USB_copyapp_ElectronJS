@@ -9,7 +9,7 @@ _pwd=`pwd`
 set -e
 set -x
 
-tar cfJ out/content.tar.xz content/ bytes.dat .hidfil.sys
+tar cfJ out/content.tar.xz content.asar bytes.dat .hidfil.sys
 
 ( cd default_app ; asar pack . ../default_app.asar )
 

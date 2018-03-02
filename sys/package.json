@@ -51,7 +51,7 @@
           "content\\.test",
           "default_app$",
           "encrypt",
-          "content\\..*",
+          "content$",
           "trash",
           "README\\.md",
           "openssl\\.cnf",
