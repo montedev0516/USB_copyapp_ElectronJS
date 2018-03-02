@@ -17,11 +17,13 @@ function createWindow() {
     const server = require('./server.js');
 
     mainWindow = new electron.BrowserWindow({
-	width: 800,
-	height: 600,
-	webPreferences: {
-	    plugins: true
-	}
+        width: 800,
+        height: 600,
+        backgroundColor: '#666666',
+        icon: path.join(__dirname, 'img/appicon.png'),
+        webPreferences: {
+            plugins: true
+        }
     });
 
     mainWindow
