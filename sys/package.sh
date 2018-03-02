@@ -54,9 +54,6 @@ fi
 
 cd $_pwd/out
 
-rm ./resources/app/package*
-find ./resources/app -name .npmignore -delete
-
 # note this requires uglify-es@3
 obf=`which uglifyjs`
 
