@@ -9,13 +9,13 @@ const fs = require('fs');
 
 console.log('System starting');
 
-// start the server
-const server = require('./server.js');
-
 let mainWindow;
 let sessionId = uuidv4();
 
 function createWindow() {
+    // start the server
+    const server = require('./server.js');
+
     mainWindow = new electron.BrowserWindow({
 	width: 800,
 	height: 600,
@@ -33,6 +33,7 @@ function createWindow() {
         details.requestHeaders['session-id'] = sessionId;
         callback({cancel:false, requestHeaders: details.requestHeaders});
     });
+
     server.lockSession(sessionId,
                        mainWindow.webContents.session.getUserAgent());
 
@@ -74,5 +75,18 @@ function onDomReady(win) {
         "if (tb) { tb.style.display = \"none\" }")
 }
 
-app.on('ready', createWindow);
+let notPrimary = app.makeSingleInstance((c,wd) => {
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+        }
+        mainWindow.focus();
+    }
+});
+
+if (notPrimary) {
+    app.exit(0);
+} else {
+    app.on('ready', createWindow);
+}
 
