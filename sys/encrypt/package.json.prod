@@ -58,7 +58,7 @@
         ]
       },
       "electronWinstallerConfig": {
-        "name": "everyusb"
+        "name": "usbcopypro"
       },
       "electronInstallerDebian": {},
       "electronInstallerRedhat": {},
@@ -68,7 +68,7 @@
       },
       "windowsStoreConfig": {
         "packageName": "",
-        "name": "everyusb"
+        "name": "usbcopypro"
       }
     }
   }

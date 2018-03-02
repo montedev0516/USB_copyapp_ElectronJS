@@ -3,7 +3,7 @@
 
 * generating self-signed certificates:
 
-openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem -out cert/cert.pem -days 3650
+openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem -out cert/cert.pem -days 3650 -passout env:pwout -config openssl.cnf
 
 * make sure npm uses the right python for windows build:
 
