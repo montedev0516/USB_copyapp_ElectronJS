@@ -21,7 +21,7 @@ int main(int argc, const char *argv[])
 	}
 	strncpy_s(path, prg, strnlen(prg, MAX_PATH));
 
-	strncat_s(prg, "\\sys\\everyusb-win32-ia32\\everyusb.exe .\\sys\\resources\\app\\src\\index.js", MAX_PATH);
+	strncat_s(prg, "\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe .\\sys\\resources\\app\\src\\index.js", MAX_PATH);
 
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
