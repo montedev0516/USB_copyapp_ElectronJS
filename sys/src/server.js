@@ -198,20 +198,20 @@ if (cfg.fileBrowserEnabled) {
         let file = decodeURI(req.path);
         let encfile = path.join(contentDir, file + '.lock');
 
-        fs.stat(encfile, (err, stats) => {
+        if (fs.existsSync(encfile)) {
             let match = encfile.match(/\.([^.]*)\.lock$/);
-            if ((err == null) && match) {
+            if (match) {
                 let type = mime.lookup(match[1]);
                 let key = req.get('x-api-key');
                 decrypt(key, encfile, type, res);
-            } else {
-                // standard file fetch
-                res.sendFile(file, {root: contentDir}, (err) => {
-                    if (err) {
-                        console.log('sendFile (static) ERROR: ' + err);
-                        res.sendStatus(404);
-                    }
-                });
+                return;
+            }
+        }
+
+        // lockfile not found, return standard file fetch
+        res.sendFile(file, {root: contentDir}, (err) => {
+            if (err) {
+                console.log('sendFile (static) ERROR: ' + err);
             }
         });
     });
