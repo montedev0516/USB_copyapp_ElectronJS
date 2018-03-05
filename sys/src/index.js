@@ -6,6 +6,7 @@ const path = require('path');
 const url = require('url');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
+const opn = require('opn');
 
 console.log('System starting');
 
@@ -65,10 +66,21 @@ function createWindow() {
         mainWindow.newGuest = win;
     });
 
+    mainWindow.webContents.on('will-navigate', (ev, url) => {
+        if (!url.match(/^https:\/\/localhost/)) {
+            ev.preventDefault();
+            systemOpenUrl(url);
+        }
+    });
+
     mainWindow.on('closed', () => {
         mainWindow = null;
         process.exit(0);
     });
+}
+
+function systemOpenUrl(url) {
+    opn(url);
 }
 
 function onDomReady(win) {
