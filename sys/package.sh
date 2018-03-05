@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# run this, then copy.sh
+#
+
 SYSNAME=usbcopypro
 
 cd `dirname $0` || exit
