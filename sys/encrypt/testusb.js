@@ -1,42 +1,32 @@
 #!/usr/bin/env node
 
-var usb = require('usb');
+var usb = require('usb-detection');
+var cfg = require('../src/config.json');
+var pwsys = require('../src/password');
 
-var devices = usb.getDeviceList();
+usb.find().then((devices) => {
+    for (let i=0; i < devices.length; i++) {
+        let device = devices[i];
+        if (cfg.validVendors.includes(
+                device.vendorId.toString(16)))
+        {
+            usbcfg = {
+                "vid": device.vendorId.toString(16),
+                "pid": device.productId.toString(16),
+                "mfg": 1, // unsupported
+                "prod": 2, // unsupported
+                "serial": 3, // unsupported
+                "descString1": "", // device.manufacturer, // not cross-platform
+                "descString2": "", // device.deviceName, // not cross-platform
+                "descString3": device.serialNumber
+            };
 
-for (var d of devices) {
-    if (d.deviceDescriptor.idVendor == 0x058f) {
-        let dd = d.deviceDescriptor;
-        console.log('found at '+ d.busNumber + ':' + d.deviceAddress);
-        console.log('----');
-        console.log('found vid:pid \t= ' +
-                    dd.idVendor.toString(16) + ':' + dd.idProduct.toString(16));
-        console.log('mfg:prd:ser   \t= ' + dd.iManufacturer + ':' +
-                    dd.iProduct + ':' + dd.iSerialNumber);
+            serial = pwsys.getSerial(usbcfg, cfg);
+            firmVers = pwsys.getVersion(usbcfg, cfg);
+            console.log('serial : ' + serial);
+            console.log('vers   : ' + firmVers);
 
-        var descs = [];
-        d.open();
-
-        function readDesc(idx) {
-            return new Promise((resolve, reject) => {
-                d.getStringDescriptor(idx, (err, data) => {
-                    if (err) {
-                        console.log('err  ' + err);
-                        throw err;
-                    }
-                    console.log('String ' + idx + '\t= ' + data);
-                    descs[idx] = data;
-                    resolve();
-                });
-            });
+            break;
         }
-
-        readDesc(1)
-            .then(() => {return readDesc(2)})
-            .then(() => {return readDesc(3)})
-            .then(() => process.exit(0));
-
-        break;
     }
-}
-
+});
