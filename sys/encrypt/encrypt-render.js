@@ -1,5 +1,6 @@
 
 var enccfg = require('./encrypt-config.json');
+var enctool = require('./encrypt');
 
 function addMask(name) {
     return "<span class='matchentry'>" + 
@@ -25,7 +26,6 @@ function display() {
 }
 
 function runEncrypt() {
-    console.log('YOYOYOY');
 }
 
 

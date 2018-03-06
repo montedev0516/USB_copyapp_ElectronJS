@@ -4,11 +4,12 @@ const fs = require('fs');
 const pwsys = require('../src/password');
 const path = require('path');
 const asar = require('asar');
+const { exec } = require('child_process');
 
 const srvcfg = require('../src/config.json');
 
 module.exports = function(enccfg, msgcb, enccb, unenccb) {
-    if (!msgcb) msgcb = (s) => { console.log(s); }
+    if (!msgcb) msgcb = (s,e) => { console.log(s); }
 
     // Run the filename through the matchers to determine if
     // it should be included.  The fname parameter is
@@ -27,6 +28,8 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     }
 
     var doEncrypt = enccfg.encrypt;
+
+    msgcb("Constructing File List.");
 
     // construct file list
     let dirs = [enccfg.inputPath];
@@ -50,11 +53,36 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         }
     }
 
+    function makeCertificate() {
+        // There exist node modules to generate certificates, but
+        // I could not find one that makes one protected by a passphrase.
+        let serial = pwsys.getSerial(enccfg, srvcfg);
+        let script =
+            'openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem ' +
+            '-out cert/cert.pem -days 3650 -passout pass:' + serial + ' ' +
+            '-config openssl.cnf'
+
+        if (!fs.existsSync('cert')) fs.mkdirSync('cert');
+
+        exec(script, (error, stdout, stderr) => {
+            if (error) {
+                console.error('exec error: ' + error);
+                console.log(`openssl: ${stdout}`);
+                console.log(`openssl: ${stderr}`);
+                msgcb(error, true);
+            } else {
+                msgcb('Certificates generated');
+                msgcb('Finished!');
+            }
+        });
+
+    }
+
     function makeAsar() {
         let outfile = enccfg.outputPath + '.asar';
         msgcb('creating asar file: ' + outfile);
         asar.createPackage(enccfg.outputPath, outfile, () => {
-            msgcb('Finished!');
+            makeCertificate();
         });
     }
 
@@ -63,7 +91,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         let isEnc = !(serial.length == 0 && vers.length == 0 && secret.length == 0);
         if (isEnc) {
             if (idx >= encFiles.length) {
-                if (enccb) enccb(idx, true);
+                if (enccb) enccb(idx, encFiles.length, true);
 
                 // continue on to copy unencrypted files
                 go(0, '', '', '');
@@ -73,7 +101,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
             file = encFiles[idx];
         } else {
             if (idx >= unencFiles.length) {
-                if (unenccb) unenccb(idx, true);
+                if (unenccb) unenccb(idx, unencFiles.length, true);
 
                 // package
                 makeAsar();
@@ -122,9 +150,9 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         }
         input.on('end', () => {
             if (isEnc) {
-                if (enccb) enccb(idx);
+                if (enccb) enccb(idx + 1, encFiles.length);
             } else {
-                if (unenccb) unenccb(idx);
+                if (unenccb) unenccb(idx + 1, unencFiles.length);
             }
             // process next file
             go(idx + 1, serial, vers, secret, bytes);

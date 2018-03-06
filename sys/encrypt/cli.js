@@ -15,23 +15,27 @@ if (process.argv[2] === '--config') {
     enccfg = require('./encrypt-config.json');
 }
 
-function messageCallback(s) {
-    console.log(s);
-}
-
-function encCallback(idx, isDone) {
-    if (isDone) {
-        console.log('\nencrypted ' + idx + ' files');
+function messageCallback(s, isError) {
+    if (isError) {
+        console.error('ERROR: ' + s);
     } else {
-        process.stdout.write('\r' + (idx + 1) + '    ');
+        console.log(s);
     }
 }
 
-function unencCallback(idx, isDone) {
+function encCallback(idx, total, isDone) {
+    if (isDone) {
+        console.log('\nencrypted ' + idx + ' files');
+    } else {
+        process.stdout.write('\r' + idx + ' / ' + total + '    ');
+    }
+}
+
+function unencCallback(idx, total, isDone) {
     if (isDone) {
         console.log('\ncopied ' + idx + ' files');
     } else {
-        process.stdout.write('\r' + (idx + 1) + '    ');
+        process.stdout.write('\r' + idx + ' / ' + total + '    ');
     }
 }
 
