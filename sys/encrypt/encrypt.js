@@ -7,8 +7,6 @@ const path = require('path');
 
 const srvcfg = require('../src/config.json');
 
-var files = [];
-
 if (process.argv[2] === '-h' || process.argv[2] === '--help') {
     console.error('Usage: ' + process.argv[1] + '[--config file.json]');
     console.error('      file.json: default -> encrypt-config.json');
@@ -22,49 +20,100 @@ if (process.argv[2] === '--config') {
     enccfg = require('./encrypt-config.json');
 }
 
+// Run the filename through the matchers to determine if
+// it should be included.  The fname parameter is
+// the basename, no path.
+function includeFile(fname) {
+    for (let i = 0; i < enccfg.filematch.length; i++) {
+        // convert to regex
+        let regex = '^' + enccfg.filematch[i]
+            .replace(/\./g,'\\.')
+            .replace(/\*/g,'.*') + '$';
+        if (fname.match(regex)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 var doEncrypt = enccfg.encrypt;
 
-// validate files
-for (var i = 0; i < enccfg.files.length; i++) {
-    var fn = enccfg.files[i];
-    if (fs.existsSync(fn)) {
-        files.push(fn);
-    } else {
-        console.error('File not found: ' + fn);
-        process.exit(-1);
+// construct file list
+let dirs = [enccfg.inputPath];
+let encFiles = [];
+let unencFiles = [];
+while(dirs.length > 0) {
+    let dir = dirs.pop();
+    let files = fs.readdirSync(dir);
+    for (let i = 0; i < files.length; i++) {
+        let pathname = path.join(dir,files[i]);
+        let stat = fs.statSync(pathname);
+        if (stat.isDirectory()) {
+            dirs.push(pathname);
+        } else {
+            if (includeFile(files[i])) {
+                encFiles.push(pathname);
+            } else {
+                unencFiles.push(pathname);
+            }
+        }
     }
 }
 
 function go(idx, serial, vers, secret) {
-    if (idx >= files.length) {
-        console.log('\nencrypted ' + files.length + ' files');
-        return;
+    let file;
+    let isEnc = !(serial.length == 0 && vers.length == 0 && secret.length == 0);
+    if (isEnc) {
+        if (idx >= encFiles.length) {
+            console.log('\nencrypted ' + encFiles.length + ' files');
+            return;
+        }
+        file = encFiles[idx];
+    } else {
+        if (idx >= unencFiles.length) {
+            console.log('\ncopied ' + unencFiles.length + ' files');
+            return;
+        }
+        file = unencFiles[idx];
     }
 
-    file = files[idx];
     var cipher;
-    if (doEncrypt) {
-        cipher = crypto.createCipher('aes-256-cbc', secret);
+    var fnout;
+    if (isEnc) {
+        if (doEncrypt) {
+            cipher = crypto.createCipher('aes-256-cbc', secret);
+            fnout = file + '.lock';
+        } else {
+            cipher = crypto.createDecipher('aes-256-cbc', secret);
+            fnout = file.replace('.lock','');
+        }
     } else {
-        cipher = crypto.createDecipher('aes-256-cbc', secret);
+        fnout = file;
     }
 
-    var fnout;
-    if (doEncrypt) {
-        fnout = file + '.lock';
-    } else {
-        fnout = file.replace('.lock','');
-    }
-    fnout = fnout.replace(enccfg.inputPathTrim, enccfg.outputPathPrefix);
+    fnout = fnout.replace(enccfg.inputPath, enccfg.outputPath);
+
+    // recursively create output dir
     let dir = path.dirname(fnout);
-    if (!fs.existsSync(dir)) {
+    function mkdirp(dir) {
+        let ppath = dir.split(path.sep).slice(0,-1).join(path.sep);
+        if (ppath.length != 0 && !fs.existsSync(ppath)) {
+            mkdirp(ppath);
+        }
         fs.mkdirSync(dir);
+    }
+    if (!fs.existsSync(dir)) {
+        mkdirp(dir);
     }
 
     var input = fs.createReadStream(file);
     var output = fs.createWriteStream(fnout);
 
-    input.pipe(cipher).pipe(output);
+    if (isEnc) {
+        input.pipe(cipher).pipe(output);
+    } else {
+        input.pipe(output);
+    }
     input.on('end', () => {
         process.stdout.write('\r' + (idx + 1) + '    ');
         // process next file
@@ -72,9 +121,7 @@ function go(idx, serial, vers, secret) {
     });
 }
 
-if (files.length > 0) {
-    console.log('encrypting ' + files.length + ' files');
-
+if (encFiles.length > 0) {
     let serial = pwsys.getSerial(enccfg, srvcfg);
     let vers = pwsys.getVersion(enccfg, srvcfg);
     console.log('serial: ' + serial);
@@ -106,4 +153,8 @@ if (files.length > 0) {
     }
 
     go(0, serial, vers, secret);
+}
+
+if (unencFiles.length > 0) {
+    go(0, '', '', '');
 }
