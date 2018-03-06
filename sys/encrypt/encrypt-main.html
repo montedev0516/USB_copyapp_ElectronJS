@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>window.$ = window.jQuery = require('jquery');</script>
+    <meta charset="utf-8">
+    <link href="encrypt-main.css" rel="stylesheet">
+    <title>USB Copy Pro Encryption Utility</title>
+</head>
+<body>
+
+<h1>USB Copy Pro Encryption Utility</h1>
+
+<table>
+<tr><td class="field">VID</td><td><input type="text" name="vid"/></td></tr>
+<tr><td class="field">PID</td><td><input type="text" name="pid"/></td></tr>
+<tr><td class="field">Serial Number</td><td><input type="text" name="serial"/></td></tr>
+<tr><td colspan=2 style="font-size:75%"><i>Input only leading significant characters of serial number</i></td></tr>
+<tr><td class="field">Input Dir</td><td><input type="text" name="indir"/></td></tr>
+<tr><td class="field">Output Dir</td><td><input type="text" name="outdir"/></td></tr>
+<tr><td class="field">Files To Encrypt:</td>
+    <td>
+        <div id="matchlist"/>
+    </td>
+</tr>
+</table>
+
+<button class="button">Encrypt!</button>
+
+<div class="spacer">&nbsp;</div>
+
+<div class="error" id="errors"><br/>
+<div id="enc-progress"/><br/>
+<div id="unenc-progress"/><br/>
+
+<script>
+require('./encrypt-render.js');
+</script>
+
+</body>
+</html>
