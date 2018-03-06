@@ -7,7 +7,7 @@ function addMask(name) {
         "</span><br/>";
 }
 
-function go() {
+function display() {
     $("input[name='vid']").val(enccfg.vid);
     $("input[name='pid']").val(enccfg.pid);
     $("input[name='serial']").val(enccfg.descString3);
@@ -21,10 +21,14 @@ function go() {
 
     $('#matchlist').html(masks);
 
-    $('#errors').html('breakyoself');
+    $('#btn-encrypt').click(runEncrypt);
+}
+
+function runEncrypt() {
+    console.log('YOYOYOY');
 }
 
 
 $(function() {
-    go();
+    display();
 });
