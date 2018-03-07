@@ -1,14 +1,40 @@
 
 var enccfg = require('./encrypt-config.json');
 var encrypt = require('./encrypt');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
 require('jquery-ui');
 require('jquery-ui/ui/widgets/progressbar');
 
-function addMask(name) {
-    return "<span class='matchentry'>" + 
+function addMask(name, i) {
+    return "<span id='match_"+i+"' class='matchentry'>" +
         name +
         "</span><br/>";
+}
+
+function saveUI() {
+    enccfg.vid = $("input[name='vid']").val();
+    enccfg.pid = $("input[name='pid']").val();
+    enccfg.descString3 = $("input[name='serial']").val();
+    enccfg.inputPath = $("input[name='indir']").val();
+    enccfg.outputPath = $("input[name='outdir']").val();
+
+    enccfg.apiKey = crypto.randomBytes(32).toString('hex');
+
+    enccfg.filematch = [];
+    for (let i=0; ; i++) {
+        let el = $('#match_'+i);
+        if (el.length == 0) {
+            break;
+        }
+        enccfg.filematch.push(el.text());
+    }
+
+    fs.writeFileSync(
+        path.join(__dirname, 'encrypt-config.json'),
+        JSON.stringify(enccfg));
 }
 
 function display() {
@@ -20,7 +46,7 @@ function display() {
 
     let masks = '';
     for(let i=0; i<enccfg.filematch.length; i++) {
-        masks = masks + addMask(enccfg.filematch[i]);
+        masks = masks + addMask(enccfg.filematch[i], i);
     }
 
     $('#matchlist').html(masks);
@@ -78,6 +104,7 @@ function unencCallback(idx, total, isDone) {
 }
 
 function runEncrypt() {
+    saveUI();
     $('#btn-encrypt')
         .css('background-color', 'gray')
         .css('cursor', 'auto')

@@ -11,6 +11,13 @@ const srvcfg = require('../src/config.json');
 module.exports = function(enccfg, msgcb, enccb, unenccb) {
     if (!msgcb) msgcb = (s,e) => { console.log(s); }
 
+    // save serial length
+    srvcfg.serialLength = enccfg.descString3.length;
+    msgcb('writing config file...');
+    fs.writeFileSync(
+        path.join(__dirname, '../src/config.json'),
+        JSON.stringify(srvcfg));
+
     // Run the filename through the matchers to determine if
     // it should be included.  The fname parameter is
     // the basename, no path.
@@ -29,7 +36,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
 
     var doEncrypt = enccfg.encrypt;
 
-    msgcb("Constructing File List.");
+    msgcb("Constructing File List...");
 
     // construct file list
     let dirs = [enccfg.inputPath];
