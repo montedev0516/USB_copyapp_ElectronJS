@@ -1,3 +1,6 @@
+//
+// Encryption Tool Controller
+//
 
 var enccfg = require('./encrypt-config.json');
 var encrypt = require('./encrypt');
@@ -8,10 +11,20 @@ const crypto = require('crypto');
 require('jquery-ui');
 require('jquery-ui/ui/widgets/progressbar');
 
+function delMask(elid) {
+    $(elid).remove();
+}
+
 function addMask(name, i) {
-    return "<span id='match_"+i+"' class='matchentry'>" +
+    return "<div name='matchlist' id='matchrow_"+i+"'>" +
+        "<span class='matchentry' " +
+              "name='matchrow'>" +
         name +
-        "</span><br/>";
+        "</span>&nbsp;" +
+        "<span style='cursor: pointer' " +
+              "onclick='ctl.delMask(\"#matchrow_"+i+"\")' " +
+              "id='delmatch_"+i+"'>&times;</span>" +
+        "</div>";
 }
 
 function saveUI() {
@@ -24,12 +37,9 @@ function saveUI() {
     enccfg.apiKey = crypto.randomBytes(32).toString('hex');
 
     enccfg.filematch = [];
-    for (let i=0; ; i++) {
-        let el = $('#match_'+i);
-        if (el.length == 0) {
-            break;
-        }
-        enccfg.filematch.push(el.text());
+    let els = $("div[name='matchlist']");
+    for (let i=0; i < els.length; i++) {
+        enccfg.filematch.push($(els[i]).find("[name='matchrow']").text());
     }
 
     fs.writeFileSync(
@@ -118,3 +128,5 @@ function runEncrypt() {
 $(function() {
     display();
 });
+
+module.exports.delMask = delMask;
