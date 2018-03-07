@@ -13,6 +13,8 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
 
     // save serial length
     srvcfg.serialLength = enccfg.descString3.length;
+    // save vid search list (currently always length 1)
+    srvcfg.validVendors = [enccfg.vid];
     msgcb('writing config file...');
     fs.writeFileSync(
         path.join(__dirname, '../src/config.json'),
