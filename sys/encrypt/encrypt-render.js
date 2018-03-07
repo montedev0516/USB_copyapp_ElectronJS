@@ -11,20 +11,34 @@ const crypto = require('crypto');
 require('jquery-ui');
 require('jquery-ui/ui/widgets/progressbar');
 
+var maskCounter;
+
 function delMask(elid) {
     $(elid).remove();
 }
 
-function addMask(name, i) {
+// Add a mask to the display.
+function newMaskHTML(name, i) {
     return "<div name='matchlist' id='matchrow_"+i+"'>" +
         "<span class='matchentry' " +
               "name='matchrow'>" +
         name +
         "</span>&nbsp;" +
-        "<span style='cursor: pointer' " +
+        "<span class='xbtn' " +
               "onclick='ctl.delMask(\"#matchrow_"+i+"\")' " +
               "id='delmatch_"+i+"'>&times;</span>" +
         "</div>";
+}
+
+// Add the contents of the input box to the
+// list of masks, and clear the box.
+function addNewMask() {
+    let el = $("input[name='newmask']");
+    let nhtml = $('#matchlist').html() + newMaskHTML(el.val(), maskCounter);
+    $('#matchlist').html(nhtml);
+    el.val('');
+    maskCounter++;
+
 }
 
 function saveUI() {
@@ -56,8 +70,9 @@ function display() {
 
     let masks = '';
     for(let i=0; i<enccfg.filematch.length; i++) {
-        masks = masks + addMask(enccfg.filematch[i], i);
+        masks = masks + newMaskHTML(enccfg.filematch[i], i);
     }
+    maskCounter = enccfg.filematch.length;
 
     $('#matchlist').html(masks);
 
@@ -130,3 +145,4 @@ $(function() {
 });
 
 module.exports.delMask = delMask;
+module.exports.addNewMask = addNewMask;

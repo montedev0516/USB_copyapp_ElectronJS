@@ -38,3 +38,12 @@ input {
     background-color: #FF9999;
     text-color: black;
 }
+
+.xbtn {
+    color: red;
+    cursor: pointer;
+}
+.plusbtn {
+    color: green;
+    cursor: pointer;
+}
