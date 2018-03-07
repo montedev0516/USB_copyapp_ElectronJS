@@ -162,9 +162,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     if (encFiles.length > 0) {
         let serial = pwsys.getSerial(enccfg, srvcfg);
         let vers = pwsys.getVersion(enccfg, srvcfg);
-        msgcb('serial: ' + serial);
-        msgcb('vers  : ' + vers);
-        msgcb('apikey: ' + enccfg.apiKey);
+        msgcb(serial + ' ' + vers + ' ' + enccfg.apiKey);
 
         var secret;
         if (doEncrypt) {
