@@ -16,7 +16,9 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     // save vid search list (currently always length 1)
     srvcfg.validVendors = [enccfg.vid];
     msgcb('writing config file...');
-    fs.writeFileSync('usbcopypro.json', JSON.stringify(srvcfg));
+    fs.writeFileSync(
+        path.join(enccfg.workingPath,'usbcopypro.json'),
+        JSON.stringify(srvcfg));
 
     // Run the filename through the matchers to determine if
     // it should be included.  The fname parameter is
@@ -64,13 +66,15 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         // There exist node modules to generate certificates, but
         // I could not find one that makes one protected by a passphrase.
         let cfg = path.join(__dirname, 'openssl.cnf');
+        let certout = path.join(enccfg.workingPath, 'cert');
         let serial = pwsys.getSerial(enccfg, srvcfg);
         let script =
-            'openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem ' +
-            '-out cert/cert.pem -days 3650 -passout pass:' + serial + ' ' +
-            '-config ' + cfg;
+            'openssl req -x509 -newkey rsa:4096 -keyout ' + certout +
+            '/key.pem ' +
+            '-out ' + certout + '/cert.pem -days 3650 -passout pass:' +
+            serial + ' ' + '-config ' + cfg;
 
-        if (!fs.existsSync('cert')) fs.mkdirSync('cert');
+        if (!fs.existsSync(certout)) fs.mkdirSync(certout);
 
         exec(script, (error, stdout, stderr) => {
             if (error) {
@@ -87,7 +91,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     }
 
     function makeAsar() {
-        let outfile = enccfg.outputPath + '.asar';
+        let outfile = path.join(enccfg.workingPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
         asar.createPackage(enccfg.outputPath, outfile, () => {
             makeCertificate();
@@ -179,14 +183,20 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
                                                     vers,
                                                     srvcfg.salt,
                                                     enccfg.apiKey);
-            fs.writeFileSync('bytes.dat', bytes);
+            fs.writeFileSync(
+                path.join(enccfg.workingPath,'bytes.dat'),
+                bytes);
 
             var kbuf = Buffer.from(enccfg.apiKey, 'hex');
-            fs.writeFileSync('.hidfil.sys', kbuf);
+            fs.writeFileSync(
+                path.join(enccfg.workingPath,'.hidfil.sys'),
+                kbuf);
         } else {
-            var kbuf = fs.readFileSync('.hidfil.sys');
+            var kbuf = fs.readFileSync(
+                path.join(enccfg.workingPath,'.hidfil.sys'));
             var apikey = kbuf.toString('hex');
-            var bytes = fs.readFileSync('bytes.dat');
+            var bytes = fs.readFileSync(
+                path.join(enccfg.workingPath,'bytes.dat'));
 
             msgcb('key   : ' + apikey);
             secret = pwsys.makePassword(serial,

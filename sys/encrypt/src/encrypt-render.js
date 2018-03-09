@@ -55,6 +55,7 @@ function saveUI() {
         'descString3': $("input[name='serial']").val(),
         'inputPath': $("input[name='indir']").val(),
         'outputPath': $("input[name='outdir']").val(),
+        'workingPath': $("input[name='workdir']").val(),
         'apiKey': crypto.randomBytes(32).toString('hex')
     };
 
@@ -80,6 +81,7 @@ function loadUI(enccfg) {
     $("input[name='serial']").val(enccfg.descString3);
     $("input[name='indir']").val(enccfg.inputPath);
     $("input[name='outdir']").val(enccfg.outputPath);
+    $("input[name='workdir']").val(enccfg.workingPath);
 
     if (!enccfg.hasOwnProperty('filematch')) {
         enccfg.filematch = [];
