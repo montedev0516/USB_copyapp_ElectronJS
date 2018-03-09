@@ -8,7 +8,7 @@ if (process.argv[2] === '-h' || process.argv[2] === '--help') {
     process.exit(0);
 }
 
-var enccfg = require('./encrypt-config.json');
+var enccfg;
 if (process.argv[2] === '--config') {
     enccfg = require(process.argv[3]);
 } else {
