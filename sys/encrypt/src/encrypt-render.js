@@ -2,16 +2,17 @@
 // Encryption Tool Controller
 //
 
-var enccfg = require('./encrypt-config.json');
 var encrypt = require('./encrypt');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const os = require('os');
 
 require('jquery-ui');
 require('jquery-ui/ui/widgets/progressbar');
 
 var maskCounter;
+var conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
 
 function delMask(elid) {
     $(elid).remove();
@@ -42,13 +43,16 @@ function addNewMask() {
 }
 
 function saveUI() {
-    enccfg.vid = $("input[name='vid']").val();
-    enccfg.pid = $("input[name='pid']").val();
-    enccfg.descString3 = $("input[name='serial']").val();
-    enccfg.inputPath = $("input[name='indir']").val();
-    enccfg.outputPath = $("input[name='outdir']").val();
-
-    enccfg.apiKey = crypto.randomBytes(32).toString('hex');
+    var enccfg = {
+        'vid': $("input[name='vid']").val(),
+        'pid': $("input[name='pid']").val(),
+        'descString1': '',
+        'descString2': '',
+        'descString3': $("input[name='serial']").val(),
+        'inputPath': $("input[name='indir']").val(),
+        'outputPath': $("input[name='outdir']").val(),
+        'apiKey': crypto.randomBytes(32).toString('hex')
+    };
 
     enccfg.filematch = [];
     let els = $("div[name='matchlist']");
@@ -57,19 +61,23 @@ function saveUI() {
     }
 
     fs.writeFileSync(
-        path.join(__dirname, 'encrypt-config.json'),
+        conffile,
         JSON.stringify(enccfg));
 }
 
-function display() {
+function loadUI(enccfg) {
     $("input[name='vid']").val(enccfg.vid);
     $("input[name='pid']").val(enccfg.pid);
     $("input[name='serial']").val(enccfg.descString3);
     $("input[name='indir']").val(enccfg.inputPath);
     $("input[name='outdir']").val(enccfg.outputPath);
 
+    if (!enccfg.hasOwnProperty('filematch')) {
+        enccfg.filematch = [];
+    }
+
     let masks = '';
-    for(let i=0; i<enccfg.filematch.length; i++) {
+    for(let i=0; i < enccfg.filematch.length; i++) {
         masks = masks + newMaskHTML(enccfg.filematch[i], i);
     }
     maskCounter = enccfg.filematch.length;
@@ -141,7 +149,14 @@ function runEncrypt() {
 }
 
 $(function() {
-    display();
+    var enccfg;
+    if (fs.existsSync(conffile)) {
+        enccfg = require(conffile);
+    } else {
+        enccfg = {};
+    }
+
+    loadUI(enccfg);
 });
 
 module.exports.delMask = delMask;

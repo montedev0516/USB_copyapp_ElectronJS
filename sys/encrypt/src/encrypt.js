@@ -1,12 +1,12 @@
 
 const crypto = require('crypto');
 const fs = require('fs');
-const pwsys = require('../src/password');
+const pwsys = require('../../src/password');
 const path = require('path');
 const asar = require('asar');
 const { exec } = require('child_process');
 
-const srvcfg = require('../src/config.json');
+const srvcfg = require('../../src/config.json');
 
 module.exports = function(enccfg, msgcb, enccb, unenccb) {
     if (!msgcb) msgcb = (s,e) => { console.log(s); }
