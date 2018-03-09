@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 var usb = require('usb-detection');
-var cfg = require('../src/config.json');
-var pwsys = require('../src/password');
+var cfg = require(process.argv[2]);  // NOTE: relative to script location
+var pwsys = require('../../src/password');
 
 usb.find().then((devices) => {
     for (let i=0; i < devices.length; i++) {
