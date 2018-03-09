@@ -1,7 +1,7 @@
 //
 // server
 //
-var cfg = require('./config.json');
+var cfg = require('../usbcopypro.json');
 
 const path = require('path');
 const express = require('express');
@@ -56,9 +56,9 @@ usb.find().then((devices) => {
             usbcfg = {
                 "vid": device.vendorId.toString(16),
                 "pid": device.productId.toString(16),
-                "mfg": 1, // unsupported
-                "prod": 2, // unsupported
-                "serial": 3, // unsupported
+                "mfg": 0, // unsupported
+                "prod": 0, // unsupported
+                "serial": 0, // unsupported
                 "descString1": "", // device.manufacturer, // not cross-platform
                 "descString2": "", // device.deviceName, // not cross-platform
                 "descString3": device.serialNumber

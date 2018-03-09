@@ -2,7 +2,7 @@
 // renderer
 //
 
-var cfg = require('./config.json');
+var cfg = require('../usbcopypro.json');
 global.$ = $;
 
 const URL = "https://localhost:" + cfg.SERVER_PORT;
