@@ -3,3 +3,5 @@ node_modules
 out
 cert
 *.asar
+indir
+outdir
