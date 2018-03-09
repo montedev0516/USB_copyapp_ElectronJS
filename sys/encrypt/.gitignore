@@ -1,1 +1,3 @@
 encrypt-*.json
+node_modules
+out
