@@ -65,11 +65,12 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     function makeCertificate() {
         // There exist node modules to generate certificates, but
         // I could not find one that makes one protected by a passphrase.
+        let cfg = path.join(__dirname, 'openssl.cnf');
         let serial = pwsys.getSerial(enccfg, srvcfg);
         let script =
             'openssl req -x509 -newkey rsa:4096 -keyout cert/key.pem ' +
             '-out cert/cert.pem -days 3650 -passout pass:' + serial + ' ' +
-            '-config openssl.cnf'
+            '-config ' + cfg;
 
         if (!fs.existsSync('cert')) fs.mkdirSync('cert');
 
@@ -168,7 +169,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         });
     }
 
-    if (encFiles.length > 0) {
+    if ((encFiles.length + unencFiles.length) > 0) {
         let serial = pwsys.getSerial(enccfg, srvcfg);
         let vers = pwsys.getVersion(enccfg, srvcfg);
         msgcb(serial + ' ' + vers + ' ' + enccfg.apiKey);

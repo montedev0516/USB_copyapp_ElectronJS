@@ -1,3 +1,5 @@
 encrypt-*.json
 node_modules
 out
+cert
+*.asar

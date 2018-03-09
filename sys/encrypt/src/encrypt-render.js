@@ -55,6 +55,9 @@ function saveUI() {
         'apiKey': crypto.randomBytes(32).toString('hex')
     };
 
+    // Always encrypt.
+    enccfg.encrypt = true;
+
     enccfg.filematch = [];
     let els = $("div[name='matchlist']");
     for (let i=0; i < els.length; i++) {
