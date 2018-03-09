@@ -6,7 +6,7 @@ const path = require('path');
 const asar = require('asar');
 const { exec } = require('child_process');
 
-const srvcfg = require('../../src/config.json');
+const srvcfg = require('./config.json');
 
 module.exports = function(enccfg, msgcb, enccb, unenccb) {
     if (!msgcb) msgcb = (s,e) => { console.log(s); }
@@ -16,9 +16,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     // save vid search list (currently always length 1)
     srvcfg.validVendors = [enccfg.vid];
     msgcb('writing config file...');
-    fs.writeFileSync(
-        path.join(__dirname, '../src/config.json'),
-        JSON.stringify(srvcfg));
+    fs.writeFileSync('usbcopypro.json', JSON.stringify(srvcfg));
 
     // Run the filename through the matchers to determine if
     // it should be included.  The fname parameter is
