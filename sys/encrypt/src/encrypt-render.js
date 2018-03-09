@@ -47,8 +47,11 @@ function saveUI() {
     let enccfg = {
         'vid': $("input[name='vid']").val(),
         'pid': $("input[name='pid']").val(),
-        'descString1': '',
-        'descString2': '',
+        'mfg': 0, // unused
+        'prod': 0, // unused
+        'serial': 0, // unused
+        'descString1': '', // unused
+        'descString2': '', // unused
         'descString3': $("input[name='serial']").val(),
         'inputPath': $("input[name='indir']").val(),
         'outputPath': $("input[name='outdir']").val(),
