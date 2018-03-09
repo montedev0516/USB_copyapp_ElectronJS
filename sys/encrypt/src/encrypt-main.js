@@ -18,6 +18,8 @@ function createWindow() {
         slashes: true
     }));
 
+    //mainWindow.webContents.openDevTools();
+
     mainWindow.on('closed', () => {
         mainWindow = null;
         process.exit(0);

@@ -47,6 +47,7 @@
     }
   },
   "dependencies": {
+    "asar": "^0.14.3",
     "electron-compile": "^6.4.2",
     "electron-squirrel-startup": "^1.0.0",
     "jquery": "^3.3.1",
