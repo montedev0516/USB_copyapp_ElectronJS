@@ -88,6 +88,8 @@ function loadUI(enccfg) {
     $('#matchlist').html(masks);
 
     $('#btn-encrypt').click(runEncrypt);
+
+    setBtnEnabled(true);
 }
 
 function messageCallback(s, isError) {
@@ -137,15 +139,33 @@ function unencCallback(idx, total, isDone) {
     }
 }
 
+function setBtnEnabled(val) {
+    if (val) {
+        $('#btn-encrypt')
+            .removeClass('btndisabled')
+            .addClass('btnenabled')
+            .prop('disabled', false);
+    } else {
+        $('#btn-encrypt')
+            .removeClass('btnenabled')
+            .addClass('btndisabled')
+            .prop('disabled', true);
+    }
+}
+
 function runEncrypt() {
     let enccfg = saveUI();
-    $('#btn-encrypt')
-        .css('background-color', 'gray')
-        .css('cursor', 'auto')
-        .prop('disabled', true);
+    setBtnEnabled(false);
+    $('#errors').hide()
     messageCallback('Starting...');
     setTimeout(() => {
-        encrypt(enccfg, messageCallback, encCallback, unencCallback);
+        try {
+            encrypt(enccfg, messageCallback, encCallback, unencCallback);
+        } catch (e) {
+            messageCallback('Exception!');
+            messageCallback(e, true);
+            setBtnEnabled(true);
+        }
     }, 333);
 }
 

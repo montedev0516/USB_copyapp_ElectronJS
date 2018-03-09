@@ -21,8 +21,17 @@ input {
     line-height: 20px; 
 }
 
-.button {
+.btnenabled {
     background-color: #4CAF50; /* Green */
+    cursor: pointer;
+}
+
+.btndisabled {
+    background-color: gray;
+    cursor: auto;
+}
+
+.button {
     border: none;
     color: white;
     padding: 15px 32px;
@@ -30,7 +39,6 @@ input {
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
-    cursor: pointer;
 }
 
 .error {
