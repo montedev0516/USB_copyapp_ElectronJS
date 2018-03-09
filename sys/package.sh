@@ -19,6 +19,11 @@ tar cfJ out/content.tar.xz content.asar bytes.dat .hidfil.sys
 
 find node_modules -maxdepth 1 -type l -delete
 
+( 
+    echo '// copied by packager, do not edit'
+    cat encrypt/src/password.js 
+) > src/password.js
+
 $(npm bin)/electron-forge package
 if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
     dir=${SYSNAME}-linux-x64
