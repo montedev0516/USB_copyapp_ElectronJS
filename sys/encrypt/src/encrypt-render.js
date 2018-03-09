@@ -2,7 +2,7 @@
 // Encryption Tool Controller
 //
 
-var encrypt = require('./encrypt');
+const encrypt = require('./encrypt');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -13,6 +13,7 @@ require('jquery-ui/ui/widgets/progressbar');
 
 var maskCounter;
 var conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
+var barHidden = true;
 
 function delMask(elid) {
     $(elid).remove();
@@ -43,7 +44,7 @@ function addNewMask() {
 }
 
 function saveUI() {
-    var enccfg = {
+    let enccfg = {
         'vid': $("input[name='vid']").val(),
         'pid': $("input[name='pid']").val(),
         'descString1': '',
@@ -63,6 +64,8 @@ function saveUI() {
     fs.writeFileSync(
         conffile,
         JSON.stringify(enccfg));
+
+    return enccfg;
 }
 
 function loadUI(enccfg) {
@@ -97,8 +100,6 @@ function messageCallback(s, isError) {
             .html(s);
     }
 }
-
-var barHidden = true;
 
 function encCallback(idx, total, isDone) {
     if (barHidden) {
@@ -137,7 +138,7 @@ function unencCallback(idx, total, isDone) {
 }
 
 function runEncrypt() {
-    saveUI();
+    let enccfg = saveUI();
     $('#btn-encrypt')
         .css('background-color', 'gray')
         .css('cursor', 'auto')
@@ -149,7 +150,7 @@ function runEncrypt() {
 }
 
 $(function() {
-    var enccfg;
+    let enccfg;
     if (fs.existsSync(conffile)) {
         enccfg = require(conffile);
     } else {
