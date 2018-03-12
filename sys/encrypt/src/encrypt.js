@@ -93,9 +93,14 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     function makeAsar() {
         let outfile = path.join(enccfg.workingPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
-        asar.createPackage(enccfg.outputPath, outfile, () => {
-            makeCertificate();
-        });
+        try {
+            asar.createPackage(enccfg.outputPath, outfile, () => {
+                makeCertificate();
+            });
+        } catch (e) {
+            msgcb('Exception!');
+            msgcb(e, true);
+        }
     }
 
     function go(idx, serial, vers, secret) {
