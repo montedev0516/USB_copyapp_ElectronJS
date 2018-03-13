@@ -69,11 +69,11 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         let certout = path.join(enccfg.workingPath, 'cert');
         let serial = pwsys.getSerial(enccfg, srvcfg);
         let script =
-            'openssl req -x509 -newkey rsa:4096 -keyout ' + certout +
-            path.sep + 'key.pem ' +
-            '-out ' + certout + path.sep +
-            'cert.pem -days 3650 -passout pass:' +
-            serial + ' ' + '-config ' + cfg;
+            'openssl req -x509 -newkey rsa:4096 -keyout "' + certout +
+            path.sep + 'key.pem" ' +
+            '-out "' + certout + path.sep +
+            'cert.pem" -days 3650 -passout pass:' +
+            serial + ' ' + '-config "' + cfg + '"';
 
         if (!fs.existsSync(certout)) {
             //console.log('creating dir: ' + certout);
