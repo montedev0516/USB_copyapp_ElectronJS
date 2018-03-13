@@ -88,7 +88,7 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
                 console.error('exec error: ' + error);
                 console.log(`openssl: ${stdout}`);
                 console.log(`openssl: ${stderr}`);
-                msgcb(error, true);
+                msgcb(error.toString(), true);
             } else {
                 msgcb('Certificates generated');
                 msgcb('Finished!');
