@@ -70,12 +70,19 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         let serial = pwsys.getSerial(enccfg, srvcfg);
         let script =
             'openssl req -x509 -newkey rsa:4096 -keyout ' + certout +
-            '/key.pem ' +
-            '-out ' + certout + '/cert.pem -days 3650 -passout pass:' +
+            path.sep + 'key.pem ' +
+            '-out ' + certout + path.sep +
+            'cert.pem -days 3650 -passout pass:' +
             serial + ' ' + '-config ' + cfg;
 
-        if (!fs.existsSync(certout)) fs.mkdirSync(certout);
+        if (!fs.existsSync(certout)) {
+            //console.log('creating dir: ' + certout);
+            msgcb('Creating certificate dir: ' + certout);
+            fs.mkdirSync(certout);
+        }
 
+        //console.log('making certificate: ' + script);
+        msgcb('Creating certificate in dir: ' + certout);
         exec(script, (error, stdout, stderr) => {
             if (error) {
                 console.error('exec error: ' + error);
@@ -93,8 +100,10 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     function makeAsar() {
         let outfile = path.join(enccfg.workingPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
+        //console.log('creating asar file: ' + outfile);
         try {
             asar.createPackage(enccfg.outputPath, outfile, () => {
+                //console.log('DONE with asar package');
                 makeCertificate();
             });
         } catch (e) {
