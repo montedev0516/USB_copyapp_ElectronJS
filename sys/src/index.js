@@ -14,7 +14,6 @@ let mainWindow;
 let sessionId = uuidv4();
 
 function createWindow() {
-    // start the server
     const server = require('./server.js');
 
     mainWindow = new electron.BrowserWindow({
@@ -22,6 +21,7 @@ function createWindow() {
         height: 600,
         backgroundColor: '#666666',
         icon: path.join(__dirname, 'img/appicon.png'),
+        show: false,
         webPreferences: {
             plugins: true
         }
@@ -39,8 +39,6 @@ function createWindow() {
 
     server.lockSession(sessionId,
                        mainWindow.webContents.session.getUserAgent());
-
-    mainWindow.maximize();
 
     mainWindow.loadURL(url.format({
         pathname: path.join(__dirname, 'index.html'),
@@ -77,6 +75,18 @@ function createWindow() {
         mainWindow = null;
         process.exit(0);
     });
+
+    mainWindow.webContents.once('did-finish-load', () => {
+        mainWindow.maximize();
+
+        // Start the server.  This can be a long
+        // call, since it also searches for USB drives.
+        // Unfortunately, none of the events ensure that
+        // the window is actually drawn, so a timeout is needed.
+        setTimeout(() => {
+            server.readUSBThenStart()
+        }, 333);
+    });
 }
 
 function systemOpenUrl(url) {
@@ -84,6 +94,7 @@ function systemOpenUrl(url) {
 }
 
 function onDomReady(win) {
+    // remove the PDF toolbar to put roadblock against download
     win.webContents.executeJavaScript(
         "tb = document.querySelector('viewer-pdf-toolbar'); " +
         "if (tb) { tb.style.display = \"none\" }")

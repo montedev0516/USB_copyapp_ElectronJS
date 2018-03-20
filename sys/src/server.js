@@ -47,7 +47,11 @@ var usbcfg = null;
 var serial = null;
 var firmVers = null;
 
-usb.find().then((devices) => {
+exports.readUSBThenStart = function() {
+    return usb.find().then(devices => scanDevices(devices));
+}
+
+function scanDevices(devices) {
     for (let i=0; i < devices.length; i++) {
         let device = devices[i];
         if (cfg.validVendors.includes(
@@ -74,7 +78,7 @@ usb.find().then((devices) => {
             break;
         }
     }
-});
+}
 
 function isValid(av) {
     var [req, res] = av;
