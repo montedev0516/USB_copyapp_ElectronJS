@@ -53,6 +53,7 @@ function createWindow() {
         var win = new electron.BrowserWindow({
             width: 800,
             height: 600,
+            icon: path.join(__dirname, 'img/appicon.png'),
             webPreferences: {
                 plugins: true
             }
