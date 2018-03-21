@@ -47,6 +47,7 @@ function createWindow() {
     }));
 
     mainWindow.webContents.on('dom-ready', () => onDomReady(mainWindow));
+    mainWindow.webContents.on('will-navigate', onOpenUrl);
 
     mainWindow.webContents.on('new-window', (event, url) => {
         event.preventDefault();
@@ -61,15 +62,9 @@ function createWindow() {
         win.loadURL(url);
 
         win.webContents.on('dom-ready', () => onDomReady(win));
+        win.webContents.on('will-navigate', onOpenUrl);
 
         mainWindow.newGuest = win;
-    });
-
-    mainWindow.webContents.on('will-navigate', (ev, url) => {
-        if (!url.match(/^https:\/\/localhost/)) {
-            ev.preventDefault();
-            systemOpenUrl(url);
-        }
     });
 
     mainWindow.on('closed', () => {
@@ -99,6 +94,14 @@ function onDomReady(win) {
     win.webContents.executeJavaScript(
         "tb = document.querySelector('viewer-pdf-toolbar'); " +
         "if (tb) { tb.style.display = \"none\" }")
+}
+
+function onOpenUrl(ev, url) {
+    if (!url.match(/^https:\/\/localhost/)) {
+        ev.preventDefault();
+        systemOpenUrl(url);
+    }
+    // else, use default action
 }
 
 let notPrimary = app.makeSingleInstance((c,wd) => {
