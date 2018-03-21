@@ -167,7 +167,8 @@ function setBtnEnabled(val) {
 function runEncrypt() {
     let enccfg = saveUI();
     setBtnEnabled(false);
-    $('#errors').hide()
+    $('#errors').hide();
+    $('#messages').show();
     messageCallback('Starting...');
     setTimeout(() => {
         try {

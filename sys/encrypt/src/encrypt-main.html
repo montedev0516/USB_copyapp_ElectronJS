@@ -2,9 +2,14 @@
 <html>
 <head>
     <script>window.$ = window.jQuery = require('jquery');</script>
+
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="../contrib/css/jquery-ui.css" rel="stylesheet">
+    <link href="../contrib/css/bootstrap.min.css" rel="stylesheet">
     <link href="encrypt-main.css" rel="stylesheet">
-    <link href="jquery-ui.css" rel="stylesheet">
+
     <title>USB Copy Pro Encryption Utility</title>
 </head>
 <body>
@@ -35,8 +40,8 @@
 
 <div class="spacer">&nbsp;</div>
 
-<div style="display:none" class="error" id="errors"></div>
-<div id="messages"></div>
+<div style="display:none" class="alert alert-danger" id="errors"></div>
+<div style="display:none" class="alert alert-info" id="messages"></div>
 <div style="display:none; width:100%; height:1em" id="progress"></div>
 
 <script>
