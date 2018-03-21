@@ -36,6 +36,9 @@ function newMaskHTML(name, i) {
 // list of masks, and clear the box.
 function addNewMask() {
     let el = $("input[name='newmask']");
+    if (el.val().length == 0) {
+        return;
+    }
     let nhtml = $('#matchlist').html() + newMaskHTML(el.val(), maskCounter);
     $('#matchlist').html(nhtml);
     el.val('');
@@ -84,7 +87,7 @@ function loadUI(enccfg) {
     $("input[name='workdir']").val(enccfg.workingPath);
 
     if (!enccfg.hasOwnProperty('filematch')) {
-        enccfg.filematch = ["*"];
+        enccfg.filematch = [];
     }
 
     let masks = '';
