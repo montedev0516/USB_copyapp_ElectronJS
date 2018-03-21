@@ -2,6 +2,7 @@
     text-align: right;
     font-weight: bold;
     vertical-align: top;
+    width: 15em;
 }
 
 div.spacer {
@@ -10,6 +11,7 @@ div.spacer {
 
 input {
     text-align: left;
+    width: 100%;
 }
 
 .matchentry {
@@ -54,4 +56,30 @@ input {
 .plusbtn {
     color: green;
     cursor: pointer;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 130px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+
+    position: absolute;
+    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -60px;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
 }
