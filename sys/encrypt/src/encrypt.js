@@ -20,20 +20,25 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         path.join(enccfg.workingPath,'usbcopypro.json'),
         JSON.stringify(srvcfg));
 
+    // Compile file glob patterns into regexes.
+    let excludeFiles = [];
+    for (let i = 0; i < enccfg.filematch.length; i++) {
+        // convert to regex
+        excludeFiles.push('^' + enccfg.filematch[i]
+            .replace(/\./g,'\\.')
+            .replace(/\*/g,'.*') + '$');
+    }
+
     // Run the filename through the matchers to determine if
-    // it should be included.  The fname parameter is
+    // it should be excluded.  The fname parameter is
     // the basename, no path.
     function includeFile(fname) {
-        for (let i = 0; i < enccfg.filematch.length; i++) {
-            // convert to regex
-            let regex = '^' + enccfg.filematch[i]
-                .replace(/\./g,'\\.')
-                .replace(/\*/g,'.*') + '$';
-            if (fname.match(regex)) {
-                return true;
+        for (let i = 0; i < excludeFiles.length; i++) {
+            if (fname.match(excludeFiles[i])) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     var doEncrypt = enccfg.encrypt;

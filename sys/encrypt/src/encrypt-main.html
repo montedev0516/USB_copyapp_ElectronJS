@@ -11,19 +11,22 @@
 
 <h1>USB Copy Pro Encryption Utility</h1>
 
-<table>
+<table style="width:100%">
 <tr><td class="field">VID</td><td><input type="text" name="vid"/></td></tr>
 <tr><td class="field">PID</td><td><input type="text" name="pid"/></td></tr>
 <tr><td class="field">Serial Number</td><td><input type="text" name="serial"/></td></tr>
 <tr><td colspan=2 style="font-size:75%"><i>Input only leading significant characters of serial number</i></td></tr>
-<tr><td class="field">Input Dir</td><td><input type="text" name="indir"/></td></tr>
-<tr><td class="field">Output Dir</td><td><input type="text" name="outdir"/></td></tr>
-<tr><td class="field">Working Dir</td><td><input type="text" name="workdir"/></td></tr>
-<tr><td class="field">Files To Encrypt:</td>
+<tr><td class="field">Input Folder</td><td><input type="text" name="indir"/></td></tr>
+<tr><td class="field">Encryption Output Folder</td><td><input type="text" name="outdir"/></td></tr>
+<tr><td class="field">Final Package Folder</td><td><input type="text" name="workdir"/></td></tr>
+<tr><td class="field">Exclude from encryption:</td>
     <td>
         <div id="matchlist"></div>
-        <input type='text' name='newmask'/>&nbsp;
+        <input style="width:7em" type='text' name='newmask'/>&nbsp;
         <span class='plusbtn' onclick='ctl.addNewMask()'>&oplus;</span>
+	<div class="tooltip">?
+	    <span class="tooltiptext">Use filemasks like *.js</span>
+	</div>
     </td>
 </tr>
 </table>
