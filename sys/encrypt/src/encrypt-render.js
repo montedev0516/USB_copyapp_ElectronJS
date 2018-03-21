@@ -84,7 +84,7 @@ function loadUI(enccfg) {
     $("input[name='workdir']").val(enccfg.workingPath);
 
     if (!enccfg.hasOwnProperty('filematch')) {
-        enccfg.filematch = [];
+        enccfg.filematch = ["*"];
     }
 
     let masks = '';
