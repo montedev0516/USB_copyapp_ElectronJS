@@ -154,16 +154,6 @@ function decrypt(key, fname, type, res) {
 
 var contentDir = path.join(__dirname, '../content.asar');
 
-app.get('/x', function(req, res) {
-    if (!isValid([req, res])) { return; }
-
-    let fname = path.join(contentDir, req.query.f); // TODO now: sanitize this filename
-    let type = req.query.t;
-    let key = req.get('x-api-key');
-
-    decrypt(key, fname, type, res);
-});
-
 if (cfg.fileBrowserEnabled) {
     app.use(express.static(filebrowser.moduleroot));
     filebrowser.setcwd(contentDir);
