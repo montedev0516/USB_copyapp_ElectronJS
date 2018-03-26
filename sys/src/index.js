@@ -40,6 +40,13 @@ function createWindow() {
     server.lockSession(sessionId,
                        mainWindow.webContents.session.getUserAgent());
 
+    // ipc connector
+    electron.ipcMain.on('openlocal-message', (ev, url) => {
+        console.log('Warning: Opening external URL in browser ' + url);
+        mainWindow.loadURL(url);
+    });
+
+    // load start page
     mainWindow.loadURL(url.format({
         pathname: path.join(__dirname, 'index.html'),
         protocol: 'file:',
@@ -90,18 +97,37 @@ function systemOpenUrl(url) {
 }
 
 function onDomReady(win) {
-    // remove the PDF toolbar to put roadblock against download
+    // Standard JS injection.
+    // * remove the PDF toolbar to put roadblock against download
+    // * provide callback for opening external URLs in
+    //   the electron browser (insecure)
     win.webContents.executeJavaScript(
-        "tb = document.querySelector('viewer-pdf-toolbar'); " +
-        "if (tb) { tb.style.display = \"none\" }")
+`
+        const {ipcRenderer} = require('electron');
+        if (typeof(window.jQuery) === 'undefined') {
+            window.$ = window.jQuery = require('jquery');
+        }
+        $("[data-openlocal='true']").click(function(ev) {
+            ev.preventDefault();
+            // this will prevent triggering the onOpenUrl()
+            // call below.
+            ipcRenderer.send('openlocal-message', ev.target.href);
+        });
+
+        tb = document.querySelector('viewer-pdf-toolbar');
+        if (tb) { tb.style.display = 'none'; }
+`
+    );
 }
+
+
 
 function onOpenUrl(ev, url) {
     if (!url.match(/^https:\/\/localhost/)) {
         ev.preventDefault();
+        console.log('Warning: Opening external URL using system ' + url);
         systemOpenUrl(url);
     }
-    // else, use default action
 }
 
 let notPrimary = app.makeSingleInstance((c,wd) => {
