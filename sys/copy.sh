@@ -15,11 +15,11 @@ fi
 
 mkdir app/sys
 
-pushd sys/out
-tar cf - $app | pv | ( cd ../../app/sys ; tar xf - )
+pushd sys/dist/out
+tar cf - $app | pv | ( cd ../../../app/sys ; tar xf - )
 
 if [ -n "$drive" ] ; then
-    mkdir -p drive/sys
+    mkdir -p ../../drive/sys
     cp -r $drive ../../drive/sys/
 
     # OSX is manual

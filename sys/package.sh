@@ -1,29 +1,46 @@
 #!/bin/bash
 #
+# This will package the app in the 'dist' directory.
 # run this, then copy.sh
 #
+
+set -e
 
 SYSNAME=usbcopypro
 
 cd `dirname $0` || exit
 _pwd=`pwd`
 
-[ ! -d out ] && mkdir out
+find node_modules -maxdepth 1 -type l -delete
 
-set -e
+rm -rf dist
+mkdir dist
+
 set -x
+: 'Copying source to working directory...'
+cp -r src/ node_modules/ package* default_app/ dist/
+: 'Done!'
 
-if [ -f content.asar ] ; then
-    tar cfJ out/content.tar.xz content.asar bytes.dat .hidfil.sys
+cd dist
+
+# note this requires uglify-es@3
+obf=`which uglifyjs`
+
+if [ -n "$obf" ] ; then
+    find ./src -name \*.js -exec sh -c '
+        n=f_.tmp
+        '$obf' --compress --output $n -- "'{}'"
+        mv $n "'{}'"
+    ' \;
 fi
+
+[ ! -d out ] && mkdir out
 
 ( cd default_app ; asar pack . ../default_app.asar )
 
-find node_modules -maxdepth 1 -type l -delete
-
-( 
+(
     echo '// copied by packager, do not edit'
-    cat encrypt/src/password.js 
+    cat ../encrypt/src/password.js
 ) > src/password.js
 
 $(npm bin)/electron-forge package
@@ -46,7 +63,10 @@ mv ./out/$dir/resources/app/node_modules/usb-detection ./out/$dir/resources/app/
 cd ./out/$dir/resources/app/node_modules
 tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
 
-cd $_pwd/out/$dir
+cd $_pwd/dist/out/$dir
+
+# blank compiled JS files
+find ./resources/app/src -name \*.js -exec sh -c 'echo -n > {}' \;
 
 # no readmes
 find . -iname \*.md -delete
@@ -61,18 +81,5 @@ else
     mkdir resources
     mv ../resources/electron.asar ./resources
     mv ../resources/app/default_app.asar ./resources
-fi
-
-cd $_pwd/out
-
-# note this requires uglify-es@3
-obf=`which uglifyjs`
-
-if [ -n "$obf" ] ; then
-    find ./resources/app/src -name \*.js -exec sh -c '
-        n=f_.tmp
-        '$obf' --compress --output $n -- "'{}'"
-        mv $n "'{}'"
-    ' \;
 fi
 

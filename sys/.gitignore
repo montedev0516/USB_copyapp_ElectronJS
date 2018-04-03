@@ -9,3 +9,4 @@ default_app.asar
 trash
 src/password.js
 usbcopypro.json
+dist/
