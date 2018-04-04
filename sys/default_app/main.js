@@ -5,8 +5,7 @@ const Module = require('module');
 const path = require('path');
 
 // load root file
-//const file = path.join(__dirname, '../../../../sys/resources/app/src/index.js');
-const file = path.join(__dirname, '../../../resources/app/src/index.js');
+const file = path.join(__dirname, '../../../resources/app');
 
 function loadApplicationPackage (packagePath) {
   try {
@@ -35,15 +34,8 @@ function loadApplicationPackage (packagePath) {
       app.setAppPath(packagePath)
     }
 
-    try {
-      Module._resolveFilename(packagePath, module, true)
-    } catch (e) {
-      showErrorMessage(`Unable to find Electron app at ${packagePath}\n\n${e.message}`)
-      return
-    }
-
     // Run the app.
-    Module._load(packagePath, module, true)
+    require(path.join(packagePath, 'es6-shim'));
   } catch (e) {
     console.error('App threw an error during load')
     console.error(e.stack || e)

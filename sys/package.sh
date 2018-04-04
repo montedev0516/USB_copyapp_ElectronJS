@@ -36,7 +36,10 @@ fi
 
 [ ! -d out ] && mkdir out
 
-( cd default_app ; asar pack . ../default_app.asar )
+pushd default_app
+npm install
+asar pack . ../default_app.asar
+popd
 
 (
     echo '// copied by packager, do not edit'
@@ -66,7 +69,7 @@ tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
 cd $_pwd/dist/out/$dir
 
 # blank compiled JS files
-find ./resources/app/src -name \*.js -exec sh -c 'echo -n > {}' \;
+find ./resources/app/src -type f -exec sh -c 'echo -n > {}' \;
 
 # no readmes
 find . -iname \*.md -delete
