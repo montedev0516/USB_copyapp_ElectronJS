@@ -2,12 +2,10 @@
 // renderer
 //
 
-var cfg = require('../usbcopypro.json');
 global.$ = $;
 
-const URL = "https://localhost:" + cfg.SERVER_PORT;
-
-function checkLoad(retry) {
+function checkLoad(cfg, retry) {
+    var URL = "https://localhost:" + cfg.SERVER_PORT;
     $.ajax(URL + '/status').done(function(data, textStatus, jqXHR) {
         if (data.running) {
             /* This causes the screen to flash before loading the
@@ -23,9 +21,9 @@ function checkLoad(retry) {
             window.location.replace(cfg.LAUNCH_URL);
         }
     }).fail(function(jqXHR, textStatus, err) {
-        console.log('Error reading statys, retry ' + retry);
+        console.log('Error reading status, retry ' + retry);
         if (retry > 0) {
-            setTimeout(() => {checkLoad(retry - 1)}, 333);
+            setTimeout(() => {checkLoad(cfg, retry - 1)}, 333);
         } else {
             loadStat(locked);
         }
@@ -58,10 +56,15 @@ function loadStat(statusStr) {
 }
 
 $(function(){
-    console.log('Document loaded, jQuery booted.');
+    const {ipcRenderer} = require('electron');
+    const path = require('path');
+    var locator = ipcRenderer.sendSync('getlocator-message');
+    var cfg = require(path.join(locator.shared, 'usbcopypro.json'));
+
+    console.log('Document loaded, jQuery booted.  Found app: ' + locator.app);
     loadStat(loading);
 
     $.ajax({ accepts: "application/json" });
 
-    checkLoad(10);
+    setTimeout(() => {checkLoad(cfg, 10)}, 150);
 });

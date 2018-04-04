@@ -4,8 +4,37 @@ const fs = require('fs');
 const Module = require('module');
 const path = require('path');
 
+// search up the directory tree until we find the locator config
+const locatorFile = 'locator.json';
+function findLocator() {
+    let found = false;
+    let dir = path.resolve('.');
+    do {
+        if (fs.existsSync(path.join(dir, locatorFile))) {
+            found = true;
+            break;
+        }
+        dirname = path.dirname(dir);
+        if (dirname == dir) {
+            // we hit bottom!
+            break;
+        }
+
+        dir = path.resolve(dir,'..');
+    } while(!found);
+
+    if (!found) {
+        throw "can't find locator file: " + locatorFile;
+    }
+
+    console.log('Found locator at ' + dir);
+    return dir;
+}
+
 // load root file
-const file = path.join(__dirname, '../../../resources/app');
+var locatorPath = findLocator();
+var locator = require(path.join(locatorPath, locatorFile));
+const file = path.resolve(locatorPath, locator.app);
 
 function loadApplicationPackage (packagePath) {
   try {
@@ -35,6 +64,7 @@ function loadApplicationPackage (packagePath) {
     }
 
     // Run the app.
+    console.log('Running app at ' + packagePath);
     require(path.join(packagePath, 'es6-shim'));
   } catch (e) {
     console.error('App threw an error during load')

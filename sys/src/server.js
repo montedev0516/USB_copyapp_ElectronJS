@@ -1,7 +1,14 @@
 //
 // server
 //
-var cfg = require('../usbcopypro.json');
+var cfg;
+var filebrowser;
+var privkey;
+var certificate;
+var bytes;
+var usbcfg;
+var serial;
+var firmVers;
 
 const path = require('path');
 const express = require('express');
@@ -11,11 +18,6 @@ const crypto = require('crypto');
 const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
-
-var filebrowser;
-if (cfg.fileBrowserEnabled) {
-    filebrowser = require('file-browser');
-}
 
 var usb; // not cross platform
 if (os.platform() === 'linux') {
@@ -30,22 +32,6 @@ var _uuid = null;
 var _agent = null;
 
 var app = express();
-
-// load keyfiles for SSL
-var privkey = fs.readFileSync(
-    path.join(__dirname, '../cert/key.pem'), 'utf8');
-var certificate = fs.readFileSync(
-    path.join(__dirname, '../cert/cert.pem'), 'utf8');
-
-// Get the random bytes buffer used for encryption.  This /could/
-// also be encrypted, but it would be trivially easy to get the secret
-// to decrypt it, so why?
-var bytes = fs.readFileSync(path.join(__dirname, '../bytes.dat'));
-
-// get drive info
-var usbcfg = null;
-var serial = null;
-var firmVers = null;
 
 exports.readUSBThenStart = function() {
     return usb.find().then(devices => scanDevices(devices));
@@ -152,63 +138,83 @@ function decrypt(key, fname, type, res) {
     });
 }
 
-var contentDir = path.join(__dirname, '../content.asar');
+exports.configure = function(locator) {
+    cfg = require(path.join(locator.shared, 'usbcopypro.json'));
 
-if (cfg.fileBrowserEnabled) {
-    app.use(express.static(filebrowser.moduleroot));
-    filebrowser.setcwd(contentDir);
-    app.get('/files', filebrowser.get);
-    app.get('/', (req, res) => {
-        if (!isValid([req, res])) { return; }
-        res.redirect('lib/template.html');
-    });
+    if (cfg.fileBrowserEnabled) {
+        filebrowser = require('file-browser');
+    }
 
-    var options = {
-        root: contentDir
-    };
+    // load keyfiles for SSL
+    privkey = fs.readFileSync(
+        path.join(locator.shared, 'cert', 'key.pem'), 'utf8');
+    certificate = fs.readFileSync(
+        path.join(locator.shared, 'cert', 'cert.pem'), 'utf8');
 
-    app.get('/b', (req, res) => {
-        if (!isValid([req, res])) { return; }
-        let file = req.query.f;
-        let match = file.match(/\.([^.]*)\.lock$/);
-        if (match) {
-            let fname = path.join(contentDir, file);
-            let type = mime.lookup(match[1]);
-            let key = req.get('x-api-key');
-            decrypt(key, fname, type, res);
-        } else {
-            res.sendFile(file, options, (err) => {
-                if (err) {
-                    console.log('sendFile ERROR: ' + err);
-                }
-            });
-        }
-    });
-} else {
-    // detect *.lock files, and decrypt if needed
-    app.use((req, res) => {
-        if (!isValid([req, res])) { return; }
+    // Get the random bytes buffer used for encryption.  This /could/
+    // also be encrypted, but it would be trivially easy to get the secret
+    // to decrypt it, so why?
+    bytes = fs.readFileSync(path.join(locator.shared, 'bytes.dat'));
 
-        let file = decodeURI(req.path);
-        let encfile = path.join(contentDir, file + '.lock');
+    // get drive info
+    var contentDir = path.join(locator.shared, 'content.asar');
 
-        if (fs.existsSync(encfile)) {
-            let match = encfile.match(/\.([^.]*)\.lock$/);
+    if (cfg.fileBrowserEnabled) {
+        app.use(express.static(filebrowser.moduleroot));
+        filebrowser.setcwd(contentDir);
+        app.get('/files', filebrowser.get);
+        app.get('/', (req, res) => {
+            if (!isValid([req, res])) { return; }
+            res.redirect('lib/template.html');
+        });
+
+        var options = {
+            root: contentDir
+        };
+
+        app.get('/b', (req, res) => {
+            if (!isValid([req, res])) { return; }
+            let file = req.query.f;
+            let match = file.match(/\.([^.]*)\.lock$/);
             if (match) {
+                let fname = path.join(contentDir, file);
                 let type = mime.lookup(match[1]);
                 let key = req.get('x-api-key');
-                decrypt(key, encfile, type, res);
-                return;
-            }
-        }
-
-        // lockfile not found, return standard file fetch
-        res.sendFile(file, {root: contentDir}, (err) => {
-            if (err) {
-                console.log('sendFile (static) ERROR: ' + err);
+                decrypt(key, fname, type, res);
+            } else {
+                res.sendFile(file, options, (err) => {
+                    if (err) {
+                        console.log('sendFile ERROR: ' + err);
+                    }
+                });
             }
         });
-    });
+    } else {
+        // detect *.lock files, and decrypt if needed
+        app.use((req, res) => {
+            if (!isValid([req, res])) { return; }
+
+            let file = decodeURI(req.path);
+            let encfile = path.join(contentDir, file + '.lock');
+
+            if (fs.existsSync(encfile)) {
+                let match = encfile.match(/\.([^.]*)\.lock$/);
+                if (match) {
+                    let type = mime.lookup(match[1]);
+                    let key = req.get('x-api-key');
+                    decrypt(key, encfile, type, res);
+                    return;
+                }
+            }
+
+            // lockfile not found, return standard file fetch
+            res.sendFile(file, {root: contentDir}, (err) => {
+                if (err) {
+                    console.log('sendFile (static) ERROR: ' + err);
+                }
+            });
+        });
+    }
 }
 
 function startServer() {
@@ -225,7 +231,7 @@ function startServer() {
     });
 }
 
-exports.lockSession = (uuid, agent) => {
+exports.lockSession = function(uuid, agent) {
     _uuid = uuid;
     _agent = agent;
 };

@@ -4,9 +4,6 @@
   "main": "main.js",
   "version": "1.0.0",
   "description": "USB Copy Pro Loader",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "",
   "license": "ISC"
 }

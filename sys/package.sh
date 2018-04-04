@@ -18,7 +18,7 @@ mkdir dist
 
 set -x
 : 'Copying source to working directory...'
-cp -r src/ node_modules/ package* default_app/ dist/
+cp -r src/ node_modules/ package* default_app/ locator.json dist/
 : 'Done!'
 
 cd dist

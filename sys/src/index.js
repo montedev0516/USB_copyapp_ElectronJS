@@ -14,7 +14,9 @@ let mainWindow;
 let sessionId = uuidv4();
 
 function createWindow() {
+    var locator = findLocator();
     const server = require('./server.js');
+    server.configure(locator);
 
     mainWindow = new electron.BrowserWindow({
         width: 800,
@@ -22,16 +24,19 @@ function createWindow() {
         backgroundColor: '#666666',
         icon: path.join(__dirname, 'img/appicon.png'),
         show: false,
+        devTools: false,
         webPreferences: {
             plugins: true
         }
     });
 
+    //mainWindow.webContents.openDevTools();
+
     mainWindow
         .webContents.session.webRequest
         .onBeforeSendHeaders((details, callback) => {
         details.requestHeaders['x-api-key'] =
-            fs.readFileSync(path.join(__dirname, '../.hidfil.sys'))
+            fs.readFileSync(path.join(locator.shared, '.hidfil.sys'))
               .toString('hex');
         details.requestHeaders['session-id'] = sessionId;
         callback({cancel:false, requestHeaders: details.requestHeaders});
@@ -40,10 +45,13 @@ function createWindow() {
     server.lockSession(sessionId,
                        mainWindow.webContents.session.getUserAgent());
 
-    // ipc connector
+    // ipc connectors
     electron.ipcMain.on('openlocal-message', (ev, url) => {
         console.log('Warning: Opening external URL in browser ' + url);
         mainWindow.loadURL(url);
+    });
+    electron.ipcMain.on('getlocator-message', (ev) => {
+        ev.returnValue = locator;
     });
 
     // load start page
@@ -120,7 +128,33 @@ function onDomReady(win) {
     );
 }
 
+function findLocator() {
+    const locatorFile = 'locator.json';
+    let found = false;
+    let dir = __dirname;
+    do {
+        if (fs.existsSync(path.join(dir, locatorFile))) {
+            found = true;
+            break;
+        }
+        if (path.dirname(dir) == dir) break;
+        dir = path.resolve(dir,'..');
+    } while(!found);
 
+    if (!found) {
+        throw "can't find locator file: " + locatorFile;
+    }
+
+    var locator = require(path.join(dir, locatorFile));
+    locator.shared = path.resolve(dir, locator.shared);
+    locator.app = path.resolve(dir, locator.app);
+    locator.drive = path.resolve(dir, locator.drive);
+    console.log('shared: ' + locator.shared);
+    console.log('app: ' + locator.app);
+    console.log('drive: ' + locator.drive);
+
+    return locator;
+}
 
 function onOpenUrl(ev, url) {
     if (!url.match(/^https:\/\/localhost/)) {
