@@ -142,7 +142,7 @@ function findLocator() {
     } while(!found);
 
     if (!found) {
-        throw "can't find locator file: " + locatorFile;
+        throw new Error("can't find locator file: " + locatorFile);
     }
 
     var locator = require(path.join(dir, locatorFile));

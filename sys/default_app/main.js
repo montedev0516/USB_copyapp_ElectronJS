@@ -8,13 +8,13 @@ const path = require('path');
 const locatorFile = 'locator.json';
 function findLocator() {
     let found = false;
-    let dir = path.resolve('.');
+    let dir = __dirname;
     do {
         if (fs.existsSync(path.join(dir, locatorFile))) {
             found = true;
             break;
         }
-        dirname = path.dirname(dir);
+        let dirname = path.dirname(dir);
         if (dirname == dir) {
             // we hit bottom!
             break;
@@ -24,7 +24,7 @@ function findLocator() {
     } while(!found);
 
     if (!found) {
-        throw "can't find locator file: " + locatorFile;
+        throw new Error("can't find locator file: " + locatorFile);
     }
 
     console.log('Found locator at ' + dir);
