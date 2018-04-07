@@ -9,6 +9,14 @@ DIRS="shared app drive"
 
 tag=`git describe --tag`
 
+cat > drive/locator.json <<EOT
+{
+    "shared": "./shared",
+    "app": "./app/sys/resources/app",
+    "drive": "./drive"
+}
+EOT
+
 for d in $DIRS ; do
     [ -d $d ] || continue
     FILE=${tag}-${d}.zip
