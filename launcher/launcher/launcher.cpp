@@ -2,42 +2,68 @@
 //
 
 #include "stdafx.h"
+#include "json.hpp"
 #include <Windows.h>
+#include "shlwapi.h"
+#include <fstream>
+#include <iostream>
 
 int main(int argc, const char *argv[])
 {
-	STARTUPINFOA si;
-	PROCESS_INFORMATION pi;
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
 
-	char prg[MAX_PATH];
-	char path[MAX_PATH];
-	strncpy_s(prg, argv[0], strnlen(argv[0], MAX_PATH));
-	int i;
-	for (i = strnlen(prg, MAX_PATH); i > 0 ; i--) {
-		if (prg[i] == '\\') {
-			prg[i] = '\0';
-			break;
-		}
-	}
-	strncpy_s(path, prg, strnlen(prg, MAX_PATH));
+    char prg[MAX_PATH];
+    strncpy_s(prg, argv[0], strnlen(argv[0], MAX_PATH));
+    int i;
+    bool foundLocator = false;
+    char locRoot[MAX_PATH] = {0};
+    for (i = strnlen(prg, MAX_PATH); i > 0 ; i--) {
+        if (prg[i] == '\\') {
+            prg[i] = '\0';
+            strncpy_s(locRoot, prg, MAX_PATH);
+            strncat_s(prg, "\\locator.json", 14);
+            if (PathFileExistsA(prg)) {
+                // FOUND LOCATOR...
+                foundLocator = true;
+                break;
+            }
+        }
+    }
 
-	strncat_s(prg, "\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe .\\sys\\resources\\app\\src\\index.js", MAX_PATH);
+    if (!foundLocator) {
+        MessageBox(NULL,
+            (LPCWSTR)L"Could not find locator.  Cannot start application.",
+            (LPCWSTR)L"ERROR",
+            MB_ICONERROR);
+        exit(1);
+    }
 
-	ZeroMemory(&si, sizeof(si));
-	si.cb = sizeof(si);
-	ZeroMemory(&pi, sizeof(pi));
+    std::ifstream jsonfile(prg);
+    nlohmann::json locatorJson;
 
-	//printf("prg %s\n", prg);
-	if (!CreateProcessA(NULL, prg, NULL, NULL, false, 0, NULL, path, &si, &pi)) {
-		printf("ERROR: %d\n", GetLastError());
-		MessageBoxA(0, prg, "error starting program", MB_ICONERROR);
-	}
+    jsonfile >> locatorJson;
+    std::string locRootS(locRoot);
+    locRootS.append("\\");
+    locRootS.append(locatorJson["drive"].get<std::string>());
 
-	// Wait until child process exits.
-	WaitForSingleObject(pi.hProcess, INFINITE);
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
 
-	// Close process and thread handles.
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
+    if (!CreateProcessA(NULL, (LPSTR)locRootS.c_str(),
+                        NULL, NULL, false, 0,
+                        NULL, NULL, &si, &pi))
+    {
+        printf("ERROR: %d\n", GetLastError());
+        MessageBoxA(0, prg, "error starting program", MB_ICONERROR);
+    }
+
+    // Wait until child process exits.
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    // Close process and thread handles.
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 }
 
