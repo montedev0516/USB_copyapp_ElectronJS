@@ -1,5 +1,5 @@
 {
     "shared": "../shared",
     "app": ".",
-    "drive": "."
+    "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe"
 }

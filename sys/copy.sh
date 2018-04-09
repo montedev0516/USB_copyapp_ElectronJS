@@ -30,3 +30,8 @@ if [ -n "$drive" ] ; then
     # OSX is manual
 fi
 
+popd
+
+if [ -x launcher/Release/launcher.exe ] ; then
+    cp launcher/Release/launcher.exe drive/Windows_Users_Start.exe
+fi

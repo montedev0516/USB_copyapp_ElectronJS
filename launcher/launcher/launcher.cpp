@@ -56,7 +56,7 @@ int main(int argc, const char *argv[])
                         NULL, NULL, &si, &pi))
     {
         printf("ERROR: %d\n", GetLastError());
-        MessageBoxA(0, prg, "error starting program", MB_ICONERROR);
+        MessageBoxA(0, locRootS.c_str(), "error starting program", MB_ICONERROR);
     }
 
     // Wait until child process exits.

@@ -13,7 +13,7 @@ cat > drive/locator.json <<EOT
 {
     "shared": "./shared",
     "app": "./app/sys/resources/app",
-    "drive": "./drive"
+    "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe"
 }
 EOT
 
