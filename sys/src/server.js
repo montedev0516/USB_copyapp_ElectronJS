@@ -113,29 +113,18 @@ app.get('/status', function(req, res) {
 
 
 function decrypt(key, fname, type, res) {
-    fs.readFile(fname, (err, data) => {
-        if (err) {
-            console.log('READ ERROR: ' + err);
-            res.sendStatus(404);
-        } else {
-            let decipher = crypto.createDecipher(
-                'aes-256-cbc',
-                pwsys.makePassword(serial, firmVers, cfg.salt, key, bytes)
-            );
-
-            try {
-                let decrypted = Buffer.concat(
-                    [decipher.update(data), decipher.final()]
-                );
-
-                res.set('Content-Type', type);
-                res.send(decrypted);
-            } catch (err) {
-                console.log('DECRYPT ERROR: ' + err);
-                res.sendStatus(404);
-            }
-        }
-    });
+    try {
+        let decipher = crypto.createDecipher(
+            'aes-256-cbc',
+            pwsys.makePassword(serial, firmVers, cfg.salt, key, bytes)
+        );
+        let input = fs.createReadStream(fname);
+        res.set('Content-Type', type);
+        input.pipe(decipher).pipe(res);
+    } catch (err) {
+        console.log('DECRYPT ERROR: ' + err);
+        res.sendStatus(404);
+    }
 }
 
 exports.configure = function(locator) {
