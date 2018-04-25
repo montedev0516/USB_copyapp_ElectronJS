@@ -35,7 +35,7 @@ module.exports = {
         "block-scoped-var": "error",
         "block-spacing": "off",
         "brace-style": [
-            "error",
+            "off",
             "1tbs",
             {
                 "allowSingleLine": true
@@ -112,7 +112,7 @@ module.exports = {
         "lines-between-class-members": "error",
         "max-depth": "error",
         "max-len": "error",
-        "max-lines": "error",
+        "max-lines": "off",
         "max-nested-callbacks": "error",
         "max-params": "off",
         "max-statements": "off",

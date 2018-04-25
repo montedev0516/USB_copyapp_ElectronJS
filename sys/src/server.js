@@ -72,8 +72,7 @@ function isValid(av) {
 
     // no valid device present, exit.
     if (usbcfg == null) {
-        console.error("No valid USB device present");
-        return false;
+        throw new Error("No valid USB device present");
     }
 
     if (_uuid == null || _agent == null) {
@@ -131,7 +130,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
             (fstat.size > 64*1024) &&
             (base in originalSize))
         {
-            console.log("starting chunk at " + bytestart);
+            //console.log("starting chunk at " + bytestart);
             let readSync = new Promise((resolve) => {
                 let dec = input.pipe(decipher).pause();
                 let byteend;
@@ -151,7 +150,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                     originalSize[base];
                 res.writeHead(206, hdr);
 
-                console.log("reading to " + bytestart);
+                //console.log("reading to " + bytestart);
 
                 // seek to the position in the file
                 var count = 0;
@@ -198,7 +197,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
             input.pipe(decipher).pipe(res);
         }
     } catch (err) {
-        console.log('DECRYPT ERROR: ' + err);
+        //console.log('DECRYPT ERROR: ' + err);
         res.sendStatus(404);
     }
 }
@@ -251,7 +250,7 @@ exports.configure = function(locator) {
             } else {
                 res.sendFile(file, options, (err) => {
                     if (err) {
-                        console.log('sendFile ERROR: ' + err);
+                        //console.log('sendFile ERROR: ' + err);
                     }
                 });
             }
@@ -280,7 +279,7 @@ exports.configure = function(locator) {
                         if (parts[1]) {
                             byteend = parseInt(parts[1], 10);
                         }
-                        console.log("got range, start = " + bytestart);
+                        //console.log("got range, start = " + bytestart);
                     }
                     decrypt(key, encfile, type, bytestart, byteend, res);
                 }
@@ -289,7 +288,7 @@ exports.configure = function(locator) {
                 // lockfile not found, return standard file fetch
                 res.sendFile(file, {root: contentDir}, (err) => {
                     if (err) {
-                        console.log('sendFile (static) ERROR: ' + err);
+                        //console.log('sendFile (static) ERROR: ' + err);
                     }
                 });
             }
@@ -306,7 +305,7 @@ function startServer() {
 
     server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
-            console.log('ERROR starting server: ' + err);
+            //console.log('ERROR starting server: ' + err);
         }
     });
 }

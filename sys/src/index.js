@@ -8,7 +8,7 @@ const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const opn = require('opn');
 
-console.log('System starting');
+//console.log('System starting');
 
 let mainWindow;
 let sessionId = uuidv4();
@@ -47,7 +47,7 @@ function createWindow() {
 
     // ipc connectors
     electron.ipcMain.on('openlocal-message', (ev, url) => {
-        console.log('Warning: Opening external URL in browser ' + url);
+        //console.log('Warning: Opening external URL in browser ' + url);
         mainWindow.loadURL(url);
     });
     electron.ipcMain.on('getlocator-message', (ev) => {
@@ -149,9 +149,9 @@ function findLocator() {
     locator.shared = path.resolve(dir, locator.shared);
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);
-    console.log('shared: ' + locator.shared);
-    console.log('app: ' + locator.app);
-    console.log('drive: ' + locator.drive);
+    //console.log('shared: ' + locator.shared);
+    //console.log('app: ' + locator.app);
+    //console.log('drive: ' + locator.drive);
 
     return locator;
 }
@@ -159,12 +159,12 @@ function findLocator() {
 function onOpenUrl(ev, url) {
     if (!url.match(/^https:\/\/localhost/)) {
         ev.preventDefault();
-        console.log('Warning: Opening external URL using system ' + url);
+        //console.log('Warning: Opening external URL using system ' + url);
         systemOpenUrl(url);
     }
 }
 
-let notPrimary = app.makeSingleInstance((c,wd) => {
+let notPrimary = app.makeSingleInstance(() => {
     if (mainWindow) {
         if (mainWindow.isMinimized()) {
             mainWindow.restore();
