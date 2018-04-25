@@ -7,6 +7,7 @@ const asar = require('asar');
 const { exec } = require('child_process');
 
 const srvcfg = require('./config.json');
+const sizes = {};
 
 module.exports = function(enccfg, msgcb, enccb, unenccb) {
     if (!msgcb) msgcb = (s,e) => { console.log(s); }
@@ -41,6 +42,8 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         return true;
     }
 
+    // TODO: this should probably go away, the encryption tool
+    // no longer decrypts.
     var doEncrypt = enccfg.encrypt;
 
     msgcb("Constructing File List...");
@@ -103,6 +106,12 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     }
 
     function makeAsar() {
+
+        msgcb('writing file size information');
+        fs.writeFileSync(
+            path.join(enccfg.workingPath, 'size.json'),
+            JSON.stringify(sizes));
+
         let outfile = path.join(enccfg.workingPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
         //console.log('creating asar file: ' + outfile);
@@ -169,6 +178,11 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         }
         if (!fs.existsSync(dir)) {
             mkdirp(dir);
+        }
+
+        let fstat = fs.statSync(file);
+        if (fstat.size > 64*1024) {
+            sizes[path.basename(fnout)] = fstat.size;
         }
 
         var input = fs.createReadStream(file);
