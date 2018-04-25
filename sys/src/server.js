@@ -6,6 +6,7 @@ var filebrowser;
 var privkey;
 var certificate;
 var bytes;
+var originalSize;
 var usbcfg;
 var serial;
 var firmVers;
@@ -112,15 +113,90 @@ app.get('/status', function(req, res) {
 });
 
 
-function decrypt(key, fname, type, res) {
+function decrypt(key, fname, type, bytestart, byteendp, res) {
     try {
         let decipher = crypto.createDecipher(
             'aes-256-cbc',
             pwsys.makePassword(serial, firmVers, cfg.salt, key, bytes)
         );
+        let fstat = fs.statSync(fname);
         let input = fs.createReadStream(fname);
-        res.set('Content-Type', type);
-        input.pipe(decipher).pipe(res);
+        let hdr = {
+            'Content-Type': type
+        };
+
+        // items over 64k in size have their original lengths cached.
+        let base = path.basename(fname)
+        if ((bytestart != null) &&
+            (fstat.size > 64*1024) &&
+            (base in originalSize))
+        {
+            console.log("starting chunk at " + bytestart);
+            let readSync = new Promise((resolve) => {
+                let dec = input.pipe(decipher).pause();
+                let byteend;
+
+                if (byteendp == null) {
+                    byteend = originalSize[base] - 1;
+                } else {
+                    byteend = byteendp;
+                }
+
+                let len = (byteend - bytestart) + 1;
+                hdr['Accept-Ranges'] = 'bytes';
+                hdr['Content-Length'] = len;
+                hdr['Content-Range'] =
+                    'bytes '+ bytestart +
+                    '-' + byteend + '/' +
+                    originalSize[base];
+                res.writeHead(206, hdr);
+
+                console.log("reading to " + bytestart);
+
+                // seek to the position in the file
+                var count = 0;
+                dec.on('readable', () => {
+
+                    let lastchunk;
+                    while ((lastchunk = dec.read()) !== null) {
+                        let lenidx = lastchunk.length - 1;
+
+                        //console.log("count = " + count);
+                        if (count + lenidx > bytestart) {
+                            let a = bytestart - count;
+                            if (a < 0) a = 0;
+
+                            let b = byteend - count;
+
+                            //console.log("a = " + a);
+                            //console.log("b = " + b);
+
+                            if (b > lenidx) {
+                                if (a == 0) {
+                                    // send whole chunk
+                                    res.write(lastchunk);
+                                } else {
+                                    res.write(lastchunk.slice(a));
+                                }
+                            } else {
+                                // send the last slice, and done.
+                                res.write(lastchunk.slice(a, b + 1));
+                                //console.log("DONE at " + count);
+                                resolve();
+                                break;
+                            }
+                        }
+
+                        count += lastchunk.length;
+                    }
+                });
+            });
+
+            readSync.then(() => res.end());
+        } else {
+            res.set(hdr);
+            input.pipe(decipher).pipe(res);
+        }
     } catch (err) {
         console.log('DECRYPT ERROR: ' + err);
         res.sendStatus(404);
@@ -144,6 +220,8 @@ exports.configure = function(locator) {
     // also be encrypted, but it would be trivially easy to get the secret
     // to decrypt it, so why?
     bytes = fs.readFileSync(path.join(locator.shared, 'bytes.dat'));
+
+    originalSize = require(path.join(locator.shared, 'size.json'));
 
     // get drive info
     var contentDir = path.join(locator.shared, 'content.asar');
@@ -169,7 +247,7 @@ exports.configure = function(locator) {
                 let fname = path.join(contentDir, file);
                 let type = mime.lookup(match[1]);
                 let key = req.get('x-api-key');
-                decrypt(key, fname, type, res);
+                decrypt(key, fname, type, null, null, res);
             } else {
                 res.sendFile(file, options, (err) => {
                     if (err) {
@@ -191,17 +269,30 @@ exports.configure = function(locator) {
                 if (match) {
                     let type = mime.lookup(match[1]);
                     let key = req.get('x-api-key');
-                    decrypt(key, encfile, type, res);
-                    return;
+                    let bytestartHdr = req.get('range');
+                    let bytestart = null;
+                    let byteend = null;
+                    if (bytestartHdr) {
+                        let parts = bytestartHdr
+                            .replace(/bytes=/, "")
+                            .split('-');
+                        bytestart = parseInt(parts[0], 10);
+                        if (parts[1]) {
+                            byteend = parseInt(parts[1], 10);
+                        }
+                        console.log("got range, start = " + bytestart);
+                    }
+                    decrypt(key, encfile, type, bytestart, byteend, res);
                 }
-            }
+            } else {
 
-            // lockfile not found, return standard file fetch
-            res.sendFile(file, {root: contentDir}, (err) => {
-                if (err) {
-                    console.log('sendFile (static) ERROR: ' + err);
-                }
-            });
+                // lockfile not found, return standard file fetch
+                res.sendFile(file, {root: contentDir}, (err) => {
+                    if (err) {
+                        console.log('sendFile (static) ERROR: ' + err);
+                    }
+                });
+            }
         });
     }
 }
