@@ -4,3 +4,4 @@ electron.win32
 node_modules
 usb-detection.darwin
 usb-detection.win32
+usbcopypro.app
