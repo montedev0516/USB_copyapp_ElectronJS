@@ -13,15 +13,21 @@ _pwd=`pwd`
 
 find node_modules -maxdepth 1 -type l -delete
 
-rm -rf dist
+if [ -d dist ] ; then
+    echo "ERROR: dist dir exists" >&2
+    exit 1
+fi
+
 mkdir dist
 
 set -x
 : 'Copying source to working directory...'
-cp -r src node_modules package* default_app locator.json dist/
+cp -r src package* default_app locator.json dist/
 : 'Done!'
 
 cd dist
+npm install
+cp -v package-lock.json ..
 
 # note this requires uglify-es@3
 obf=`which uglifyjs`
@@ -37,7 +43,6 @@ fi
 [ ! -d out ] && mkdir out
 
 pushd default_app
-npm install
 asar pack . ../default_app.asar
 popd
 
