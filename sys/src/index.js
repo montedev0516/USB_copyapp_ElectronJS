@@ -89,6 +89,7 @@ function createWindow() {
 
     mainWindow.webContents.once('did-finish-load', () => {
         mainWindow.maximize();
+        mainWindow.show();
 
         // Start the server.  This can be a long
         // call, since it also searches for USB drives.
