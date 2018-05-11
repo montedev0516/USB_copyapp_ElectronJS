@@ -30,13 +30,7 @@ function checkLoad(cfg, retry) {
     });
 }
 
-var info =
-`<div id="info">
-    <div>Company Name</div>
-    <div>Company Contact</div>
-    <div>Company Email</div>
-    <div>Company Website</div>
-</div>`;
+var info ='';
 var locked =
 `<div class="hw locked">
     <img src="img/locked.png" class="center" /> ${info}
