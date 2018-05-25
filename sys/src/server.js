@@ -123,6 +123,19 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
         let hdr = {
             'Content-Type': type
         };
+        let finished = false;
+
+        const streamError = (e) => {
+            finished = true;
+            if (res.headersSent) {
+                console.log(e);
+                res.end();
+            } else {
+                res.sendStatus(500);
+            }
+        };
+        decipher.on('error', streamError);
+        input.on('error', streamError);
 
         // items over 64k in size have their original lengths cached.
         let base = path.basename(fname)
@@ -155,6 +168,9 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                 // seek to the position in the file
                 var count = 0;
                 dec.on('readable', () => {
+                    if (finished) {
+                        return;
+                    }
 
                     let lastchunk;
                     while ((lastchunk = dec.read()) !== null) {
@@ -191,7 +207,11 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                 });
             });
 
-            readSync.then(() => res.end());
+            readSync.then(() => {
+                res.end()
+                finished = true;
+                input.destroy(); // flush
+            });
         } else {
             res.set(hdr);
             input.pipe(decipher).pipe(res);
