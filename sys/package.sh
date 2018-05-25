@@ -11,8 +11,6 @@ SYSNAME=usbcopypro
 cd `dirname $0` || exit
 _pwd=`pwd`
 
-find node_modules -maxdepth 1 -type l -delete
-
 if [ -d dist ] ; then
     echo "ERROR: dist dir exists" >&2
     exit 1
