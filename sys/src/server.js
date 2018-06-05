@@ -148,6 +148,8 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                 let dec = input.pipe(decipher).pause();
                 let byteend;
 
+                dec.readableHighWaterMark = 1024 * 1024;
+
                 if (byteendp == null) {
                     byteend = originalSize[base] - 1;
                 } else {
