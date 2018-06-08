@@ -325,6 +325,10 @@ function startServer() {
         "passphrase": serial
     }, app);
 
+    // Prevent ERR_CONTENT_LENGTH_MISMATCH errors, see:
+    // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
+    server.keepAliveTimeout = 60000 * 15;   // assume 15 minutes max, no real harm if the media/video are longer ...
+    
     server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
             //console.log('ERROR starting server: ' + err);
