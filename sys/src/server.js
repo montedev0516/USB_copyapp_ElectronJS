@@ -306,13 +306,18 @@ exports.configure = function(locator) {
                     decrypt(key, encfile, type, bytestart, byteend, res);
                 }
             } else {
+                let nfile = path.join(contentDir, file);
 
-                // lockfile not found, return standard file fetch
-                res.sendFile(file, {root: contentDir}, (err) => {
-                    if (err) {
-                        //console.log('sendFile (static) ERROR: ' + err);
-                    }
-                });
+                if (fs.existsSync(nfile)) {
+                    // lockfile not found, return standard file fetch
+                    res.sendFile(file, {root: contentDir}, (err) => {
+                        if (err) {
+                            //console.log('sendFile (static) ERROR: ' + err);
+                        }
+                    });
+                } else {
+                    res.sendStatus(404);
+                }
             }
         });
     }
