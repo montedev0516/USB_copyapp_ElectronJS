@@ -14,3 +14,8 @@
 $(npm bin)/electron ./encrypt/encrypt-main.js
 ```
 
+## Packaging
+1. Package with electron forge:
+```
+npm run package
+```
