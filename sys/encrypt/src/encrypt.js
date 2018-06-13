@@ -146,7 +146,7 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
         let cipher;
         let fnout;
         if (isEnc) {
-            cipher = crypto.createCipher('aes-256-cbc', secret);
+            cipher = crypto.createCipher('aes-192-ofb', secret);
             fnout = file + '.lock';
         } else {
             fnout = file;

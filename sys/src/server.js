@@ -115,7 +115,7 @@ app.get('/status', function(req, res) {
 function decrypt(key, fname, type, bytestart, byteendp, res) {
     try {
         let decipher = crypto.createDecipher(
-            'aes-256-cbc',
+            'aes-192-ofb',
             pwsys.makePassword(serial, firmVers, cfg.salt, key, bytes)
         );
         let fstat = fs.statSync(fname);
