@@ -22,11 +22,11 @@ mkdir app/sys
 pushd sys/dist/out
 tar cf - $app | pv | ( cd ../../../app/sys ; tar xf - )
 
-mkdir ../../../drive
+[ ! -d ../../../drive ] && mkdir ../../../drive
 cp -v resources/app/locator.json ../../../drive/
 
 if [ -n "$drive" ] ; then
-    mkdir -p ../../../drive/sys
+    mkdir ../../../drive/sys
     cp -r $drive ../../../drive/sys/
 
     # OSX is manual
