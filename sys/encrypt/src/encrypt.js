@@ -5,12 +5,15 @@ const pwsys = require('./password');
 const path = require('path');
 const asar = require('asar');
 const { exec } = require('child_process');
-
 const srvcfg = require('./config.json');
+
 const sizes = {};
 
-module.exports = function(enccfg, msgcb, enccb, unenccb) {
-    if (!msgcb) msgcb = (s,e) => { console.log(s); }
+let bytes;
+
+module.exports = function (enccfg, _msgcb, enccb, unenccb) {
+    let msgcb = _msgcb;
+    if (!msgcb) msgcb = () => { };
 
     // save serial length
     srvcfg.serialLength = enccfg.descString3.length;
@@ -18,16 +21,16 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     srvcfg.validVendors = [enccfg.vid];
     msgcb('writing config file...');
     fs.writeFileSync(
-        path.join(enccfg.workingPath,'usbcopypro.json'),
+        path.join(enccfg.workingPath, 'usbcopypro.json'),
         JSON.stringify(srvcfg));
 
     // Compile file glob patterns into regexes.
-    let excludeFiles = [];
+    const excludeFiles = [];
     for (let i = 0; i < enccfg.filematch.length; i++) {
         // convert to regex
         excludeFiles.push('^' + enccfg.filematch[i]
-            .replace(/\./g,'\\.')
-            .replace(/\*/g,'.*') + '$');
+            .replace(/\./g, '\\.')
+            .replace(/\*/g, '.*') + '$');
     }
 
     // Run the filename through the matchers to determine if
@@ -42,26 +45,24 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         return true;
     }
 
-    msgcb("Constructing File List...");
+    msgcb('Constructing File List...');
 
     // construct file list
-    let dirs = [enccfg.inputPath];
-    let encFiles = [];
-    let unencFiles = [];
-    while(dirs.length > 0) {
-        let dir = dirs.pop();
-        let files = fs.readdirSync(dir);
+    const dirs = [enccfg.inputPath];
+    const encFiles = [];
+    const unencFiles = [];
+    while (dirs.length > 0) {
+        const dir = dirs.pop();
+        const files = fs.readdirSync(dir);
         for (let i = 0; i < files.length; i++) {
-            let pathname = path.join(dir,files[i]);
-            let stat = fs.statSync(pathname);
+            const pathname = path.join(dir, files[i]);
+            const stat = fs.statSync(pathname);
             if (stat.isDirectory()) {
                 dirs.push(pathname);
+            } else if (includeFile(files[i])) {
+                encFiles.push(pathname);
             } else {
-                if (includeFile(files[i])) {
-                    encFiles.push(pathname);
-                } else {
-                    unencFiles.push(pathname);
-                }
+                unencFiles.push(pathname);
             }
         }
     }
@@ -69,51 +70,44 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     function makeCertificate() {
         // There exist node modules to generate certificates, but
         // I could not find one that makes one protected by a passphrase.
-        let cfg = path.join(__dirname, 'openssl.cnf');
-        let certout = path.join(enccfg.workingPath, 'cert');
-        let serial = pwsys.getSerial(enccfg, srvcfg);
-        let script =
+        const cfg = path.join(__dirname, 'openssl.cnf');
+        const certout = path.join(enccfg.workingPath, 'cert');
+        const serial = pwsys.getSerial(enccfg, srvcfg);
+        const script =
             'openssl req -x509 -newkey rsa:4096 -keyout "' + certout +
             path.sep + 'key.pem" ' +
             '-out "' + certout + path.sep +
             'cert.pem" -days 3650 -passout pass:' +
-            serial + ' ' + '-config "' + cfg + '"';
+            serial + ' -config "' + cfg + '"';
 
         if (!fs.existsSync(certout)) {
-            //console.log('creating dir: ' + certout);
             msgcb('Creating certificate dir: ' + certout);
             fs.mkdirSync(certout);
         }
 
-        //console.log('making certificate: ' + script);
         msgcb('Creating certificate in dir: ' + certout);
         exec(script, (error, stdout, stderr) => {
             if (error) {
-                console.error('exec error: ' + error);
-                console.log(`openssl: ${stdout}`);
-                console.log(`openssl: ${stderr}`);
                 msgcb(error.toString(), true);
+                msgcb(`openssl: ${stdout}`);
+                msgcb(`openssl: ${stderr}`);
             } else {
                 msgcb('Certificates generated');
                 msgcb('Finished!');
             }
         });
-
     }
 
     function makeAsar() {
-
         msgcb('writing file size information');
         fs.writeFileSync(
             path.join(enccfg.workingPath, 'size.json'),
             JSON.stringify(sizes));
 
-        let outfile = path.join(enccfg.workingPath, 'content.asar');
+        const outfile = path.join(enccfg.workingPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
-        //console.log('creating asar file: ' + outfile);
         try {
             asar.createPackage(enccfg.outputPath, outfile, () => {
-                //console.log('DONE with asar package');
                 makeCertificate();
             });
         } catch (e) {
@@ -124,7 +118,9 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
 
     function go(idx, serial, vers, secret) {
         let file;
-        let isEnc = !(serial.length == 0 && vers.length == 0 && secret.length == 0);
+        const isEnc = !(serial.length === 0 &&
+                      vers.length === 0 &&
+                      secret.length === 0);
         if (isEnc) {
             if (idx >= encFiles.length) {
                 if (enccb) enccb(idx, encFiles.length, true);
@@ -147,8 +143,8 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
             file = unencFiles[idx];
         }
 
-        var cipher;
-        var fnout;
+        let cipher;
+        let fnout;
         if (isEnc) {
             cipher = crypto.createCipher('aes-256-cbc', secret);
             fnout = file + '.lock';
@@ -159,25 +155,25 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         fnout = fnout.replace(enccfg.inputPath, enccfg.outputPath);
 
         // recursively create output dir
-        let dir = path.dirname(fnout);
-        function mkdirp(dir) {
-            let ppath = dir.split(path.sep).slice(0,-1).join(path.sep);
-            if (ppath.length != 0 && !fs.existsSync(ppath)) {
+        const dir = path.dirname(fnout);
+        function mkdirp(ndir) {
+            const ppath = ndir.split(path.sep).slice(0, -1).join(path.sep);
+            if (ppath.length !== 0 && !fs.existsSync(ppath)) {
                 mkdirp(ppath);
             }
-            fs.mkdirSync(dir);
+            fs.mkdirSync(ndir);
         }
         if (!fs.existsSync(dir)) {
             mkdirp(dir);
         }
 
-        let fstat = fs.statSync(file);
-        if (fstat.size > 64*1024) {
+        const fstat = fs.statSync(file);
+        if (fstat.size > 64 * 1024) {
             sizes[path.basename(fnout)] = fstat.size;
         }
 
-        var input = fs.createReadStream(file);
-        var output = fs.createWriteStream(fnout);
+        const input = fs.createReadStream(file);
+        const output = fs.createWriteStream(fnout);
 
         if (isEnc) {
             input.pipe(cipher).pipe(output);
@@ -187,8 +183,8 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         input.on('end', () => {
             if (isEnc) {
                 if (enccb) enccb(idx + 1, encFiles.length);
-            } else {
-                if (unenccb) unenccb(idx + 1, unencFiles.length);
+            } else if (unenccb) {
+                unenccb(idx + 1, unencFiles.length);
             }
             // process next file
             go(idx + 1, serial, vers, secret, bytes);
@@ -196,26 +192,27 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
     }
 
     if ((encFiles.length + unencFiles.length) > 0) {
-        let serial = pwsys.getSerial(enccfg, srvcfg);
-        let vers = pwsys.getVersion(enccfg, srvcfg);
+        const serial = pwsys.getSerial(enccfg, srvcfg);
+        const vers = pwsys.getVersion(enccfg, srvcfg);
         msgcb(serial + ' ' + vers + ' ' + enccfg.apiKey);
 
-        var secret;
-        var bytes;
-        [bytes, secret] = pwsys.makeNewPassword(serial,
+        const npw = pwsys.makeNewPassword(serial,
                                                 vers,
                                                 srvcfg.salt,
                                                 enccfg.apiKey);
+
+        bytes = npw[0];
+        const secret = npw[1];
+
         fs.writeFileSync(
-            path.join(enccfg.workingPath,'bytes.dat'),
+            path.join(enccfg.workingPath, 'bytes.dat'),
             bytes);
 
-        var kbuf = Buffer.from(enccfg.apiKey, 'hex');
+        const kbuf = Buffer.from(enccfg.apiKey, 'hex');
         fs.writeFileSync(
-            path.join(enccfg.workingPath,'.hidfil.sys'),
+            path.join(enccfg.workingPath, '.hidfil.sys'),
             kbuf);
 
         go(0, serial, vers, secret);
     }
-
-}
+};
