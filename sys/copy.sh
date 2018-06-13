@@ -6,6 +6,8 @@
 
 cd `dirname $0`/..
 
+rm -rf app/* drive/*
+
 [ ! -d app ] && mkdir app
 
 app="resources/app/es6-shim.js resources/app/node_modules resources/app/package.json resources/app/package-lock.json resources/app/src resources/app/.cache"
