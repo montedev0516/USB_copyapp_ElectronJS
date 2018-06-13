@@ -47,26 +47,28 @@ server and the chromium browser window pointed to the launch page.
 
 ## Packaging
 
-Note: this assumes encrypted content already exists in the `content/` dir.  For
-encryption instructions, see [encryption](./encrypt/README.md).
+Note: this assumes the encryption tool has already been built for the
+target platform.  For encryption instructions,
+see [encryption](./encrypt/README.md).
 
-In the `sys` directory, run
+* 1. In the `sys` directory, run
 ```
 ./package.sh
 ```
 This will build the default app, run `electron-forge` and a few other things.
-The resulting system will be in the `out/` dir and should have a directory
-structure similar to:
+The resulting system will be in the `dist/` dir.
+* 2. Next, copy the data for final packaging.
 ```
-out/
-├── resources
-│   └── app
-│       ├── cert
-│       ├── content <-- encrypted content
-│       └── src     <-- platform-independent system
-└── usbcopypro-linux-x64
-    ├── locales
-    └── resources
+./copy.sh
 ```
-NOTE: `content.tar.xz` is provided for convenience and contains the
-encrypted files.  It is not included in the final system.
+* 3. Finally, cd up one dir and make the zip files.
+```
+cd ..
+./makezip.sh
+```
+
+The result will be 3 zipfiles tagged based on the version reported
+by `git describe`:
+* `<version>-app.zip` : platform independent electron app
+* `<version>-drive.zip` : platform SPECIFIC binaries
+* `<version>-encrypt.zip` : platform SPECIFIC encryption tool
