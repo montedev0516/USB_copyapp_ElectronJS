@@ -42,10 +42,6 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         return true;
     }
 
-    // TODO: this should probably go away, the encryption tool
-    // no longer decrypts.
-    var doEncrypt = enccfg.encrypt;
-
     msgcb("Constructing File List...");
 
     // construct file list
@@ -154,13 +150,8 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         var cipher;
         var fnout;
         if (isEnc) {
-            if (doEncrypt) {
-                cipher = crypto.createCipher('aes-256-cbc', secret);
-                fnout = file + '.lock';
-            } else {
-                cipher = crypto.createDecipher('aes-256-cbc', secret);
-                fnout = file.replace('.lock','');
-            }
+            cipher = crypto.createCipher('aes-256-cbc', secret);
+            fnout = file + '.lock';
         } else {
             fnout = file;
         }
@@ -210,34 +201,19 @@ module.exports = function(enccfg, msgcb, enccb, unenccb) {
         msgcb(serial + ' ' + vers + ' ' + enccfg.apiKey);
 
         var secret;
-        if (doEncrypt) {
-            var bytes;
-            [bytes, secret] = pwsys.makeNewPassword(serial,
-                                                    vers,
-                                                    srvcfg.salt,
-                                                    enccfg.apiKey);
-            fs.writeFileSync(
-                path.join(enccfg.workingPath,'bytes.dat'),
-                bytes);
+        var bytes;
+        [bytes, secret] = pwsys.makeNewPassword(serial,
+                                                vers,
+                                                srvcfg.salt,
+                                                enccfg.apiKey);
+        fs.writeFileSync(
+            path.join(enccfg.workingPath,'bytes.dat'),
+            bytes);
 
-            var kbuf = Buffer.from(enccfg.apiKey, 'hex');
-            fs.writeFileSync(
-                path.join(enccfg.workingPath,'.hidfil.sys'),
-                kbuf);
-        } else {
-            var kbuf = fs.readFileSync(
-                path.join(enccfg.workingPath,'.hidfil.sys'));
-            var apikey = kbuf.toString('hex');
-            var bytes = fs.readFileSync(
-                path.join(enccfg.workingPath,'bytes.dat'));
-
-            msgcb('key   : ' + apikey);
-            secret = pwsys.makePassword(serial,
-                                        vers,
-                                        srvcfg.salt,
-                                        apikey,
-                                        bytes);
-        }
+        var kbuf = Buffer.from(enccfg.apiKey, 'hex');
+        fs.writeFileSync(
+            path.join(enccfg.workingPath,'.hidfil.sys'),
+            kbuf);
 
         go(0, serial, vers, secret);
     }
