@@ -11,6 +11,13 @@ let usbcfg;
 let serial;
 let firmVers;
 
+const fileStatCache = {};
+let pwCache;
+const reqThrottle = {
+    available: true,
+    res: null,
+};
+
 const path = require('path');
 const express = require('express');
 const fs = require('fs');
@@ -130,21 +137,30 @@ app.get('/status', (req, res) => {
 });
 
 
-function decrypt(key, fname, type, bytestart, byteendp, res) {
+function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
     try {
-        const decipher = crypto.createDecipher(
-            'aes-192-ofb',
-            pwsys.makePassword(serial, firmVers, cfg.salt, key, bytes),
-        );
-        const fstat = fs.statSync(fname);
-        const input = fs.createReadStream(fname);
+        if (pwCache === undefined) {
+            pwCache = pwsys.makePassword(
+                serial, firmVers,
+                cfg.salt, key, bytes,
+            );
+        }
+        const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
         const hdr = {
             'Content-Type': type,
         };
-        let finished = false;
+        req.finished = false;
+
+        req.on('close', () => {
+            req.finished = true;
+        });
+
+        req.on('abort', () => {
+            req.finished = true;
+        });
 
         const streamError = () => {
-            finished = true;
+            req.finished = true;
             if (res.headersSent) {
                 res.end();
             } else {
@@ -157,7 +173,6 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
         // items over 64k in size have their original lengths cached.
         const base = path.basename(fname);
         if ((bytestart != null) &&
-            (fstat.size > 64 * 1024) &&
             (base in originalSize)) {
             let byteend;
 
@@ -178,17 +193,15 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
 
             const readSync = new Promise((resolve) => {
                 let count = 0;
-                const dec = input.pipe(decipher).pause();
+                input.pipe(decipher);
 
-                dec.on('readable', () => {
-                    // seek to the position in the file, then
-                    // start writing the data.
-                    while (!finished) {
-                        const lastchunk = dec.read();
+                // seek to the position in the file, then
+                // start writing the data.
+                function readNonBlock() {
+                    while (!(req.finished || req.aborted > 0)) {
+                        const lastchunk = decipher.read();
 
-                        if (lastchunk === null) {
-                            break;
-                        }
+                        if (lastchunk === null) return;
 
                         const lenidx = lastchunk.length - 1;
 
@@ -208,22 +221,28 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                             } else {
                                 // send the last slice, and done.
                                 res.write(lastchunk.slice(a, b + 1));
-
-                                input.destroy(); // flush
-                                dec.destroy();
-                                resolve();
                                 break;
                             }
+                        } else {
+                            // process.stdout.write('\rseeking ' +
+                            //                      bytestart + ' ' +
+                            //                      count);
                         }
 
                         count += lastchunk.length;
                     }
+                    input.destroy(); // flush
+                    decipher.destroy();
+                    resolve();
+                }
+                decipher.on('readable', () => {
+                    setTimeout(() => readNonBlock(), 10);
                 });
             });
 
             readSync.then(() => {
                 res.end();
-                finished = true;
+                req.finished = true;
             });
         } else {
             res.set(hdr);
@@ -233,6 +252,18 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
         // console.log('DECRYPT ERROR: ' + err);
         res.sendStatus(404);
     }
+}
+
+function openAndCreateStream(fname) {
+    return new Promise((resolve) => {
+        fs.open(fname, 'r', 0o666, (err, nfd) => {
+            const input = fs.createReadStream(fname, {
+                fd: nfd,
+                highWaterMark: 4 * 1024,
+            }).pause();
+            resolve(input);
+        });
+    });
 }
 
 function configure(locator) {
@@ -279,6 +310,7 @@ function configure(locator) {
                 const fname = path.join(contentDir, file);
                 const type = mime.lookup(match[1]);
                 const key = req.get('x-api-key');
+
                 decrypt(key, fname, type, null, null, res);
             } else {
                 res.sendFile(file, options, (err) => {
@@ -296,7 +328,11 @@ function configure(locator) {
             const file = decodeURI(req.path);
             const encfile = path.join(contentDir, file + '.lock');
 
-            if (fs.existsSync(encfile)) {
+            if (fileStatCache[encfile] === undefined) {
+                fileStatCache[encfile] = fs.existsSync(encfile);
+            }
+
+            if (fileStatCache[encfile]) {
                 const match = encfile.match(/\.([^.]*)\.lock$/);
                 if (match) {
                     const type = mime.lookup(match[1]);
@@ -312,9 +348,63 @@ function configure(locator) {
                         if (parts[1]) {
                             byteend = parseInt(parts[1], 10);
                         }
-                        // console.log("got range, start = " + bytestart);
+                        // console.log('got range, start:' + bytestart +
+                        //             ' end:' + byteend);
+
+                        // Don't hammer the streaming system with requests.
+                        // BUT use the last one made.  This seems to fit
+                        // with the behavior of video.js, especially when
+                        // seeking.
+                        if (reqThrottle.res !== null &&
+                            !reqThrottle.res.headersSent) {
+                            reqThrottle.res.sendStatus(503);
+                        }
+                        reqThrottle.encfile = encfile;
+                        reqThrottle.res = res;
+                        reqThrottle.req = req;
+                        reqThrottle.bytestart = bytestart;
+                        reqThrottle.byteend = byteend;
+                        reqThrottle.type = type;
+
+                        if (reqThrottle.available) {
+                            reqThrottle.available = false;
+                            setTimeout(
+                                () => {
+                                    // console.log('calling decrypt, key:' +
+                                    //             key);
+                                    reqThrottle.available = true;
+                                    openAndCreateStream(reqThrottle.encfile)
+                                    .then((input) => {
+                                        decrypt(
+                                            key,
+                                            reqThrottle.encfile,
+                                            reqThrottle.type,
+                                            reqThrottle.bytestart,
+                                            reqThrottle.byteend,
+                                            reqThrottle.res,
+                                            reqThrottle.req,
+                                            input,
+                                        );
+                                    });
+                                },
+                                333,
+                            );
+                        } else {
+                            // Assume this is one of the undetectable
+                            // "cancelled" streaming requests made by
+                            // the browser.  Not much we can do here.
+                            // console.log("THROTTLE");
+                        }
+                    } else {
+                        openAndCreateStream(encfile)
+                        .then((input) => {
+                            decrypt(
+                                key, encfile, type,
+                                bytestart, byteend,
+                                res, req, input,
+                            );
+                        });
                     }
-                    decrypt(key, encfile, type, bytestart, byteend, res);
                 }
             } else {
                 const nfile = path.join(contentDir, file);
