@@ -140,36 +140,36 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
         if ((bytestart != null) &&
             (fstat.size > 64 * 1024) &&
             (base in originalSize)) {
-            // console.log("starting chunk at " + bytestart);
+
+            let byteend;
+
+            if (byteendp == null) {
+                byteend = originalSize[base] - 1;
+            } else {
+                byteend = byteendp;
+            }
+
+            const len = (byteend - bytestart) + 1;
+            hdr['Accept-Ranges'] = 'bytes';
+            hdr['Content-Length'] = len;
+            hdr['Content-Range'] =
+                'bytes ' + bytestart +
+                '-' + byteend + '/' +
+                originalSize[base];
+            res.writeHead(206, hdr);
+
             const readSync = new Promise((resolve) => {
-                const dec = input.pipe(decipher).pause();
-                let byteend;
-
-                if (byteendp == null) {
-                    byteend = originalSize[base] - 1;
-                } else {
-                    byteend = byteendp;
-                }
-
-                const len = (byteend - bytestart) + 1;
-                hdr['Accept-Ranges'] = 'bytes';
-                hdr['Content-Length'] = len;
-                hdr['Content-Range'] =
-                    'bytes ' + bytestart +
-                    '-' + byteend + '/' +
-                    originalSize[base];
-                res.writeHead(206, hdr);
-
-                // console.log("reading to " + bytestart);
-
-                // seek to the position in the file
                 let count = 0;
+                const dec = input.pipe(decipher).pause();
+
                 dec.on('readable', () => {
                     if (finished) {
                         return;
                     }
 
                     let lastchunk;
+                    // seek to the position in the file, then
+                    // start writing the data.
                     while ((lastchunk = dec.read()) !== null) {
                         const lenidx = lastchunk.length - 1;
 
