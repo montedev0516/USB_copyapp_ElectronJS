@@ -254,12 +254,14 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
     }
 }
 
-function openAndCreateStream(fname) {
+function openAndCreateStream(fname, phwm) {
     return new Promise((resolve) => {
         fs.open(fname, 'r', 0o666, (err, nfd) => {
+            let hwm = phwm;
+            if (typeof hwm === 'undefined') hwm = 4 * 1024;
             const input = fs.createReadStream(fname, {
                 fd: nfd,
-                highWaterMark: 4 * 1024,
+                highWaterMark: hwm,
             }).pause();
             resolve(input);
         });
@@ -373,8 +375,20 @@ function configure(locator) {
                                     // console.log('calling decrypt, key:' +
                                     //             key);
                                     reqThrottle.available = true;
-                                    openAndCreateStream(reqThrottle.encfile)
-                                    .then((input) => {
+                                    let hwm;
+
+                                    // if we're starting from the beginning,
+                                    // only buffer a little, but if we're
+                                    // seeking, buffer a lot.
+                                    if (reqThrottle.bytestart === 0) {
+                                        hwm = 4 * 1024;
+                                    } else {
+                                        hwm = 64 * 1024;
+                                    }
+                                    openAndCreateStream(
+                                        reqThrottle.encfile,
+                                        hwm,
+                                    ).then((input) => {
                                         decrypt(
                                             key,
                                             reqThrottle.encfile,
