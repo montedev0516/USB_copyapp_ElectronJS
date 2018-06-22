@@ -145,8 +145,6 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                 const dec = input.pipe(decipher).pause();
                 let byteend;
 
-                dec.readableHighWaterMark = 1024 * 1024;
-
                 if (byteendp == null) {
                     byteend = originalSize[base] - 1;
                 } else {
@@ -195,7 +193,9 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                             } else {
                                 // send the last slice, and done.
                                 res.write(lastchunk.slice(a, b + 1));
-                                // console.log("DONE at " + count);
+
+                                input.destroy(); // flush
+                                dec.destroy();
                                 resolve();
                                 break;
                             }
@@ -209,7 +209,6 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
             readSync.then(() => {
                 res.end();
                 finished = true;
-                input.destroy(); // flush
             });
         } else {
             res.set(hdr);
