@@ -22,21 +22,36 @@ const https = require('https');
 
 let usb; // not cross platform
 if (os.platform() === 'linux') {
-    usb = require('usb-detection.linux');
+    usb = require('usb-detection.linux'); // eslint-disable-line global-require
 } else if (os.platform() === 'darwin') {
-    usb = require('usb-detection.darwin');
+    usb = require('usb-detection.darwin'); // eslint-disable-line global-require
 } else {
-    usb = require('usb-detection.win32');
+    usb = require('usb-detection.win32'); // eslint-disable-line global-require
 }
 
-let _uuid = null;
-let _agent = null;
+let gUuid = null;
+let gAgent = null;
 
 const app = express();
 
-exports.readUSBThenStart = function () {
-    return usb.find().then(devices => scanDevices(devices));
-};
+function startServer() {
+    const server = https.createServer({
+        key: privkey,
+        cert: certificate,
+        passphrase: serial,
+    }, app);
+
+    // Prevent ERR_CONTENT_LENGTH_MISMATCH errors, see:
+    // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
+    // assume 15 minutes max, no real harm if the media/video are longer ...
+    server.keepAliveTimeout = 60000 * 15;
+
+    server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
+        if (err) {
+            // console.log('ERROR starting server: ' + err);
+        }
+    });
+}
 
 function scanDevices(devices) {
     for (let i = 0; i < devices.length; i++) {
@@ -65,6 +80,11 @@ function scanDevices(devices) {
     }
 }
 
+function readUSBThenStart() {
+    return usb.find().then(devices => scanDevices(devices));
+}
+exports.readUSBThenStart = readUSBThenStart;
+
 function isValid(av) {
     const [req, res] = av;
 
@@ -73,14 +93,14 @@ function isValid(av) {
         throw new Error('No valid USB device present');
     }
 
-    if (_uuid == null || _agent == null) {
+    if (gUuid == null || gAgent == null) {
         // disallow connection if server not set up
         res.sendStatus(500);
         return false;
     }
 
-    if (!(req.get('user-agent') === _agent &&
-          req.get('session-id') === _uuid)) {
+    if (!(req.get('user-agent') === gAgent &&
+          req.get('session-id') === gUuid)) {
         // disallow connection from external browser
         res.sendStatus(401);
         return false;
@@ -123,10 +143,9 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
         };
         let finished = false;
 
-        const streamError = (e) => {
+        const streamError = () => {
             finished = true;
             if (res.headersSent) {
-                console.log(e);
                 res.end();
             } else {
                 res.sendStatus(500);
@@ -140,7 +159,6 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
         if ((bytestart != null) &&
             (fstat.size > 64 * 1024) &&
             (base in originalSize)) {
-
             let byteend;
 
             if (byteendp == null) {
@@ -163,28 +181,25 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                 const dec = input.pipe(decipher).pause();
 
                 dec.on('readable', () => {
-                    if (finished) {
-                        return;
-                    }
-
-                    let lastchunk;
                     // seek to the position in the file, then
                     // start writing the data.
-                    while ((lastchunk = dec.read()) !== null) {
+                    while (!finished) {
+                        const lastchunk = dec.read();
+
+                        if (lastchunk === null) {
+                            break;
+                        }
+
                         const lenidx = lastchunk.length - 1;
 
-                        // console.log("count = " + count);
                         if (count + lenidx > bytestart) {
                             let a = bytestart - count;
                             if (a < 0) a = 0;
 
                             const b = byteend - count;
 
-                            // console.log("a = " + a);
-                            // console.log("b = " + b);
-
                             if (b > lenidx) {
-                                if (a == 0) {
+                                if (a === 0) {
                                     // send whole chunk
                                     res.write(lastchunk);
                                 } else {
@@ -220,11 +235,12 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
     }
 }
 
-exports.configure = function (locator) {
-    cfg = require(path.join(locator.shared, 'usbcopypro.json'));
+function configure(locator) {
+    // TODO: this shouldn't be a global require
+    cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
     if (cfg.fileBrowserEnabled) {
-        filebrowser = require('file-browser');
+        filebrowser = require('file-browser'); // eslint-disable-line global-require
     }
 
     // load keyfiles for SSL
@@ -236,7 +252,8 @@ exports.configure = function (locator) {
     // to decrypt it, so why?
     bytes = fs.readFileSync(path.join(locator.shared, 'bytes.dat'));
 
-    originalSize = require(path.join(locator.shared, 'size.json'));
+    // TODO: this shouldn't be a global require
+    originalSize = require(path.join(locator.shared, 'size.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
     // get drive info
     const contentDir = path.join(locator.shared, 'content.asar');
@@ -315,27 +332,11 @@ exports.configure = function (locator) {
             }
         });
     }
-};
-
-function startServer() {
-    const server = https.createServer({
-        key: privkey,
-        cert: certificate,
-        passphrase: serial,
-    }, app);
-
-    // Prevent ERR_CONTENT_LENGTH_MISMATCH errors, see:
-    // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
-    server.keepAliveTimeout = 60000 * 15; // assume 15 minutes max, no real harm if the media/video are longer ...
-
-    server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
-        if (err) {
-            // console.log('ERROR starting server: ' + err);
-        }
-    });
 }
+exports.configure = configure;
 
-exports.lockSession = function (uuid, agent) {
-    _uuid = uuid;
-    _agent = agent;
-};
+function lockSession(uuid, agent) {
+    gUuid = uuid;
+    gAgent = agent;
+}
+exports.lockSession = lockSession;
