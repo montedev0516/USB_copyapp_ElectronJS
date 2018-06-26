@@ -1,15 +1,22 @@
 //
 // server
 //
-var cfg;
-var filebrowser;
-var privkey;
-var certificate;
-var bytes;
-var originalSize;
-var usbcfg;
-var serial;
-var firmVers;
+let cfg;
+let filebrowser;
+let privkey;
+let certificate;
+let bytes;
+let originalSize;
+let usbcfg;
+let serial;
+let firmVers;
+
+const fileStatCache = {};
+let pwCache;
+const reqThrottle = {
+    available: true,
+    res: null,
+};
 
 const path = require('path');
 const express = require('express');
@@ -20,45 +27,58 @@ const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
 
-var usb; // not cross platform
+let usb; // not cross platform
 if (os.platform() === 'linux') {
-    usb = require('usb-detection.linux');
+    usb = require('usb-detection.linux'); // eslint-disable-line global-require
 } else if (os.platform() === 'darwin') {
-    usb = require('usb-detection.darwin');
+    usb = require('usb-detection.darwin'); // eslint-disable-line global-require
 } else {
-    usb = require('usb-detection.win32');
+    usb = require('usb-detection.win32'); // eslint-disable-line global-require
 }
 
-var _uuid = null;
-var _agent = null;
+let gUuid = null;
+let gAgent = null;
 
-var app = express();
+const app = express();
 
-exports.readUSBThenStart = function() {
-    return usb.find().then(devices => scanDevices(devices));
+function startServer() {
+    const server = https.createServer({
+        key: privkey,
+        cert: certificate,
+        passphrase: serial,
+    }, app);
+
+    // Prevent ERR_CONTENT_LENGTH_MISMATCH errors, see:
+    // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
+    // assume 15 minutes max, no real harm if the media/video are longer ...
+    server.keepAliveTimeout = 60000 * 15;
+
+    server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
+        if (err) {
+            // console.log('ERROR starting server: ' + err);
+        }
+    });
 }
 
 function scanDevices(devices) {
-    for (let i=0; i < devices.length; i++) {
-        let device = devices[i];
-        if (cfg.validVendors.includes(
-                device.vendorId.toString(16)))
-        {
+    for (let i = 0; i < devices.length; i++) {
+        const device = devices[i];
+        if (cfg.validVendors.includes(device.vendorId.toString(16))) {
             usbcfg = {
-                "vid": device.vendorId.toString(16),
-                "pid": device.productId.toString(16),
-                "mfg": 0, // unsupported
-                "prod": 0, // unsupported
-                "serial": 0, // unsupported
-                "descString1": "", // device.manufacturer, // not cross-platform
-                "descString2": "", // device.deviceName, // not cross-platform
-                "descString3": device.serialNumber
+                vid: device.vendorId.toString(16),
+                pid: device.productId.toString(16),
+                mfg: 0, // unsupported
+                prod: 0, // unsupported
+                serial: 0, // unsupported
+                descString1: '', // device.manufacturer, // not cross-platform
+                descString2: '', // device.deviceName, // not cross-platform
+                descString3: device.serialNumber,
             };
 
             serial = pwsys.getSerial(usbcfg, cfg);
             firmVers = pwsys.getVersion(usbcfg, cfg);
-            //console.log('serial : ' + serial);
-            //console.log('vers   : ' + firmVers);
+            // console.log('serial : ' + serial);
+            // console.log('vers   : ' + firmVers);
 
             startServer();
 
@@ -67,22 +87,27 @@ function scanDevices(devices) {
     }
 }
 
+function readUSBThenStart() {
+    return usb.find().then(devices => scanDevices(devices));
+}
+exports.readUSBThenStart = readUSBThenStart;
+
 function isValid(av) {
-    var [req, res] = av;
+    const [req, res] = av;
 
     // no valid device present, exit.
     if (usbcfg == null) {
-        throw new Error("No valid USB device present");
+        throw new Error('No valid USB device present');
     }
 
-    if (_uuid == null || _agent == null) {
+    if (gUuid == null || gAgent == null) {
         // disallow connection if server not set up
         res.sendStatus(500);
         return false;
     }
 
-    if (!(req.get('user-agent') === _agent &&
-          req.get('session-id') === _uuid)) {
+    if (!(req.get('user-agent') === gAgent &&
+          req.get('session-id') === gUuid)) {
         // disallow connection from external browser
         res.sendStatus(401);
         return false;
@@ -91,8 +116,8 @@ function isValid(av) {
     return true;
 }
 
-app.get('/status', function(req, res) {
-    let valid = isValid([req, res]);
+app.get('/status', (req, res) => {
+    const valid = isValid([req, res]);
     if (res.headersSent) {
         // already responded with "unauthorized"
         return;
@@ -100,35 +125,43 @@ app.get('/status', function(req, res) {
 
     if (!valid) {
         res.json({
-            "running": false,
-            "status": "blocked"
+            running: false,
+            status: 'blocked',
         });
     } else {
         res.json({
-            "running": true,
-            "status": "running"
+            running: true,
+            status: 'running',
         });
     }
 });
 
 
-function decrypt(key, fname, type, bytestart, byteendp, res) {
+function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
     try {
-        let decipher = crypto.createDecipher(
-            'aes-192-ofb',
-            pwsys.makePassword(serial, firmVers, cfg.salt, key, bytes)
-        );
-        let fstat = fs.statSync(fname);
-        let input = fs.createReadStream(fname);
-        let hdr = {
-            'Content-Type': type
+        if (pwCache === undefined) {
+            pwCache = pwsys.makePassword(
+                serial, firmVers,
+                cfg.salt, key, bytes,
+            );
+        }
+        const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
+        const hdr = {
+            'Content-Type': type,
         };
-        let finished = false;
+        req.finished = false;
 
-        const streamError = (e) => {
-            finished = true;
+        req.on('close', () => {
+            req.finished = true;
+        });
+
+        req.on('abort', () => {
+            req.finished = true;
+        });
+
+        const streamError = () => {
+            req.finished = true;
             if (res.headersSent) {
-                console.log(e);
                 res.end();
             } else {
                 res.sendStatus(500);
@@ -138,58 +171,48 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
         input.on('error', streamError);
 
         // items over 64k in size have their original lengths cached.
-        let base = path.basename(fname)
+        const base = path.basename(fname);
         if ((bytestart != null) &&
-            (fstat.size > 64*1024) &&
-            (base in originalSize))
-        {
-            //console.log("starting chunk at " + bytestart);
-            let readSync = new Promise((resolve) => {
-                let dec = input.pipe(decipher).pause();
-                let byteend;
+            (base in originalSize)) {
+            let byteend;
 
-                dec.readableHighWaterMark = 1024 * 1024;
+            if (byteendp == null) {
+                byteend = originalSize[base] - 1;
+            } else {
+                byteend = byteendp;
+            }
 
-                if (byteendp == null) {
-                    byteend = originalSize[base] - 1;
-                } else {
-                    byteend = byteendp;
-                }
+            const len = (byteend - bytestart) + 1;
+            hdr['Accept-Ranges'] = 'bytes';
+            hdr['Content-Length'] = len;
+            hdr['Content-Range'] =
+                'bytes ' + bytestart +
+                '-' + byteend + '/' +
+                originalSize[base];
+            res.writeHead(206, hdr);
 
-                let len = (byteend - bytestart) + 1;
-                hdr['Accept-Ranges'] = 'bytes';
-                hdr['Content-Length'] = len;
-                hdr['Content-Range'] =
-                    'bytes '+ bytestart +
-                    '-' + byteend + '/' +
-                    originalSize[base];
-                res.writeHead(206, hdr);
+            const readSync = new Promise((resolve) => {
+                let count = 0;
+                input.pipe(decipher);
 
-                //console.log("reading to " + bytestart);
+                // seek to the position in the file, then
+                // start writing the data.
+                function readNonBlock() {
+                    while (!(req.finished || req.aborted > 0)) {
+                        const lastchunk = decipher.read();
 
-                // seek to the position in the file
-                var count = 0;
-                dec.on('readable', () => {
-                    if (finished) {
-                        return;
-                    }
+                        if (lastchunk === null) return;
 
-                    let lastchunk;
-                    while ((lastchunk = dec.read()) !== null) {
-                        let lenidx = lastchunk.length - 1;
+                        const lenidx = lastchunk.length - 1;
 
-                        //console.log("count = " + count);
                         if (count + lenidx > bytestart) {
                             let a = bytestart - count;
                             if (a < 0) a = 0;
 
-                            let b = byteend - count;
-
-                            //console.log("a = " + a);
-                            //console.log("b = " + b);
+                            const b = byteend - count;
 
                             if (b > lenidx) {
-                                if (a == 0) {
+                                if (a === 0) {
                                     // send whole chunk
                                     res.write(lastchunk);
                                 } else {
@@ -198,54 +221,75 @@ function decrypt(key, fname, type, bytestart, byteendp, res) {
                             } else {
                                 // send the last slice, and done.
                                 res.write(lastchunk.slice(a, b + 1));
-                                //console.log("DONE at " + count);
-                                resolve();
                                 break;
                             }
+                        } else {
+                            // process.stdout.write('\rseeking ' +
+                            //                      bytestart + ' ' +
+                            //                      count);
                         }
 
                         count += lastchunk.length;
                     }
+                    input.destroy(); // flush
+                    decipher.destroy();
+                    resolve();
+                }
+                decipher.on('readable', () => {
+                    setTimeout(() => readNonBlock(), 10);
                 });
             });
 
             readSync.then(() => {
-                res.end()
-                finished = true;
-                input.destroy(); // flush
+                res.end();
+                req.finished = true;
             });
         } else {
             res.set(hdr);
             input.pipe(decipher).pipe(res);
         }
     } catch (err) {
-        //console.log('DECRYPT ERROR: ' + err);
+        // console.log('DECRYPT ERROR: ' + err);
         res.sendStatus(404);
     }
 }
 
-exports.configure = function(locator) {
-    cfg = require(path.join(locator.shared, 'usbcopypro.json'));
+function openAndCreateStream(fname, phwm) {
+    return new Promise((resolve) => {
+        fs.open(fname, 'r', 0o666, (err, nfd) => {
+            let hwm = phwm;
+            if (typeof hwm === 'undefined') hwm = 4 * 1024;
+            const input = fs.createReadStream(fname, {
+                fd: nfd,
+                highWaterMark: hwm,
+            }).pause();
+            resolve(input);
+        });
+    });
+}
+
+function configure(locator) {
+    // TODO: this shouldn't be a global require
+    cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
     if (cfg.fileBrowserEnabled) {
-        filebrowser = require('file-browser');
+        filebrowser = require('file-browser'); // eslint-disable-line global-require
     }
 
     // load keyfiles for SSL
-    privkey = fs.readFileSync(
-        path.join(locator.shared, 'cert', 'key.pem'), 'utf8');
-    certificate = fs.readFileSync(
-        path.join(locator.shared, 'cert', 'cert.pem'), 'utf8');
+    privkey = fs.readFileSync(path.join(locator.shared, 'cert', 'key.pem'), 'utf8');
+    certificate = fs.readFileSync(path.join(locator.shared, 'cert', 'cert.pem'), 'utf8');
 
     // Get the random bytes buffer used for encryption.  This /could/
     // also be encrypted, but it would be trivially easy to get the secret
     // to decrypt it, so why?
     bytes = fs.readFileSync(path.join(locator.shared, 'bytes.dat'));
 
-    originalSize = require(path.join(locator.shared, 'size.json'));
+    // TODO: this shouldn't be a global require
+    originalSize = require(path.join(locator.shared, 'size.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
     // get drive info
-    var contentDir = path.join(locator.shared, 'content.asar');
+    const contentDir = path.join(locator.shared, 'content.asar');
 
     if (cfg.fileBrowserEnabled) {
         app.use(express.static(filebrowser.moduleroot));
@@ -256,23 +300,24 @@ exports.configure = function(locator) {
             res.redirect('lib/template.html');
         });
 
-        var options = {
-            root: contentDir
+        const options = {
+            root: contentDir,
         };
 
         app.get('/b', (req, res) => {
             if (!isValid([req, res])) { return; }
-            let file = req.query.f;
-            let match = file.match(/\.([^.]*)\.lock$/);
+            const file = req.query.f;
+            const match = file.match(/\.([^.]*)\.lock$/);
             if (match) {
-                let fname = path.join(contentDir, file);
-                let type = mime.lookup(match[1]);
-                let key = req.get('x-api-key');
+                const fname = path.join(contentDir, file);
+                const type = mime.lookup(match[1]);
+                const key = req.get('x-api-key');
+
                 decrypt(key, fname, type, null, null, res);
             } else {
                 res.sendFile(file, options, (err) => {
                     if (err) {
-                        //console.log('sendFile ERROR: ' + err);
+                        // console.log('sendFile ERROR: ' + err);
                     }
                 });
             }
@@ -282,37 +327,107 @@ exports.configure = function(locator) {
         app.use((req, res) => {
             if (!isValid([req, res])) { return; }
 
-            let file = decodeURI(req.path);
-            let encfile = path.join(contentDir, file + '.lock');
+            const file = decodeURI(req.path);
+            const encfile = path.join(contentDir, file + '.lock');
 
-            if (fs.existsSync(encfile)) {
-                let match = encfile.match(/\.([^.]*)\.lock$/);
+            if (fileStatCache[encfile] === undefined) {
+                fileStatCache[encfile] = fs.existsSync(encfile);
+            }
+
+            if (fileStatCache[encfile]) {
+                const match = encfile.match(/\.([^.]*)\.lock$/);
                 if (match) {
-                    let type = mime.lookup(match[1]);
-                    let key = req.get('x-api-key');
-                    let bytestartHdr = req.get('range');
+                    const type = mime.lookup(match[1]);
+                    const key = req.get('x-api-key');
+                    const bytestartHdr = req.get('range');
                     let bytestart = null;
                     let byteend = null;
                     if (bytestartHdr) {
-                        let parts = bytestartHdr
-                            .replace(/bytes=/, "")
+                        const parts = bytestartHdr
+                            .replace(/bytes=/, '')
                             .split('-');
                         bytestart = parseInt(parts[0], 10);
                         if (parts[1]) {
                             byteend = parseInt(parts[1], 10);
                         }
-                        //console.log("got range, start = " + bytestart);
+                        // console.log('got range, start:' + bytestart +
+                        //             ' end:' + byteend);
+
+                        // Don't hammer the streaming system with requests.
+                        // BUT use the last one made.  This seems to fit
+                        // with the behavior of video.js, especially when
+                        // seeking.
+                        if (reqThrottle.res !== null &&
+                            !reqThrottle.res.headersSent) {
+                            reqThrottle.res.sendStatus(503);
+                        }
+                        reqThrottle.encfile = encfile;
+                        reqThrottle.res = res;
+                        reqThrottle.req = req;
+                        reqThrottle.bytestart = bytestart;
+                        reqThrottle.byteend = byteend;
+                        reqThrottle.type = type;
+
+                        if (reqThrottle.available) {
+                            reqThrottle.available = false;
+                            setTimeout(
+                                () => {
+                                    // console.log('calling decrypt, key:' +
+                                    //             key);
+                                    reqThrottle.available = true;
+                                    let hwm;
+
+                                    // if we're starting from the beginning,
+                                    // only buffer a little, but if we're
+                                    // seeking, buffer a lot.
+                                    if (reqThrottle.bytestart === 0) {
+                                        hwm = 4 * 1024;
+                                    } else {
+                                        hwm = 64 * 1024;
+                                    }
+                                    openAndCreateStream(
+                                        reqThrottle.encfile,
+                                        hwm,
+                                    ).then((input) => {
+                                        decrypt(
+                                            key,
+                                            reqThrottle.encfile,
+                                            reqThrottle.type,
+                                            reqThrottle.bytestart,
+                                            reqThrottle.byteend,
+                                            reqThrottle.res,
+                                            reqThrottle.req,
+                                            input,
+                                        );
+                                    });
+                                },
+                                333,
+                            );
+                        } else {
+                            // Assume this is one of the undetectable
+                            // "cancelled" streaming requests made by
+                            // the browser.  Not much we can do here.
+                            // console.log("THROTTLE");
+                        }
+                    } else {
+                        openAndCreateStream(encfile)
+                        .then((input) => {
+                            decrypt(
+                                key, encfile, type,
+                                bytestart, byteend,
+                                res, req, input,
+                            );
+                        });
                     }
-                    decrypt(key, encfile, type, bytestart, byteend, res);
                 }
             } else {
-                let nfile = path.join(contentDir, file);
+                const nfile = path.join(contentDir, file);
 
                 if (fs.existsSync(nfile)) {
                     // lockfile not found, return standard file fetch
-                    res.sendFile(file, {root: contentDir}, (err) => {
+                    res.sendFile(file, { root: contentDir }, (err) => {
                         if (err) {
-                            //console.log('sendFile (static) ERROR: ' + err);
+                            // console.log('sendFile (static) ERROR: ' + err);
                         }
                     });
                 } else {
@@ -322,26 +437,10 @@ exports.configure = function(locator) {
         });
     }
 }
+exports.configure = configure;
 
-function startServer() {
-    var server = https.createServer({
-        "key": privkey,
-        "cert": certificate,
-        "passphrase": serial
-    }, app);
-
-    // Prevent ERR_CONTENT_LENGTH_MISMATCH errors, see:
-    // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
-    server.keepAliveTimeout = 60000 * 15;   // assume 15 minutes max, no real harm if the media/video are longer ...
-    
-    server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
-        if (err) {
-            //console.log('ERROR starting server: ' + err);
-        }
-    });
+function lockSession(uuid, agent) {
+    gUuid = uuid;
+    gAgent = agent;
 }
-
-exports.lockSession = function(uuid, agent) {
-    _uuid = uuid;
-    _agent = agent;
-};
+exports.lockSession = lockSession;
