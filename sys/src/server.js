@@ -27,6 +27,8 @@ const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
 
+let lastmod;
+
 let usb; // not cross platform
 if (os.platform() === 'linux') {
     usb = require('usb-detection.linux'); // eslint-disable-line global-require
@@ -183,6 +185,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
             }
 
             const len = (byteend - bytestart) + 1;
+            hdr['Last-Modified'] = lastmod;
             hdr['Accept-Ranges'] = 'bytes';
             hdr['Content-Length'] = len;
             hdr['Content-Range'] =
@@ -290,6 +293,8 @@ function configure(locator) {
 
     // get drive info
     const contentDir = path.join(locator.shared, 'content.asar');
+
+    lastmod = fs.statSync(path.join(locator.shared, 'size.json')).mtime;
 
     if (cfg.fileBrowserEnabled) {
         app.use(express.static(filebrowser.moduleroot));
