@@ -11,7 +11,7 @@ const sizes = {};
 
 let bytes;
 
-module.exports = function (enccfg, _msgcb, enccb, unenccb) {
+function main(enccfg, _msgcb, enccb, unenccb) {
     let msgcb = _msgcb;
     if (!msgcb) msgcb = () => { };
 
@@ -22,7 +22,8 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
     msgcb('writing config file...');
     fs.writeFileSync(
         path.join(enccfg.workingPath, 'usbcopypro.json'),
-        JSON.stringify(srvcfg));
+        JSON.stringify(srvcfg),
+    );
 
     // Compile file glob patterns into regexes.
     const excludeFiles = [];
@@ -102,7 +103,8 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
         msgcb('writing file size information');
         fs.writeFileSync(
             path.join(enccfg.workingPath, 'size.json'),
-            JSON.stringify(sizes));
+            JSON.stringify(sizes),
+        );
 
         const outfile = path.join(enccfg.workingPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
@@ -196,23 +198,27 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
         const vers = pwsys.getVersion(enccfg, srvcfg);
         msgcb(serial + ' ' + vers + ' ' + enccfg.apiKey);
 
-        const npw = pwsys.makeNewPassword(serial,
-                                                vers,
-                                                srvcfg.salt,
-                                                enccfg.apiKey);
+        const [b, secret] = pwsys.makeNewPassword(
+            serial,
+            vers,
+            srvcfg.salt,
+            enccfg.apiKey,
+        );
 
-        bytes = npw[0];
-        const secret = npw[1];
+        bytes = b;
 
         fs.writeFileSync(
             path.join(enccfg.workingPath, 'bytes.dat'),
-            bytes);
+            bytes,
+        );
 
         const kbuf = Buffer.from(enccfg.apiKey, 'hex');
         fs.writeFileSync(
             path.join(enccfg.workingPath, '.hidfil.sys'),
-            kbuf);
+            kbuf,
+        );
 
         go(0, serial, vers, secret);
     }
-};
+}
+module.exports = main;
