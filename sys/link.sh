@@ -7,8 +7,10 @@ if [ $OS = "Linux" ] ; then
 elif [ $OS = "Darwin" ] ; then
     link=node_modules/usb-detection.darwin
 else
-    export CYGWIN=winsymlinks:nativestrict
-    link=node_modules/usb-detection.win32
+#    export CYGWIN=winsymlinks:nativestrict
+#    link=node_modules/usb-detection.win32
+    cp -r node_modules/usb-detection node_modules/usb-detection.win32
+    exit
 fi
 
 if [ ! -L $link ] ; then 
