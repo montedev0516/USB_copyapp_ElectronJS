@@ -6,6 +6,7 @@ const path = require('path');
 const asar = require('asar');
 const { exec } = require('child_process');
 const srvcfg = require('./config.json');
+const stream = require('stream');
 
 const sizes = {};
 
@@ -170,15 +171,37 @@ function main(enccfg, _msgcb, enccb, unenccb) {
         }
 
         const fstat = fs.statSync(file);
-        if (fstat.size > 64 * 1024) {
+        let useMask = false;
+        if (fstat.size > 10 * 1024 * 1024) {
             sizes[path.basename(fnout)] = fstat.size;
+            useMask = true;
         }
 
         const input = fs.createReadStream(file);
         const output = fs.createWriteStream(fnout);
 
         if (isEnc) {
-            input.pipe(cipher).pipe(output);
+            // Files over a certain size will be masked, not encrypted.
+            // These are the only files available for streaming.
+            if (useMask) {
+                const filter = stream.Writable();
+                filter._write = // eslint-disable-line no-underscore-dangle
+                    (chunk, encoding, done) => {
+                        const c =
+                            new Buffer.alloc(chunk.length); // eslint-disable-line new-cap
+                        let j = 0;
+                        for (let i = 0; i < chunk.length; i++) {
+                            c[i] = chunk[i] ^ secret[j]; // eslint-disable-line
+                            j = (j + 1) % secret.length;
+                        }
+                        output.write(c);
+                        done();
+                    };
+
+                input.pipe(filter);
+            } else {
+                input.pipe(cipher).pipe(output);
+            }
         } else {
             input.pipe(output);
         }
