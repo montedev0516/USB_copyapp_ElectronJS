@@ -11,6 +11,7 @@
     "file-browser": "file:../repo/file-browser/file-browser-0.1.0.tgz",
     "jquery": "^3.3.1",
     "mime-types": "^2.1.18",
+    "node-gyp": "^3.7.0",
     "on-finished": "^2.3.0",
     "opn": "^5.2.0",
     "usb-detection": "file:../repo/node-usb-detection/usb-detection-2.2.0.tgz",
