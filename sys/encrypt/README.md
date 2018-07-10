@@ -14,7 +14,7 @@
   * Extract the original, unencrypted content files into the `input` directory; make sure that the `input` directory contains an `index.html` file which loads the content (for instance with a `video` tag); see example below under "Notes".
 2. Run the encryption UI:
 ```
-$(npm bin)/electron ./encrypt/encrypt-main.js
+$(npm bin)/electron ./encrypt/src/encrypt-main.js
 ```
 The UI shows a form where you should enter the directory paths of the `input`, `output` and `shared` directories.
 

@@ -6,12 +6,13 @@ const path = require('path');
 const asar = require('asar');
 const { exec } = require('child_process');
 const srvcfg = require('./config.json');
+const stream = require('stream');
 
 const sizes = {};
 
 let bytes;
 
-module.exports = function (enccfg, _msgcb, enccb, unenccb) {
+function main(enccfg, _msgcb, enccb, unenccb) {
     let msgcb = _msgcb;
     if (!msgcb) msgcb = () => { };
 
@@ -22,7 +23,8 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
     msgcb('writing config file...');
     fs.writeFileSync(
         path.join(enccfg.workingPath, 'usbcopypro.json'),
-        JSON.stringify(srvcfg));
+        JSON.stringify(srvcfg),
+    );
 
     // Compile file glob patterns into regexes.
     const excludeFiles = [];
@@ -102,7 +104,8 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
         msgcb('writing file size information');
         fs.writeFileSync(
             path.join(enccfg.workingPath, 'size.json'),
-            JSON.stringify(sizes));
+            JSON.stringify(sizes),
+        );
 
         const outfile = path.join(enccfg.workingPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
@@ -168,15 +171,37 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
         }
 
         const fstat = fs.statSync(file);
-        if (fstat.size > 64 * 1024) {
+        let useMask = false;
+        if (fstat.size > 10 * 1024 * 1024) {
             sizes[path.basename(fnout)] = fstat.size;
+            useMask = true;
         }
 
         const input = fs.createReadStream(file);
         const output = fs.createWriteStream(fnout);
 
         if (isEnc) {
-            input.pipe(cipher).pipe(output);
+            // Files over a certain size will be masked, not encrypted.
+            // These are the only files available for streaming.
+            if (useMask) {
+                const filter = stream.Writable();
+                filter._write = // eslint-disable-line no-underscore-dangle
+                    (chunk, encoding, done) => {
+                        const c =
+                            new Buffer.alloc(chunk.length); // eslint-disable-line new-cap
+                        let j = 0;
+                        for (let i = 0; i < chunk.length; i++) {
+                            c[i] = chunk[i] ^ secret[j]; // eslint-disable-line
+                            j = (j + 1) % secret.length;
+                        }
+                        output.write(c);
+                        done();
+                    };
+
+                input.pipe(filter);
+            } else {
+                input.pipe(cipher).pipe(output);
+            }
         } else {
             input.pipe(output);
         }
@@ -196,23 +221,27 @@ module.exports = function (enccfg, _msgcb, enccb, unenccb) {
         const vers = pwsys.getVersion(enccfg, srvcfg);
         msgcb(serial + ' ' + vers + ' ' + enccfg.apiKey);
 
-        const npw = pwsys.makeNewPassword(serial,
-                                                vers,
-                                                srvcfg.salt,
-                                                enccfg.apiKey);
+        const [b, secret] = pwsys.makeNewPassword(
+            serial,
+            vers,
+            srvcfg.salt,
+            enccfg.apiKey,
+        );
 
-        bytes = npw[0];
-        const secret = npw[1];
+        bytes = b;
 
         fs.writeFileSync(
             path.join(enccfg.workingPath, 'bytes.dat'),
-            bytes);
+            bytes,
+        );
 
         const kbuf = Buffer.from(enccfg.apiKey, 'hex');
         fs.writeFileSync(
             path.join(enccfg.workingPath, '.hidfil.sys'),
-            kbuf);
+            kbuf,
+        );
 
         go(0, serial, vers, secret);
     }
-};
+}
+module.exports = main;

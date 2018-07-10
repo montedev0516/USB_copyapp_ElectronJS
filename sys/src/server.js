@@ -27,6 +27,8 @@ const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
 
+let lastmod;
+
 let usb; // not cross platform
 if (os.platform() === 'linux') {
     usb = require('usb-detection.linux'); // eslint-disable-line global-require
@@ -137,6 +139,24 @@ app.get('/status', (req, res) => {
 });
 
 
+function unmask(input, bytestart, res, req) {
+    setTimeout(() => {
+        let chunk;
+        do {
+            chunk = input.read();
+            if (!chunk) break;
+            const c =
+                new Buffer.alloc(chunk.length); // eslint-disable-line new-cap
+            let j = bytestart % pwCache.length;
+            for (let i = 0; i < chunk.length; i++) {
+                c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
+                j = (j + 1) % pwCache.length;
+            }
+            res.write(c);
+        } while (!req.finished);
+    }, 1);
+}
+
 function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
     try {
         if (pwCache === undefined) {
@@ -145,7 +165,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 cfg.salt, key, bytes,
             );
         }
-        const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
+
         const hdr = {
             'Content-Type': type,
         };
@@ -167,102 +187,68 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 res.sendStatus(500);
             }
         };
-        decipher.on('error', streamError);
         input.on('error', streamError);
+
+        input.on('end', () => {
+            req.finished = true;
+            res.end();
+        });
 
         // items over 64k in size have their original lengths cached.
         const base = path.basename(fname);
-        if ((bytestart != null) &&
-            (base in originalSize)) {
-            let byteend;
+        if (base in originalSize) {
+            // used mask, no encrypt
+            if (bytestart != null) {
+                // streaming
+                let byteend;
 
-            if (byteendp == null) {
-                byteend = originalSize[base] - 1;
+                if (byteendp == null) {
+                    byteend = originalSize[base] - 1;
+                } else {
+                    byteend = byteendp;
+                }
+
+                const len = (byteend - bytestart) + 1;
+                hdr['Last-Modified'] = lastmod;
+                hdr['Accept-Ranges'] = 'bytes';
+                hdr['Content-Length'] = len;
+                hdr['Content-Range'] =
+                    'bytes ' + bytestart +
+                    '-' + byteend + '/' +
+                    originalSize[base];
+                res.writeHead(206, hdr);
             } else {
-                byteend = byteendp;
+                res.set(hdr);
             }
 
-            const len = (byteend - bytestart) + 1;
-            hdr['Accept-Ranges'] = 'bytes';
-            hdr['Content-Length'] = len;
-            hdr['Content-Range'] =
-                'bytes ' + bytestart +
-                '-' + byteend + '/' +
-                originalSize[base];
-            res.writeHead(206, hdr);
-
-            const readSync = new Promise((resolve) => {
-                let count = 0;
-                input.pipe(decipher);
-
-                // seek to the position in the file, then
-                // start writing the data.
-                function readNonBlock() {
-                    while (!(req.finished || req.aborted > 0)) {
-                        const lastchunk = decipher.read();
-
-                        if (lastchunk === null) return;
-
-                        const lenidx = lastchunk.length - 1;
-
-                        if (count + lenidx > bytestart) {
-                            let a = bytestart - count;
-                            if (a < 0) a = 0;
-
-                            const b = byteend - count;
-
-                            if (b > lenidx) {
-                                if (a === 0) {
-                                    // send whole chunk
-                                    res.write(lastchunk);
-                                } else {
-                                    res.write(lastchunk.slice(a));
-                                }
-                            } else {
-                                // send the last slice, and done.
-                                res.write(lastchunk.slice(a, b + 1));
-                                break;
-                            }
-                        } else {
-                            // process.stdout.write('\rseeking ' +
-                            //                      bytestart + ' ' +
-                            //                      count);
-                        }
-
-                        count += lastchunk.length;
-                    }
-                    input.destroy(); // flush
-                    decipher.destroy();
-                    resolve();
-                }
-                decipher.on('readable', () => {
-                    setTimeout(() => readNonBlock(), 10);
-                });
-            });
-
-            readSync.then(() => {
-                res.end();
-                req.finished = true;
-            });
+            input.on('readable', () => unmask(input, bytestart, res, req));
         } else {
+            // decrypt, no streaming
+            const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
+            decipher.on('error', streamError);
             res.set(hdr);
             input.pipe(decipher).pipe(res);
         }
     } catch (err) {
-        // console.log('DECRYPT ERROR: ' + err);
         res.sendStatus(404);
     }
 }
 
-function openAndCreateStream(fname, phwm) {
+function openAndCreateStream(fname, phwm, bytestart, byteend) {
     return new Promise((resolve) => {
+        let nbe = byteend;
+        if (nbe === null) {
+            nbe = undefined;
+        }
         fs.open(fname, 'r', 0o666, (err, nfd) => {
             let hwm = phwm;
             if (typeof hwm === 'undefined') hwm = 4 * 1024;
             const input = fs.createReadStream(fname, {
                 fd: nfd,
                 highWaterMark: hwm,
-            }).pause();
+                start: bytestart,
+                end: nbe,
+            });
             resolve(input);
         });
     });
@@ -290,6 +276,8 @@ function configure(locator) {
 
     // get drive info
     const contentDir = path.join(locator.shared, 'content.asar');
+
+    lastmod = fs.statSync(path.join(locator.shared, 'size.json')).mtime;
 
     if (cfg.fileBrowserEnabled) {
         app.use(express.static(filebrowser.moduleroot));
@@ -375,19 +363,16 @@ function configure(locator) {
                                     // console.log('calling decrypt, key:' +
                                     //             key);
                                     reqThrottle.available = true;
-                                    let hwm;
+                                    const hwm = 4 * 1024;
 
                                     // if we're starting from the beginning,
                                     // only buffer a little, but if we're
                                     // seeking, buffer a lot.
-                                    if (reqThrottle.bytestart === 0) {
-                                        hwm = 4 * 1024;
-                                    } else {
-                                        hwm = 64 * 1024;
-                                    }
                                     openAndCreateStream(
                                         reqThrottle.encfile,
                                         hwm,
+                                        reqThrottle.bytestart,
+                                        reqThrottle.byteend,
                                     ).then((input) => {
                                         decrypt(
                                             key,
