@@ -27,11 +27,15 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
         }
 
         self.onmessage = function(event) {
-            server = require(event.data.serverjs);
-            server.configure(event.data.locator);
-            server.lockSession(event.data.sessionId,
-                               event.data.userAgent);
-            server.readUSBThenStart()
+            try {
+                server = require(event.data.serverjs);
+                server.configure(event.data.locator);
+                server.lockSession(event.data.sessionId,
+                                   event.data.userAgent);
+                server.readUSBThenStart()
+            } catch (e) {
+                postMessage('EXCEPTION: ' + e);
+            }
         }
 
         self.onerror = function(event) {
@@ -47,7 +51,11 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
         sessionId: psessionId,
         userAgent: puserAgent,
     });
-    worker.onmessage = () => {};
+    worker.onmessage = (event) => {
+        if (event.data.length > 0) {
+            throw new Error(event.data);
+        }
+    };
 
     return worker;
 }
