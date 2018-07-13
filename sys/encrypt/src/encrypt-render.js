@@ -324,15 +324,18 @@ function validate(enccfg) {
 
     let ok = true;
 
+    messageCallback(false);
+
     ok = ok && validatePath(inPath, outPath, workPath, 'input');
-    ok = ok && validatePath(outPath, inPath, workPath, 'output');
     ok = ok && validatePath(workPath, inPath, outPath, 'working');
+    ok = ok && validatePath(outPath, inPath, workPath, 'output');
+
+    ok = ok && checkDirectoryEmpty(workPath, 'working');
 
     return ok;
 }
 
 function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
-    messageCallback(false);
 
     if (somePath.trim().length == 0) {
         messageCallback('Please enter the ' + desc + ' directory', true);
@@ -345,6 +348,23 @@ function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
     }
 
     return true;
+}
+
+function checkDirectoryEmpty(dir, desc) {
+    let ok = true;
+
+    if (fs.existsSync(dir)) {
+
+        const files = fs.readdirSync(dir);
+
+        if (files.length > 0) {
+            ok = false;
+            
+            messageCallback('The ' + desc + ' directory should be empty', true);
+        }
+    }
+
+    return ok;
 }
 
 function doneCallback() {
