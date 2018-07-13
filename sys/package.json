@@ -24,8 +24,8 @@
     "babel-preset-react": "^6.24.1",
     "electron": "^1.8.2",
     "electron-forge": "^5.2.0",
-    "electron-prebuilt-compile": "1.8.2",
-    "electron-rebuild": "~1.7.3"
+    "electron-prebuilt-compile": "2.0.4",
+    "electron-rebuild": "^1.8.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
