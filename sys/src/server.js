@@ -42,9 +42,13 @@ let gUuid = null;
 let gAgent = null;
 
 const app = express();
+let server;
+
+// dummy variable used to help keep the parent process alive.
+exports.keepAlive = true;
 
 function startServer() {
-    const server = https.createServer({
+    server = https.createServer({
         key: privkey,
         cert: certificate,
         passphrase: serial,
@@ -54,6 +58,10 @@ function startServer() {
     // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
     // assume 15 minutes max, no real harm if the media/video are longer ...
     server.keepAliveTimeout = 60000 * 15;
+
+    server.on('clientError',(err,socket)=>{
+        socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
+    });
 
     server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
@@ -140,7 +148,7 @@ app.get('/status', (req, res) => {
 
 
 function unmask(input, bytestart, res, req) {
-    setTimeout(() => {
+    setImmediate(() => {
         let chunk;
         do {
             chunk = input.read();
@@ -154,7 +162,7 @@ function unmask(input, bytestart, res, req) {
             }
             res.write(c);
         } while (!req.finished);
-    }, 1);
+    });
 }
 
 function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
@@ -384,6 +392,8 @@ function configure(locator) {
                                             reqThrottle.req,
                                             input,
                                         );
+                                    }).catch(() => {
+                                        // should probably do something here
                                     });
                                 },
                                 333,
@@ -402,6 +412,8 @@ function configure(locator) {
                                 bytestart, byteend,
                                 res, req, input,
                             );
+                        }).catch(() => {
+                            // should probably do something here
                         });
                     }
                 }

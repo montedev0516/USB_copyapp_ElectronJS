@@ -7,16 +7,70 @@ const url = require('url');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const opn = require('opn');
-
-//console.log('System starting');
+const Worker = require('tiny-worker');
 
 let mainWindow;
-let sessionId = uuidv4();
+let workerThread;
+const sessionId = uuidv4();
+
+function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
+    const worker = new Worker(() => {
+        let server;
+
+        function keepAlive() {
+            self.postMessage(process.pid);
+            (function keepAliveSub(){
+                if (!server || server.keepAlive) {
+                    setTimeout(keepAliveSub, 1000);
+                }
+            })();
+        }
+
+        self.onmessage = function(event) {
+            server = require(event.data.serverjs);
+            server.configure(event.data.locator);
+            server.lockSession(event.data.sessionId,
+                               event.data.userAgent);
+            server.readUSBThenStart()
+        }
+
+        self.onerror = function(event) {
+            console.log('ERROR ' + event);
+        }
+
+        postMessage('');
+        setImmediate(() => keepAlive());
+    });
+    worker.postMessage({
+        serverjs: pserverjs,
+        locator: plocator,
+        sessionId: psessionId,
+        userAgent: puserAgent,
+    });
+    worker.onmessage = () => {};
+
+    return worker;
+}
+
+function workerThreadRestart(code, serverjs, locator, sessionId, ua) {
+    // exit if main process is gone
+    if (!mainWindow) return;
+
+    // The worker process does NOT PLAY WELL at all with
+    // electron.  We need to keep restarting it.
+    // console.log('Server died with code: ' + code + ', restarting');
+    workerThread = createServerWorker(
+        serverjs, locator, sessionId, ua,
+    );
+
+    workerThread.child.on('exit', (code) =>
+        workerThreadRestart(
+            code, serverjs, locator, sessionId, ua,
+    ));
+}
 
 function createWindow() {
-    var locator = findLocator();
-    const server = require('./server.js');
-    server.configure(locator);
+    const locator = findLocator();
 
     mainWindow = new electron.BrowserWindow({
         width: 800,
@@ -30,6 +84,14 @@ function createWindow() {
         }
     });
 
+    // Start the server in a separate thread.
+    workerThreadRestart(0,
+        path.join(__dirname, 'server.js'),
+        locator,
+        sessionId,
+        mainWindow.webContents.session.getUserAgent(),
+    );
+
     //mainWindow.webContents.openDevTools();
 
     mainWindow
@@ -41,9 +103,6 @@ function createWindow() {
         details.requestHeaders['session-id'] = sessionId;
         callback({cancel:false, requestHeaders: details.requestHeaders});
     });
-
-    server.lockSession(sessionId,
-                       mainWindow.webContents.session.getUserAgent());
 
     // ipc connectors
     electron.ipcMain.on('openlocal-message', (ev, url) => {
@@ -84,6 +143,7 @@ function createWindow() {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
+        workerThread.terminate();
         process.exit(0);
     });
 
@@ -91,13 +151,6 @@ function createWindow() {
         mainWindow.maximize();
         mainWindow.show();
 
-        // Start the server.  This can be a long
-        // call, since it also searches for USB drives.
-        // Unfortunately, none of the events ensure that
-        // the window is actually drawn, so a timeout is needed.
-        setTimeout(() => {
-            server.readUSBThenStart()
-        }, 333);
     });
 }
 
