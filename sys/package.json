@@ -5,6 +5,7 @@
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "electron-compile": "^6.4.2",
     "electron-squirrel-startup": "^1.0.0",
     "express": "^4.16.2",
