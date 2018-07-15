@@ -12,7 +12,7 @@ const sizes = {};
 
 let bytes;
 
-function main(enccfg, _msgcb, enccb, unenccb) {
+function main(enccfg, _msgcb, enccb, unenccb, donecb) {
     let msgcb = _msgcb;
     if (!msgcb) msgcb = () => { };
 
@@ -22,7 +22,7 @@ function main(enccfg, _msgcb, enccb, unenccb) {
     srvcfg.validVendors = [enccfg.vid];
     msgcb('writing config file...');
     fs.writeFileSync(
-        path.join(enccfg.workingPath, 'usbcopypro.json'),
+        path.join(enccfg.outPath, 'usbcopypro.json'),
         JSON.stringify(srvcfg),
     );
 
@@ -50,7 +50,7 @@ function main(enccfg, _msgcb, enccb, unenccb) {
     msgcb('Constructing File List...');
 
     // construct file list
-    const dirs = [enccfg.inputPath];
+    const dirs = [enccfg.inPath];
     const encFiles = [];
     const unencFiles = [];
     while (dirs.length > 0) {
@@ -73,7 +73,7 @@ function main(enccfg, _msgcb, enccb, unenccb) {
         // There exist node modules to generate certificates, but
         // I could not find one that makes one protected by a passphrase.
         const cfg = path.join(__dirname, 'openssl.cnf');
-        const certout = path.join(enccfg.workingPath, 'cert');
+        const certout = path.join(enccfg.outPath, 'cert');
         const serial = pwsys.getSerial(enccfg, srvcfg);
         const script =
             'openssl req -x509 -newkey rsa:4096 -keyout "' + certout +
@@ -96,6 +96,8 @@ function main(enccfg, _msgcb, enccb, unenccb) {
             } else {
                 msgcb('Certificates generated');
                 msgcb('Finished!');
+
+                if (donecb) donecb();
             }
         });
     }
@@ -103,14 +105,14 @@ function main(enccfg, _msgcb, enccb, unenccb) {
     function makeAsar() {
         msgcb('writing file size information');
         fs.writeFileSync(
-            path.join(enccfg.workingPath, 'size.json'),
+            path.join(enccfg.outPath, 'size.json'),
             JSON.stringify(sizes),
         );
 
-        const outfile = path.join(enccfg.workingPath, 'content.asar');
+        const outfile = path.join(enccfg.outPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
         try {
-            asar.createPackage(enccfg.outputPath, outfile, () => {
+            asar.createPackage(enccfg.workPath, outfile, () => {
                 makeCertificate();
             });
         } catch (e) {
@@ -155,7 +157,7 @@ function main(enccfg, _msgcb, enccb, unenccb) {
             fnout = file;
         }
 
-        fnout = fnout.replace(enccfg.inputPath, enccfg.outputPath);
+        fnout = fnout.replace(enccfg.inPath, enccfg.workPath);
 
         // recursively create output dir
         const dir = path.dirname(fnout);
@@ -231,13 +233,13 @@ function main(enccfg, _msgcb, enccb, unenccb) {
         bytes = b;
 
         fs.writeFileSync(
-            path.join(enccfg.workingPath, 'bytes.dat'),
+            path.join(enccfg.outPath, 'bytes.dat'),
             bytes,
         );
 
         const kbuf = Buffer.from(enccfg.apiKey, 'hex');
         fs.writeFileSync(
-            path.join(enccfg.workingPath, '.hidfil.sys'),
+            path.join(enccfg.outPath, '.hidfil.sys'),
             kbuf,
         );
 

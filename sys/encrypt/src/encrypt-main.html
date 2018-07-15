@@ -21,9 +21,37 @@
 <tr><td class="field">PID</td><td><input type="text" name="pid"/></td></tr>
 <tr><td class="field">Serial Number</td><td><input type="text" name="serial"/></td></tr>
 <tr><td colspan=2 style="font-size:75%"><i>Input only leading significant characters of serial number</i></td></tr>
-<tr><td class="field">Input Folder</td><td><input type="text" name="indir"/></td></tr>
-<tr><td class="field">Encryption Output Folder</td><td><input type="text" name="outdir"/></td></tr>
-<tr><td class="field">Final Package Folder</td><td><input type="text" name="workdir"/></td></tr>
+
+<tr>
+    <td class="field">Input Folder</td>
+    <td>
+        <div class="input-container">
+            <input class="input-left" type="text" name="indir" />
+            <button class="input-right button btnenabled" id="btn-select-indir">Choose ...</button>
+        </div>
+    </td>
+</tr>
+
+<tr>
+    <td class="field">Working Folder</td>
+    <td>
+        <div class="input-container">
+            <input class="input-left" type="text" name="workdir" />
+            <button class="input-right button btnenabled" id="btn-select-workdir">Choose ...</button>
+        </div>
+    </td>
+</tr>
+
+<tr>
+    <td class="field">Final Output Folder</td>
+    <td>
+        <div class="input-container">
+            <input class="input-left" type="text" name="outdir" />
+            <button class="input-right button btnenabled" id="btn-select-outdir">Choose ...</button>
+        </div>
+    </td>
+</tr>
+
 <tr><td class="field">Exclude from encryption:</td>
     <td>
         <div id="matchlist"></div>
