@@ -11,6 +11,11 @@ let usbcfg;
 let serial;
 let firmVers;
 
+// This is needed by es6-shim-server.js,
+// in order to get the pre-compiled object so
+// we can configure it.
+require.main.server = exports;
+
 const fileStatCache = {};
 let pwCache;
 const reqThrottle = {

@@ -29,10 +29,7 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
         self.onmessage = function(event) {
             try {
                 server = require(event.data.serverjs);
-                server.configure(event.data.locator);
-                server.lockSession(event.data.sessionId,
-                                   event.data.userAgent);
-                server.readUSBThenStart()
+                server.go(event.data);
             } catch (e) {
                 postMessage('EXCEPTION: ' + e);
             }
@@ -94,7 +91,7 @@ function createWindow() {
 
     // Start the server in a separate thread.
     workerThreadRestart(0,
-        path.join(__dirname, 'server.js'),
+        path.join(__dirname, '..', 'es6-shim-server.js'),
         locator,
         sessionId,
         mainWindow.webContents.session.getUserAgent(),
