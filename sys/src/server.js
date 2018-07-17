@@ -148,21 +148,28 @@ app.get('/status', (req, res) => {
 
 
 function unmask(input, bytestart, res, req) {
-    setImmediate(() => {
-        let chunk;
-        do {
-            chunk = input.read();
-            if (!chunk) break;
-            const c = Buffer.allocUnsafe(chunk.length);
-            let j = bytestart % pwCache.length;
-            for (let i = 0; i < chunk.length; i++) {
-                c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
-                j = (j + 1) % pwCache.length;
-            }
-            res.write(c);
-            delete c;
-        } while (!req.finished);
-    });
+    if (req.finished) return;
+
+    const chunk = input.read();
+
+    if (!chunk) return;
+
+    const c = Buffer.allocUnsafe(chunk.length);
+    let j = bytestart % pwCache.length;
+    for (let i = 0; i < chunk.length; i++) {
+        c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
+        j = (j + 1) % pwCache.length;
+    }
+    const didFlush = res.write(c);
+
+    let nl = bytestart + chunk.length;
+    if (didFlush) {
+        // data flushed, loop
+        input.once('readable', () => unmask(input, nl, res, req));
+    } else {
+        // data buffered, wait
+        res.once('drain', () => unmask(input, nl, res, req));
+    }
 }
 
 function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
@@ -217,6 +224,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 }
 
                 const len = (byteend - bytestart) + 1;
+                hdr['Transfer-Encoding'] = 'chunked';
                 hdr['Last-Modified'] = lastmod;
                 hdr['Accept-Ranges'] = 'bytes';
                 hdr['Content-Length'] = len;
@@ -229,7 +237,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 res.set(hdr);
             }
 
-            input.on('readable', () => unmask(input, bytestart, res, req));
+            input.once('readable', () => unmask(input, bytestart, res, req));
         } else {
             // decrypt, no streaming
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
