@@ -121,9 +121,8 @@ function encCallback(idx, total, isDone) {
     }
     $('#progress').progressbar('option', 'value', idx);
 
-    if ((idx % Math.round(total/100)) == 0) {
-        messageCallback('Encrypting: ' + idx + ' / ' + total);
-    }
+    let hidx = idx + 1;
+    messageCallback('Encrypting: ' + hidx + ' / ' + total);
 
     if (isDone) {
         messageCallback('Encrypting complete');
@@ -139,9 +138,8 @@ function unencCallback(idx, total, isDone) {
     }
     $('#progress').progressbar('option', 'value', idx);
 
-    if ((idx % Math.round(total/100)) == 0) {
-        messageCallback('Copying: ' + idx + ' / ' + total);
-    }
+    let hidx = idx + 1;
+    messageCallback('Copying: ' + hidx + ' / ' + total);
 
     if (isDone) {
         messageCallback('Copying complete');

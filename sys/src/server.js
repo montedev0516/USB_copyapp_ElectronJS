@@ -153,14 +153,14 @@ function unmask(input, bytestart, res, req) {
         do {
             chunk = input.read();
             if (!chunk) break;
-            const c =
-                new Buffer.alloc(chunk.length); // eslint-disable-line new-cap
+            const c = Buffer.allocUnsafe(chunk.length);
             let j = bytestart % pwCache.length;
             for (let i = 0; i < chunk.length; i++) {
                 c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
                 j = (j + 1) % pwCache.length;
             }
             res.write(c);
+            delete c;
         } while (!req.finished);
     });
 }
@@ -202,7 +202,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
             res.end();
         });
 
-        // items over 64k in size have their original lengths cached.
+        // large items have their original lengths cached.
         const base = path.basename(fname);
         if (base in originalSize) {
             // used mask, no encrypt
@@ -329,7 +329,7 @@ function configure(locator) {
             if (path.basename(encfile) in originalSize) {
                 // large files are not stored in the asar
                 encfile = path.join(locator.shared, 'm', file + '.lock');
-            } 
+            }
 
             if (fileStatCache[encfile] === undefined) {
                 fileStatCache[encfile] = fs.existsSync(encfile);
@@ -423,13 +423,21 @@ function configure(locator) {
                     }
                 }
             } else {
-                const nfile = encfile.replace('.lock', '');
+                let nfile = encfile.replace('.lock', '');
+                let cdir = contentDir;
+
+                if (path.basename(nfile) in originalSize) {
+                    // large files are not stored in the asar
+                    cdir = path.join(locator.shared, 'm');
+                    nfile = path.join(cdir, file);
+                }
 
                 if (fs.existsSync(nfile)) {
                     // lockfile not found, return standard file fetch
-                    res.sendFile(file, { root: contentDir }, (err) => {
+                    res.sendFile(file, { root: cdir }, (err) => {
                         if (err) {
-                            // console.log('sendFile (static) ERROR: ' + err);
+                            // This happens if the request is aborted,
+                            // no need to report.
                         }
                     });
                 } else {
