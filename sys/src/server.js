@@ -59,7 +59,7 @@ function startServer() {
     // assume 15 minutes max, no real harm if the media/video are longer ...
     server.keepAliveTimeout = 60000 * 15;
 
-    server.on('clientError',(err,socket)=>{
+    server.on('clientError', (err, socket) => {
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
     });
 
@@ -324,7 +324,12 @@ function configure(locator) {
             if (!isValid([req, res])) { return; }
 
             const file = decodeURI(req.path);
-            const encfile = path.join(contentDir, file + '.lock');
+            let encfile = path.join(contentDir, file + '.lock');
+
+            if (path.basename(encfile) in originalSize) {
+                // large files are not stored in the asar
+                encfile = path.join(locator.shared, 'm', file + '.lock');
+            } 
 
             if (fileStatCache[encfile] === undefined) {
                 fileStatCache[encfile] = fs.existsSync(encfile);
@@ -418,7 +423,7 @@ function configure(locator) {
                     }
                 }
             } else {
-                const nfile = path.join(contentDir, file);
+                const nfile = encfile.replace('.lock', '');
 
                 if (fs.existsSync(nfile)) {
                     // lockfile not found, return standard file fetch
