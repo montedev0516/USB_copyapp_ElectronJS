@@ -5,6 +5,7 @@
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "electron-compile": "^6.4.2",
     "electron-squirrel-startup": "^1.0.0",
     "express": "^4.16.2",
@@ -14,6 +15,7 @@
     "node-gyp": "^3.7.0",
     "on-finished": "^2.3.0",
     "opn": "^5.2.0",
+    "tiny-worker": "^2.1.2",
     "usb-detection": "file:../repo/node-usb-detection/usb-detection-2.2.0.tgz",
     "uuid": "^3.2.1"
   },
@@ -24,8 +26,8 @@
     "babel-preset-react": "^6.24.1",
     "electron": "^1.8.2",
     "electron-forge": "^5.2.0",
-    "electron-prebuilt-compile": "1.8.2",
-    "electron-rebuild": "~1.7.3"
+    "electron-prebuilt-compile": "2.0.4",
+    "electron-rebuild": "^1.8.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

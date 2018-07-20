@@ -112,9 +112,12 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
         const outfile = path.join(enccfg.outPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
         try {
-            asar.createPackage(enccfg.workPath, outfile, () => {
-                makeCertificate();
-            });
+            asar.createPackage(
+                enccfg.workPath,
+                outfile,
+                // next step: certificate
+                () => makeCertificate(),
+            );
         } catch (e) {
             msgcb('Exception!');
             msgcb(e, true);
@@ -127,6 +130,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
                       vers.length === 0 &&
                       secret.length === 0);
         if (isEnc) {
+            if (enccb) enccb(idx, encFiles.length);
+
             if (idx >= encFiles.length) {
                 if (enccb) enccb(idx, encFiles.length, true);
 
@@ -137,6 +142,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
             }
             file = encFiles[idx];
         } else {
+            if (unenccb) unenccb(idx, unencFiles.length);
+
             if (idx >= unencFiles.length) {
                 if (unenccb) unenccb(idx, unencFiles.length, true);
 
@@ -157,7 +164,26 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
             fnout = file;
         }
 
-        fnout = fnout.replace(enccfg.inPath, enccfg.workPath);
+        const fstat = fs.statSync(file);
+        let useMask = false;
+        if (fstat.size > 32 * 1024 * 1024) {
+            sizes[path.basename(fnout)] = fstat.size;
+            useMask = true;
+        }
+
+        // Large files are streamable and are not stored in the asar,
+        // which has a hard-limit of 2Gb and seems to allocate
+        // the entire file in memory.
+        if (useMask) {
+            // put masked files directly in output folder
+            fnout = fnout.replace(
+                enccfg.inPath,
+                path.join(enccfg.outPath, 'm'),
+            );
+        } else {
+            // put encrypted files into working dir for asar creation
+            fnout = fnout.replace(enccfg.inPath, enccfg.workPath);
+        }
 
         // recursively create output dir
         const dir = path.dirname(fnout);
@@ -170,13 +196,6 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
         }
         if (!fs.existsSync(dir)) {
             mkdirp(dir);
-        }
-
-        const fstat = fs.statSync(file);
-        let useMask = false;
-        if (fstat.size > 10 * 1024 * 1024) {
-            sizes[path.basename(fnout)] = fstat.size;
-            useMask = true;
         }
 
         const input = fs.createReadStream(file);

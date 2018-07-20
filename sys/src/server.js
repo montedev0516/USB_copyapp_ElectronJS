@@ -42,9 +42,13 @@ let gUuid = null;
 let gAgent = null;
 
 const app = express();
+let server;
+
+// dummy variable used to help keep the parent process alive.
+exports.keepAlive = true;
 
 function startServer() {
-    const server = https.createServer({
+    server = https.createServer({
         key: privkey,
         cert: certificate,
         passphrase: serial,
@@ -54,6 +58,10 @@ function startServer() {
     // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
     // assume 15 minutes max, no real harm if the media/video are longer ...
     server.keepAliveTimeout = 60000 * 15;
+
+    server.on('clientError', (err, socket) => {
+        socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
+    });
 
     server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
@@ -140,21 +148,28 @@ app.get('/status', (req, res) => {
 
 
 function unmask(input, bytestart, res, req) {
-    setTimeout(() => {
-        let chunk;
-        do {
-            chunk = input.read();
-            if (!chunk) break;
-            const c =
-                new Buffer.alloc(chunk.length); // eslint-disable-line new-cap
-            let j = bytestart % pwCache.length;
-            for (let i = 0; i < chunk.length; i++) {
-                c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
-                j = (j + 1) % pwCache.length;
-            }
-            res.write(c);
-        } while (!req.finished);
-    }, 1);
+    if (req.finished) return;
+
+    const chunk = input.read();
+
+    if (!chunk) return;
+
+    const c = Buffer.allocUnsafe(chunk.length);
+    let j = bytestart % pwCache.length;
+    for (let i = 0; i < chunk.length; i++) {
+        c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
+        j = (j + 1) % pwCache.length;
+    }
+    const didFlush = res.write(c);
+
+    let nl = bytestart + chunk.length;
+    if (didFlush) {
+        // data flushed, loop
+        input.once('readable', () => unmask(input, nl, res, req));
+    } else {
+        // data buffered, wait
+        res.once('drain', () => unmask(input, nl, res, req));
+    }
 }
 
 function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
@@ -194,7 +209,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
             res.end();
         });
 
-        // items over 64k in size have their original lengths cached.
+        // large items have their original lengths cached.
         const base = path.basename(fname);
         if (base in originalSize) {
             // used mask, no encrypt
@@ -209,6 +224,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 }
 
                 const len = (byteend - bytestart) + 1;
+                hdr['Transfer-Encoding'] = 'chunked';
                 hdr['Last-Modified'] = lastmod;
                 hdr['Accept-Ranges'] = 'bytes';
                 hdr['Content-Length'] = len;
@@ -221,7 +237,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 res.set(hdr);
             }
 
-            input.on('readable', () => unmask(input, bytestart, res, req));
+            input.once('readable', () => unmask(input, bytestart, res, req));
         } else {
             // decrypt, no streaming
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
@@ -316,7 +332,12 @@ function configure(locator) {
             if (!isValid([req, res])) { return; }
 
             const file = decodeURI(req.path);
-            const encfile = path.join(contentDir, file + '.lock');
+            let encfile = path.join(contentDir, file + '.lock');
+
+            if (path.basename(encfile) in originalSize) {
+                // large files are not stored in the asar
+                encfile = path.join(locator.shared, 'm', file + '.lock');
+            }
 
             if (fileStatCache[encfile] === undefined) {
                 fileStatCache[encfile] = fs.existsSync(encfile);
@@ -384,6 +405,8 @@ function configure(locator) {
                                             reqThrottle.req,
                                             input,
                                         );
+                                    }).catch(() => {
+                                        // should probably do something here
                                     });
                                 },
                                 333,
@@ -402,17 +425,27 @@ function configure(locator) {
                                 bytestart, byteend,
                                 res, req, input,
                             );
+                        }).catch(() => {
+                            // should probably do something here
                         });
                     }
                 }
             } else {
-                const nfile = path.join(contentDir, file);
+                let nfile = encfile.replace('.lock', '');
+                let cdir = contentDir;
+
+                if (path.basename(nfile) in originalSize) {
+                    // large files are not stored in the asar
+                    cdir = path.join(locator.shared, 'm');
+                    nfile = path.join(cdir, file);
+                }
 
                 if (fs.existsSync(nfile)) {
                     // lockfile not found, return standard file fetch
-                    res.sendFile(file, { root: contentDir }, (err) => {
+                    res.sendFile(file, { root: cdir }, (err) => {
                         if (err) {
-                            // console.log('sendFile (static) ERROR: ' + err);
+                            // This happens if the request is aborted,
+                            // no need to report.
                         }
                     });
                 } else {
