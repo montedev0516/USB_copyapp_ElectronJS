@@ -157,7 +157,19 @@ function unmask(input, bytestart, res, req) {
 
     const chunk = input.read();
 
-    if (!chunk) return;
+    // The idea here for backpressure relief is we
+    // first wait for the "drain" event, then attempt to
+    // read the next chunk.  If that chunk is unavailable,
+    // register the "readable" and "close" events.  If
+    // we're at the end of file, then node will emit the
+    // close event and finish the stream.
+    if (!chunk) {
+        input.once('readable', () => unmask(input, bytestart, res, req));
+        if (input.listenerCount('close') < 1) {
+            input.once('close', () => res.end());
+        }
+        return;
+    }
 
     const c = Buffer.allocUnsafe(chunk.length);
     let j = bytestart % pwCache.length;
@@ -165,14 +177,11 @@ function unmask(input, bytestart, res, req) {
         c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
         j = (j + 1) % pwCache.length;
     }
-    const didFlush = res.write(c);
-
     const nl = bytestart + chunk.length;
+    const didFlush = res.write(c)
     if (didFlush) {
-        // data flushed, loop
         input.once('readable', () => unmask(input, nl, res, req));
     } else {
-        // data buffered, wait
         res.once('drain', () => unmask(input, nl, res, req));
     }
 }
@@ -193,6 +202,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
 
         req.on('close', () => {
             req.finished = true;
+            input.destroy();
         });
 
         req.on('abort', () => {
@@ -208,11 +218,6 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
             }
         };
         input.on('error', streamError);
-
-        input.on('end', () => {
-            req.finished = true;
-            res.end();
-        });
 
         // large items have their original lengths cached.
         const base = path.basename(fname);
@@ -242,8 +247,15 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 res.set(hdr);
             }
 
+            res.flushHeaders();
+
             input.once('readable', () => unmask(input, bytestart, res, req));
         } else {
+            input.on('end', () => {
+                req.finished = true;
+                res.end();
+            });
+
             // decrypt, no streaming
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
             decipher.on('error', streamError);
@@ -252,6 +264,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
         }
     } catch (err) {
         res.sendStatus(404);
+        throw new Error(err);
     }
 }
 
@@ -262,6 +275,8 @@ function openAndCreateStream(fname, bytestart, byteend) {
             nbe = undefined;
         }
         fs.open(fname, 'r', 0o666, (err, nfd) => {
+            if (err) throw new Error(err);
+
             const input = fs.createReadStream(fname, {
                 fd: nfd,
                 start: bytestart,
@@ -409,7 +424,7 @@ function configure(locator) {
                                         // should probably do something here
                                     });
                                 },
-                                333,
+                                10,
                             );
                         } else {
                             // Assume this is one of the undetectable
