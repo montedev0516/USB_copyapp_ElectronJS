@@ -167,7 +167,7 @@ function unmask(input, bytestart, res, req) {
     }
     const didFlush = res.write(c);
 
-    let nl = bytestart + chunk.length;
+    const nl = bytestart + chunk.length;
     if (didFlush) {
         // data flushed, loop
         input.once('readable', () => unmask(input, nl, res, req));
@@ -255,18 +255,15 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
     }
 }
 
-function openAndCreateStream(fname, phwm, bytestart, byteend) {
+function openAndCreateStream(fname, bytestart, byteend) {
     return new Promise((resolve) => {
         let nbe = byteend;
         if (nbe === null) {
             nbe = undefined;
         }
         fs.open(fname, 'r', 0o666, (err, nfd) => {
-            let hwm = phwm;
-            if (typeof hwm === 'undefined') hwm = 4 * 1024;
             const input = fs.createReadStream(fname, {
                 fd: nfd,
-                highWaterMark: hwm,
                 start: bytestart,
                 end: nbe,
             });
@@ -389,14 +386,12 @@ function configure(locator) {
                                     // console.log('calling decrypt, key:' +
                                     //             key);
                                     reqThrottle.available = true;
-                                    const hwm = 4 * 1024;
 
                                     // if we're starting from the beginning,
                                     // only buffer a little, but if we're
                                     // seeking, buffer a lot.
                                     openAndCreateStream(
                                         reqThrottle.encfile,
-                                        hwm,
                                         reqThrottle.bytestart,
                                         reqThrottle.byteend,
                                     ).then((input) => {
