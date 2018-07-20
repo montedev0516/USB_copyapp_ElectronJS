@@ -19,6 +19,20 @@ input {
     width: 100%;
 }
 
+/* https://stackoverflow.com/a/25117686 */
+.input-container {
+    display: flex;
+}
+.input-left {
+    flex-grow: 1;
+}
+.input-right {
+    width: 150px;
+}
+.input-right.button {
+    padding: 4px;
+}
+
 .matchentry {
     font-family: "Lucida Sans Typewriter", "Lucida Console", monaco, "Bitstream Vera Sans Mono", monospace;
     font-size: 14px;
