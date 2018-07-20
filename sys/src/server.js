@@ -477,3 +477,11 @@ function lockSession(uuid, agent) {
     gAgent = agent;
 }
 exports.lockSession = lockSession;
+
+// try and keep the server from dying of boredom
+function keepAlive() {
+    if (exports.keepAlive) {
+        setTimeout(() => keepAlive(), 333);
+    }
+}
+keepAlive();

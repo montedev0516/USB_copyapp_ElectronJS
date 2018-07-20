@@ -1,3 +1,4 @@
+
 const electron = require('electron');
 const app = electron.app;
 app.commandLine.appendSwitch('ignore-certificate-errors');
@@ -17,16 +18,14 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
     const worker = new Worker(() => {
         let server;
 
-        function keepAlive() {
-            self.postMessage(process.pid);
-            (function keepAliveSub(){
-                if (!server || server.keepAlive) {
-                    setTimeout(keepAliveSub, 1000);
-                }
-            })();
-        }
-
         self.onmessage = function(event) {
+            // terminate message
+            if (server && event.data.terminate) {
+                server.terminate();
+                return;
+            }
+
+            // startup message
             try {
                 server = require(event.data.serverjs);
                 server.go(event.data);
@@ -40,7 +39,6 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
         }
 
         postMessage('');
-        setImmediate(() => keepAlive());
     });
     worker.postMessage({
         serverjs: pserverjs,
@@ -148,8 +146,11 @@ function createWindow() {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
-        workerThread.terminate();
-        process.exit(0);
+        workerThread.postMessage({terminate: true});
+        process.nextTick(() => {
+            workerThread.terminate();
+            process.exit(0);
+        });
     });
 
     mainWindow.webContents.once('did-finish-load', () => {
