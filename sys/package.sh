@@ -20,7 +20,7 @@ mkdir dist
 
 set -x
 : 'Copying source to working directory...'
-cp -r src package* default_app locator.json dist/
+cp -r src package* default_app locator.json es6-shim-server.js dist/
 : 'Done!'
 
 cd dist

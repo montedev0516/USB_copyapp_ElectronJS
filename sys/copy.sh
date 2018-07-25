@@ -10,7 +10,7 @@ rm -rf app/* drive/*
 
 [ ! -d app ] && mkdir app
 
-app="resources/app/es6-shim.js resources/app/node_modules resources/app/package.json resources/app/package-lock.json resources/app/src resources/app/.cache"
+app="resources/app/es6*.js resources/app/node_modules resources/app/package.json resources/app/package-lock.json resources/app/src resources/app/.cache"
 if [ `uname -s` = "Linux" ] ; then
     drive="usbcopypro-linux-x64"
 elif [ `uname -s` = "CYGWIN_NT-6.1" ] ; then
