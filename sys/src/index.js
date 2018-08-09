@@ -23,6 +23,12 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
 
         /* global self */
         self.onmessage = (event) => {
+            // terminate message
+            if (server && event.data.terminate) {
+                server.terminate();
+                return;
+            }
+
             try {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
                 server = require(event.data.serverjs);
@@ -206,8 +212,11 @@ function createWindow() {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
-        workerThread.terminate();
-        process.exit(0);
+        workerThread.postMessage({ terminate: true });
+        process.nextTick(() => {
+            workerThread.terminate();
+            process.exit(0);
+        });
     });
 
     mainWindow.webContents.once('did-finish-load', () => {

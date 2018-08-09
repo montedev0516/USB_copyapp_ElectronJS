@@ -157,7 +157,19 @@ function unmask(input, bytestart, res, req) {
 
     const chunk = input.read();
 
-    if (!chunk) return;
+    // The idea here for backpressure relief is we
+    // first wait for the "drain" event, then attempt to
+    // read the next chunk.  If that chunk is unavailable,
+    // register the "readable" and "close" events.  If
+    // we're at the end of file, then node will emit the
+    // close event and finish the stream.
+    if (!chunk) {
+        input.once('readable', () => unmask(input, bytestart, res, req));
+        if (input.listenerCount('close') < 1) {
+            input.once('close', () => res.end());
+        }
+        return;
+    }
 
     const c = Buffer.allocUnsafe(chunk.length);
     let j = bytestart % pwCache.length;
@@ -165,14 +177,11 @@ function unmask(input, bytestart, res, req) {
         c[i] = chunk[i] ^ pwCache[j]; // eslint-disable-line
         j = (j + 1) % pwCache.length;
     }
-    const didFlush = res.write(c);
-
-    let nl = bytestart + chunk.length;
+    const nl = bytestart + chunk.length;
+    const didFlush = res.write(c)
     if (didFlush) {
-        // data flushed, loop
         input.once('readable', () => unmask(input, nl, res, req));
     } else {
-        // data buffered, wait
         res.once('drain', () => unmask(input, nl, res, req));
     }
 }
@@ -193,6 +202,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
 
         req.on('close', () => {
             req.finished = true;
+            input.destroy();
         });
 
         req.on('abort', () => {
@@ -208,11 +218,6 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
             }
         };
         input.on('error', streamError);
-
-        input.on('end', () => {
-            req.finished = true;
-            res.end();
-        });
 
         // large items have their original lengths cached.
         const base = path.basename(fname);
@@ -242,8 +247,15 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                 res.set(hdr);
             }
 
+            res.flushHeaders();
+
             input.once('readable', () => unmask(input, bytestart, res, req));
         } else {
+            input.on('end', () => {
+                req.finished = true;
+                res.end();
+            });
+
             // decrypt, no streaming
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
             decipher.on('error', streamError);
@@ -252,21 +264,21 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
         }
     } catch (err) {
         res.sendStatus(404);
+        throw new Error(err);
     }
 }
 
-function openAndCreateStream(fname, phwm, bytestart, byteend) {
+function openAndCreateStream(fname, bytestart, byteend) {
     return new Promise((resolve) => {
         let nbe = byteend;
         if (nbe === null) {
             nbe = undefined;
         }
         fs.open(fname, 'r', 0o666, (err, nfd) => {
-            let hwm = phwm;
-            if (typeof hwm === 'undefined') hwm = 4 * 1024;
+            if (err) throw new Error(err);
+
             const input = fs.createReadStream(fname, {
                 fd: nfd,
-                highWaterMark: hwm,
                 start: bytestart,
                 end: nbe,
             });
@@ -389,14 +401,12 @@ function configure(locator) {
                                     // console.log('calling decrypt, key:' +
                                     //             key);
                                     reqThrottle.available = true;
-                                    const hwm = 4 * 1024;
 
                                     // if we're starting from the beginning,
                                     // only buffer a little, but if we're
                                     // seeking, buffer a lot.
                                     openAndCreateStream(
                                         reqThrottle.encfile,
-                                        hwm,
                                         reqThrottle.bytestart,
                                         reqThrottle.byteend,
                                     ).then((input) => {
@@ -414,7 +424,7 @@ function configure(locator) {
                                         // should probably do something here
                                     });
                                 },
-                                333,
+                                10,
                             );
                         } else {
                             // Assume this is one of the undetectable
@@ -467,3 +477,11 @@ function lockSession(uuid, agent) {
     gAgent = agent;
 }
 exports.lockSession = lockSession;
+
+// try and keep the server from dying of boredom
+function keepAlive() {
+    if (exports.keepAlive) {
+        setTimeout(() => keepAlive(), 333);
+    }
+}
+keepAlive();

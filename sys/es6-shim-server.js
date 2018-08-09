@@ -2,10 +2,10 @@
 const path = require('path');
 const electronCompile = require('electron-compile');
 
+let server;
 function go(data) {
     const initScript = path.resolve(__dirname, 'src', 'server.js');
     let inDev = false;
-    let server;
 
     electronCompile.init(__dirname, initScript);
 
@@ -17,4 +17,11 @@ function go(data) {
     server.readUSBThenStart()
 }
 
+function terminate() {
+    if (server) {
+        server.keepAlive = false;
+    }
+}
+
 module.exports.go = go;
+module.exports.terminate = terminate;
