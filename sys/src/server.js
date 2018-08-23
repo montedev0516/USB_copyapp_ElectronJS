@@ -379,6 +379,7 @@ function configure(locator) {
         filebrowser = require('file-browser'); // eslint-disable-line global-require
         filebrowser.configure({
             removeLockString: true,
+            otherRoots: [path.join(locator.shared, 'm')],
         });
     }
 
