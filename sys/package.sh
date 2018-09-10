@@ -87,5 +87,9 @@ else
     mkdir resources
     mv ../resources/electron.asar ./resources
     mv ../resources/app/default_app.asar ./resources
+    cd ../resources
+    mv ./app/locator.json .
+    asar p app app.asar
+    rm -r app
 fi
 
