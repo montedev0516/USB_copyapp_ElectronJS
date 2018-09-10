@@ -178,7 +178,7 @@ function unmask(input, bytestart, res, req) {
         j = (j + 1) % pwCache.length;
     }
     const nl = bytestart + chunk.length;
-    const didFlush = res.write(c)
+    const didFlush = res.write(c);
     if (didFlush) {
         input.once('readable', () => unmask(input, nl, res, req));
     } else {
@@ -287,12 +287,100 @@ function openAndCreateStream(fname, bytestart, byteend) {
     });
 }
 
+function streamFile(match, res, req, encfile) {
+    const type = mime.lookup(match);
+    const key = req.get('x-api-key');
+    const bytestartHdr = req.get('range');
+    let bytestart = null;
+    let byteend = null;
+    if (bytestartHdr) {
+        const parts = bytestartHdr
+            .replace(/bytes=/, '')
+            .split('-');
+        bytestart = parseInt(parts[0], 10);
+        if (parts[1]) {
+            byteend = parseInt(parts[1], 10);
+        }
+        // console.log('got range, start:' + bytestart +
+        //             ' end:' + byteend);
+
+        // Don't hammer the streaming system with requests.
+        // BUT use the last one made.  This seems to fit
+        // with the behavior of video.js, especially when
+        // seeking.
+        if (reqThrottle.res !== null &&
+            !reqThrottle.res.headersSent) {
+            reqThrottle.res.sendStatus(503);
+        }
+        reqThrottle.encfile = encfile;
+        reqThrottle.res = res;
+        reqThrottle.req = req;
+        reqThrottle.bytestart = bytestart;
+        reqThrottle.byteend = byteend;
+        reqThrottle.type = type;
+
+        if (reqThrottle.available) {
+            reqThrottle.available = false;
+            setTimeout(
+                () => {
+                    // console.log('calling decrypt, key:' +
+                    //             key);
+                    reqThrottle.available = true;
+
+                    // if we're starting from the beginning,
+                    // only buffer a little, but if we're
+                    // seeking, buffer a lot.
+                    openAndCreateStream(
+                        reqThrottle.encfile,
+                        reqThrottle.bytestart,
+                        reqThrottle.byteend,
+                    ).then((input) => {
+                        decrypt(
+                            key,
+                            reqThrottle.encfile,
+                            reqThrottle.type,
+                            reqThrottle.bytestart,
+                            reqThrottle.byteend,
+                            reqThrottle.res,
+                            reqThrottle.req,
+                            input,
+                        );
+                    }).catch(() => {
+                        // should probably do something here
+                    });
+                },
+                10,
+            );
+        } else {
+            // Assume this is one of the undetectable
+            // "cancelled" streaming requests made by
+            // the browser.  Not much we can do here.
+            // console.log("THROTTLE");
+        }
+    } else {
+        openAndCreateStream(encfile)
+        .then((input) => {
+            decrypt(
+                key, encfile, type,
+                bytestart, byteend,
+                res, req, input,
+            );
+        }).catch(() => {
+            // should probably do something here
+        });
+    }
+}
+
 function configure(locator) {
     // TODO: this shouldn't be a global require
     cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
     if (cfg.fileBrowserEnabled) {
         filebrowser = require('file-browser'); // eslint-disable-line global-require
+        filebrowser.configure({
+            removeLockString: true,
+            otherRoots: [path.join(locator.shared, 'm')],
+        });
     }
 
     // load keyfiles for SSL
@@ -330,11 +418,15 @@ function configure(locator) {
             const file = req.query.f;
             const match = file.match(/\.([^.]*)\.lock$/);
             if (match) {
-                const fname = path.join(contentDir, file);
-                const type = mime.lookup(match[1]);
-                const key = req.get('x-api-key');
+                let fname;
+                if (path.basename(file) in originalSize) {
+                    // large files are not stored in the asar
+                    fname = path.join(locator.shared, 'm', file);
+                } else {
+                    fname = path.join(contentDir, file);
+                }
 
-                decrypt(key, fname, type, null, null, res);
+                streamFile(match[1], res, req, fname);
             } else {
                 res.sendFile(file, options, (err) => {
                     if (err) {
@@ -363,87 +455,7 @@ function configure(locator) {
             if (fileStatCache[encfile]) {
                 const match = encfile.match(/\.([^.]*)\.lock$/);
                 if (match) {
-                    const type = mime.lookup(match[1]);
-                    const key = req.get('x-api-key');
-                    const bytestartHdr = req.get('range');
-                    let bytestart = null;
-                    let byteend = null;
-                    if (bytestartHdr) {
-                        const parts = bytestartHdr
-                            .replace(/bytes=/, '')
-                            .split('-');
-                        bytestart = parseInt(parts[0], 10);
-                        if (parts[1]) {
-                            byteend = parseInt(parts[1], 10);
-                        }
-                        // console.log('got range, start:' + bytestart +
-                        //             ' end:' + byteend);
-
-                        // Don't hammer the streaming system with requests.
-                        // BUT use the last one made.  This seems to fit
-                        // with the behavior of video.js, especially when
-                        // seeking.
-                        if (reqThrottle.res !== null &&
-                            !reqThrottle.res.headersSent) {
-                            reqThrottle.res.sendStatus(503);
-                        }
-                        reqThrottle.encfile = encfile;
-                        reqThrottle.res = res;
-                        reqThrottle.req = req;
-                        reqThrottle.bytestart = bytestart;
-                        reqThrottle.byteend = byteend;
-                        reqThrottle.type = type;
-
-                        if (reqThrottle.available) {
-                            reqThrottle.available = false;
-                            setTimeout(
-                                () => {
-                                    // console.log('calling decrypt, key:' +
-                                    //             key);
-                                    reqThrottle.available = true;
-
-                                    // if we're starting from the beginning,
-                                    // only buffer a little, but if we're
-                                    // seeking, buffer a lot.
-                                    openAndCreateStream(
-                                        reqThrottle.encfile,
-                                        reqThrottle.bytestart,
-                                        reqThrottle.byteend,
-                                    ).then((input) => {
-                                        decrypt(
-                                            key,
-                                            reqThrottle.encfile,
-                                            reqThrottle.type,
-                                            reqThrottle.bytestart,
-                                            reqThrottle.byteend,
-                                            reqThrottle.res,
-                                            reqThrottle.req,
-                                            input,
-                                        );
-                                    }).catch(() => {
-                                        // should probably do something here
-                                    });
-                                },
-                                10,
-                            );
-                        } else {
-                            // Assume this is one of the undetectable
-                            // "cancelled" streaming requests made by
-                            // the browser.  Not much we can do here.
-                            // console.log("THROTTLE");
-                        }
-                    } else {
-                        openAndCreateStream(encfile)
-                        .then((input) => {
-                            decrypt(
-                                key, encfile, type,
-                                bytestart, byteend,
-                                res, req, input,
-                            );
-                        }).catch(() => {
-                            // should probably do something here
-                        });
-                    }
+                    streamFile(match[1], res, req, encfile);
                 }
             } else {
                 let nfile = encfile.replace('.lock', '');
