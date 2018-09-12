@@ -27,6 +27,17 @@ cd dist
 npm install
 cp -v package-lock.json ..
 
+# Hackish build for native module.  This
+# should not be here.
+if uname | grep -iq cygwin ; then
+    (
+        set -e
+        cd node_modules/usb-detection
+        mv binding.gyp.old binding.gyp
+        ../../../rebuild-module.sh
+    ) || exit
+fi
+
 # note this requires uglify-es@3
 obf=`which uglifyjs`
 
@@ -87,5 +98,9 @@ else
     mkdir resources
     mv ../resources/electron.asar ./resources
     mv ../resources/app/default_app.asar ./resources
+    cd ../resources
+    mv ./app/locator.json .
+    asar p app app.asar
+    rm -r app
 fi
 
