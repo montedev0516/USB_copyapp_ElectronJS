@@ -1,12 +1,12 @@
 const electron = require('electron');
 const url = require('url');
 const path = require('path');
-const app = electron.app;
+
+const { app } = electron;
 
 let mainWindow;
 
 function createWindow() {
-
     mainWindow = new electron.BrowserWindow({
         width: 800,
         height: 600,
@@ -15,10 +15,10 @@ function createWindow() {
     mainWindow.loadURL(url.format({
         pathname: path.join(__dirname, 'encrypt-main.html'),
         protocol: 'file:',
-        slashes: true
+        slashes: true,
     }));
 
-    //mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
 
     mainWindow.on('closed', () => {
         mainWindow = null;

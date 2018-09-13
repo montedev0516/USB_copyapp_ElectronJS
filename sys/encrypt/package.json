@@ -6,7 +6,7 @@
   "main": "src/encrypt-main.js",
   "scripts": {
     "start": "electron-forge start",
-    "package": "electron-forge package",
+    "package": "git describe --long > .usbgittag ; electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint src --color",
@@ -58,7 +58,7 @@
     "babel-preset-env": "^1.6.1",
     "babel-preset-react": "^6.24.1",
     "electron-forge": "^5.2.2",
-    "electron-prebuilt-compile": "2.0.4",
+    "electron-prebuilt-compile": "2.0.7",
     "eslint": "^3.19.0",
     "eslint-config-airbnb": "^15.1.0",
     "eslint-plugin-import": "^2.9.0",

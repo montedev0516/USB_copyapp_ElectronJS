@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
+const vers = require('../package.json');
 
 const {dialog} = require('electron').remote
 
@@ -17,6 +18,7 @@ var maskCounter;
 var conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
 var barHidden = true;
 var workingPath = null;
+var longVersion = '<unknown>';
 
 function delMask(elid) {
     $(elid).remove();
@@ -84,6 +86,15 @@ function saveUI() {
 }
 
 function loadUI(enccfg) {
+    // version
+    try {
+        let tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
+        longVersion = vers.version + ', ' + tag;
+    } catch(e) {
+        longVersion = vers.version + '-DEV';
+    }
+
+    $("#version-info").text('Version: ' + longVersion);
 
     // backwards compatibility
     if (enccfg.hasOwnProperty('inputPath')) {
