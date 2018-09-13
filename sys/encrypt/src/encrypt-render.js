@@ -68,6 +68,7 @@ function saveUI() {
         outPath: $("input[name='outdir']").val(),
         workPath: workingPath,
         apiKey: crypto.randomBytes(32).toString('hex'),
+        version: longVersion,
     };
 
     // Always encrypt.
@@ -268,9 +269,9 @@ function loadUI(enccfg) {
     // version
     try {
         const tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
-        longVersion = vers.version + ', ' + tag;
+        longVersion = vers.version + '+' + tag;
     } catch (e) {
-        longVersion = vers.version + '-DEV';
+        longVersion = vers.version + '+DEV';
     }
 
     $('#version-info').text('Version: ' + longVersion);

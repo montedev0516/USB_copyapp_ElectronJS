@@ -20,6 +20,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
     srvcfg.serialLength = enccfg.descString3.length;
     // save vid search list (currently always length 1)
     srvcfg.validVendors = [enccfg.vid];
+    // save version
+    srvcfg.version = enccfg.version;
     msgcb('writing config file...');
     fs.writeFileSync(
         path.join(enccfg.outPath, 'usbcopypro.json'),
