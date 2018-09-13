@@ -2,6 +2,8 @@
 // Encryption Tool Controller
 //
 
+/* global $ */
+
 const encrypt = require('./encrypt');
 const fs = require('fs');
 const path = require('path');
@@ -9,16 +11,16 @@ const crypto = require('crypto');
 const os = require('os');
 const vers = require('../package.json');
 
-const {dialog} = require('electron').remote
+const { dialog } = require('electron').remote;
 
 require('jquery-ui');
 require('jquery-ui/ui/widgets/progressbar');
 
-var maskCounter;
-var conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
-var barHidden = true;
-var workingPath = null;
-var longVersion = '<unknown>';
+let maskCounter;
+const conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
+let barHidden = true;
+let workingPath = null;
+let longVersion = '<unknown>';
 
 function delMask(elid) {
     $(elid).remove();
@@ -26,133 +28,63 @@ function delMask(elid) {
 
 // Add a mask to the display.
 function newMaskHTML(name, i) {
-    return "<div name='matchlist' id='matchrow_"+i+"'>" +
-        "<span class='matchentry' " +
-              "name='matchrow'>" +
+    return '<div name="matchlist" id="matchrow_' + i + '">' +
+        '<span class="matchentry" ' +
+              'name="matchrow">' +
         name +
-        "</span>&nbsp;" +
-        "<span class='xbtn' " +
-              "onclick='ctl.delMask(\"#matchrow_"+i+"\")' " +
-              "id='delmatch_"+i+"'>&times;</span>" +
-        "</div>";
+        '</span>&nbsp;' +
+        '<span class="xbtn" ' +
+              'onclick="ctl.delMask(\\"#matchrow_" + i + "\\")" ' +
+              'id="delmatch_' + i + '">&times;</span>' +
+        '</div>';
 }
 
 // Add the contents of the input box to the
 // list of masks, and clear the box.
 function addNewMask() {
-    let el = $("input[name='newmask']");
-    if (el.val().length == 0) {
+    const el = $("input[name='newmask']");
+    if (el.val().length === 0) {
         return;
     }
-    let nhtml = $('#matchlist').html() + newMaskHTML(el.val(), maskCounter);
+    const nhtml = $('#matchlist').html() + newMaskHTML(el.val(), maskCounter);
     $('#matchlist').html(nhtml);
     el.val('');
     maskCounter++;
-
 }
 
 function saveUI() {
     workingPath = $("input[name='workdir']").val();
 
-    let enccfg = {
-        'vid': $("input[name='vid']").val(),
-        'pid': $("input[name='pid']").val(),
-        'mfg': 0, // unused
-        'prod': 0, // unused
-        'serial': 0, // unused
-        'descString1': '', // unused
-        'descString2': '', // unused
-        'descString3': $("input[name='serial']").val(),
-        'inPath': $("input[name='indir']").val(),
-        'outPath': $("input[name='outdir']").val(),
-        'workPath': workingPath,
-        'apiKey': crypto.randomBytes(32).toString('hex')
+    const enccfg = {
+        vid: $("input[name='vid']").val(),
+        pid: $("input[name='pid']").val(),
+        mfg: 0, // unused
+        prod: 0, // unused
+        serial: 0, // unused
+        descString1: '', // unused
+        descString2: '', // unused
+        descString3: $("input[name='serial']").val(),
+        inPath: $("input[name='indir']").val(),
+        outPath: $("input[name='outdir']").val(),
+        workPath: workingPath,
+        apiKey: crypto.randomBytes(32).toString('hex'),
     };
 
     // Always encrypt.
     enccfg.encrypt = true;
 
     enccfg.filematch = [];
-    let els = $("div[name='matchlist']");
-    for (let i=0; i < els.length; i++) {
-        enccfg.filematch.push($(els[i]).find("[name='matchrow']").text());
+    const els = $('div[name="matchlist"]');
+    for (let i = 0; i < els.length; i++) {
+        enccfg.filematch.push($(els[i]).find('[name="matchrow"]').text());
     }
 
     fs.writeFileSync(
         conffile,
-        JSON.stringify(enccfg));
+        JSON.stringify(enccfg),
+    );
 
     return enccfg;
-}
-
-function loadUI(enccfg) {
-    // version
-    try {
-        let tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
-        longVersion = vers.version + ', ' + tag;
-    } catch(e) {
-        longVersion = vers.version + '-DEV';
-    }
-
-    $("#version-info").text('Version: ' + longVersion);
-
-    // backwards compatibility
-    if (enccfg.hasOwnProperty('inputPath')) {
-        enccfg.inPath = enccfg.inputPath;
-    }
-    if (enccfg.hasOwnProperty('outputPath')) {
-        enccfg.workPath = enccfg.outputPath;
-    }
-    if (enccfg.hasOwnProperty('workingPath')) {
-        enccfg.outPath = enccfg.workingPath;
-    }
-
-    $("input[name='vid']").val(enccfg.vid);
-    $("input[name='pid']").val(enccfg.pid);
-    $("input[name='serial']").val(enccfg.descString3);
-    $("input[name='indir']").val(enccfg.inPath);
-    $("input[name='outdir']").val(enccfg.outPath);
-    $("input[name='workdir']").val(enccfg.workPath);
-
-    if (!enccfg.hasOwnProperty('filematch')) {
-        enccfg.filematch = [];
-    }
-
-    let masks = '';
-    for(let i=0; i < enccfg.filematch.length; i++) {
-        masks = masks + newMaskHTML(enccfg.filematch[i], i);
-    }
-    maskCounter = enccfg.filematch.length;
-
-    $('#matchlist').html(masks);
-
-    $('#btn-encrypt')
-        .on("click", runEncrypt);
-
-    setBtnEnabled(true);
-
-    $('#btn-select-indir').on("click", chooseFile('indir', 'input'));
-    $('#btn-select-workdir').on("click", chooseFile('workdir', 'working'));
-    $('#btn-select-outdir').on("click", chooseFile('outdir', 'output'));
-}
-
-function chooseFile(inputEl, desc) {
-
-    const chooseFileFn = function() {
-        const currentpath = $("input[name='" + inputEl + "']").val();
-
-        const paths = dialog.showOpenDialog({
-            title: 'Select the ' + desc + ' directory',
-            defaultPath: currentpath,
-            properties: ['openDirectory']
-        });
-
-        if (paths && paths.length == 1) {
-            $("input[name='" + inputEl + "']").val(paths[0]);
-        }
-    };
-
-    return chooseFileFn;
 }
 
 function messageCallback(s, isError) {
@@ -173,157 +105,34 @@ function messageCallback(s, isError) {
     }
 }
 
-function encCallback(idx, total, isDone) {
-    if (barHidden) {
-        $('#progress').progressbar({ "max": total }).show();
-        barHidden = false;
+function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
+    if (somePath.trim().length === 0) {
+        messageCallback('Please enter the ' + desc + ' directory', true);
+        return false;
     }
-    $('#progress').progressbar('option', 'value', idx);
 
-    let hidx = idx + 1;
-    messageCallback('Encrypting: ' + hidx + ' / ' + total);
-
-    if (isDone) {
-        messageCallback('Encrypting complete');
-        barHidden = true;
-        $('#progress').hide();
+    if (somePath.trim() === anotherPath.trim() || somePath.trim() === yetAnotherPath.trim()) {
+        messageCallback('The ' + desc + ' directory should be different from the other two directories', true);
+        return false;
     }
+
+    return true;
 }
 
-function unencCallback(idx, total, isDone) {
-    if (barHidden) {
-        $('#progress').progressbar({ "max": total }).show();
-        barHidden = false;
-    }
-    $('#progress').progressbar('option', 'value', idx);
+function checkDirectoryEmpty(dir, desc) {
+    let ok = true;
 
-    let hidx = idx + 1;
-    messageCallback('Copying: ' + hidx + ' / ' + total);
+    if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir);
 
-    if (isDone) {
-        messageCallback('Copying complete');
-        barHidden = true;
-        $('#progress').hide();
-    }
-}
-
-function setBtnEnabled(val) {
-    if (val) {
-        $('#btn-encrypt')
-            .removeClass('btndisabled')
-            .addClass('btnenabled')
-            .prop('disabled', false);
-    } else {
-        $('#btn-encrypt')
-            .removeClass('btnenabled')
-            .addClass('btndisabled')
-            .prop('disabled', true);
-    }
-}
-
-function toggleButton(val) {
-    setBtnEnabled(true);
-
-    if (val) {
-        $('#btn-encrypt')
-            .text('Done, continue ...')
-            .off("click", runEncrypt)
-            .on("click", doContinue);
-    } else {
-        $('#btn-encrypt')
-            .text('Encrypt!')
-            .off("click", doContinue)
-            .on("click", runEncrypt);
-    }
-}
-
-function doContinue() {
-    setBtnEnabled(false);
-
-    if (workingPath) {
-        clearWorkingDir(workingPath);
-
-        workingPath = null;
-    }
-
-    setTimeout(() => {
-        // clear the output message
-        messageCallback(false);
-
-        toggleButton(false);
-    }, 800);
-}
-
-function clearWorkingDir(directory) {
-
-    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-
-        const usbJsonFile = path.join(directory, "usbcopypro.json.lock");
-
-        // sanity check, if "usbcopypro.json.lock" isn't there then this cannot be the working dir
-        if (fs.existsSync(usbJsonFile)) {
-
-            messageCallback("Clearing working dir ...");
-
-            clearDir(directory, false);
-        }
-    }
-}
-
-function clearDir(directory, removeDir) {
-
-    let ok;
-    const files = fs.readdirSync(directory);
-
-    for (const file of files) {
-
-        const fullPath = path.join(directory, file);
-        const stats = fs.statSync(fullPath);
-
-        if (stats.isFile()) {
-
-            fs.unlinkSync(fullPath);
-            ok = true;
-
-        } else if (stats.isDirectory()) {
-            ok = clearDir(fullPath, true);
-
-        } else {
+        if (files.length > 0) {
             ok = false;
-        }
 
-        if (!ok) {
-            break;
+            messageCallback('The ' + desc + ' directory should be empty', true);
         }
-    }
-
-    if (ok && removeDir) {
-        fs.rmdirSync(directory);
     }
 
     return ok;
-}
-
-function runEncrypt() {
-    let enccfg = saveUI();
-
-    if (validate(enccfg)) {
-
-        setBtnEnabled(false);
-        $('#errors').hide();
-        $('#messages').show();
-        messageCallback('Starting...');
-
-        setTimeout(() => {
-            try {
-                encrypt(enccfg, messageCallback, encCallback, unencCallback, doneCallback);
-            } catch (e) {
-                messageCallback('Exception!');
-                messageCallback(e, true);
-                doneCallback();
-            }
-        }, 333);
-    }
 }
 
 function validate(enccfg) {
@@ -344,45 +153,236 @@ function validate(enccfg) {
     return ok;
 }
 
-function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
-
-    if (somePath.trim().length == 0) {
-        messageCallback('Please enter the ' + desc + ' directory', true);
-        return false;
+function setBtnEnabled(val) {
+    if (val) {
+        $('#btn-encrypt')
+            .removeClass('btndisabled')
+            .addClass('btnenabled')
+            .prop('disabled', false);
+    } else {
+        $('#btn-encrypt')
+            .removeClass('btnenabled')
+            .addClass('btndisabled')
+            .prop('disabled', true);
     }
-
-    if (somePath.trim() == anotherPath.trim() || somePath.trim() == yetAnotherPath.trim() ) {
-        messageCallback('The ' + desc + ' directory should be different from the other two directories', true);
-        return false;
-    }
-
-    return true;
 }
 
-function checkDirectoryEmpty(dir, desc) {
-    let ok = true;
-
-    if (fs.existsSync(dir)) {
-
-        const files = fs.readdirSync(dir);
-
-        if (files.length > 0) {
-            ok = false;
-            
-            messageCallback('The ' + desc + ' directory should be empty', true);
-        }
+function encCallback(idx, total, isDone) {
+    if (barHidden) {
+        $('#progress').progressbar({ max: total }).show();
+        barHidden = false;
     }
+    $('#progress').progressbar('option', 'value', idx);
 
-    return ok;
+    const hidx = idx + 1;
+    messageCallback('Encrypting: ' + hidx + ' / ' + total);
+
+    if (isDone) {
+        messageCallback('Encrypting complete');
+        barHidden = true;
+        $('#progress').hide();
+    }
+}
+
+function unencCallback(idx, total, isDone) {
+    if (barHidden) {
+        $('#progress').progressbar({ max: total }).show();
+        barHidden = false;
+    }
+    $('#progress').progressbar('option', 'value', idx);
+
+    const hidx = idx + 1;
+    messageCallback('Copying: ' + hidx + ' / ' + total);
+
+    if (isDone) {
+        messageCallback('Copying complete');
+        barHidden = true;
+        $('#progress').hide();
+    }
+}
+
+function toggleButton(val) {
+    setBtnEnabled(true);
+
+    if (val) {
+        $('#btn-encrypt')
+            .text('Done, continue ...')
+            // eslint-disable-next-line no-use-before-define
+            .off('click', runEncrypt)
+            // eslint-disable-next-line no-use-before-define
+            .on('click', doContinue);
+    } else {
+        $('#btn-encrypt')
+            .text('Encrypt!')
+            // eslint-disable-next-line no-use-before-define
+            .off('click', doContinue)
+            // eslint-disable-next-line no-use-before-define
+            .on('click', runEncrypt);
+    }
 }
 
 function doneCallback() {
     toggleButton(true);
 }
 
-$(function() {
+function runEncrypt() {
+    const enccfg = saveUI();
+
+    if (validate(enccfg)) {
+        setBtnEnabled(false);
+        $('#errors').hide();
+        $('#messages').show();
+        messageCallback('Starting...');
+
+        setTimeout(() => {
+            try {
+                encrypt(enccfg, messageCallback, encCallback, unencCallback, doneCallback);
+            } catch (e) {
+                messageCallback('Exception!');
+                messageCallback(e, true);
+                doneCallback();
+            }
+        }, 333);
+    }
+}
+
+function chooseFile(inputEl, desc) {
+    const chooseFileFn = () => {
+        const currentpath = $("input[name='" + inputEl + "']").val();
+
+        const paths = dialog.showOpenDialog({
+            title: 'Select the ' + desc + ' directory',
+            defaultPath: currentpath,
+            properties: ['openDirectory'],
+        });
+
+        if (paths && paths.length === 1) {
+            $("input[name='" + inputEl + "']").val(paths[0]);
+        }
+    };
+
+    return chooseFileFn;
+}
+
+function loadUI(enccfg) {
+    // version
+    try {
+        const tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
+        longVersion = vers.version + ', ' + tag;
+    } catch (e) {
+        longVersion = vers.version + '-DEV';
+    }
+
+    $('#version-info').text('Version: ' + longVersion);
+
+    // backwards compatibility
+    if (enccfg.hasOwnProperty('inputPath')) {
+        // eslint-disable-next-line no-param-reassign
+        enccfg.inPath = enccfg.inputPath;
+    }
+    if (enccfg.hasOwnProperty('outputPath')) {
+        // eslint-disable-next-line no-param-reassign
+        enccfg.workPath = enccfg.outputPath;
+    }
+    if (enccfg.hasOwnProperty('workingPath')) {
+        // eslint-disable-next-line no-param-reassign
+        enccfg.outPath = enccfg.workingPath;
+    }
+
+    $('input[name="vid"]').val(enccfg.vid);
+    $('input[name="pid"]').val(enccfg.pid);
+    $('input[name="serial"]').val(enccfg.descString3);
+    $('input[name="indir"]').val(enccfg.inPath);
+    $('input[name="outdir"]').val(enccfg.outPath);
+    $('input[name="workdir"]').val(enccfg.workPath);
+
+    if (!enccfg.hasOwnProperty('filematch')) {
+        // eslint-disable-next-line no-param-reassign
+        enccfg.filematch = [];
+    }
+
+    let masks = '';
+    for (let i = 0; i < enccfg.filematch.length; i++) {
+        masks += newMaskHTML(enccfg.filematch[i], i);
+    }
+    maskCounter = enccfg.filematch.length;
+
+    $('#matchlist').html(masks);
+
+    $('#btn-encrypt')
+        .on('click', runEncrypt);
+
+    setBtnEnabled(true);
+
+    $('#btn-select-indir').on('click', chooseFile('indir', 'input'));
+    $('#btn-select-workdir').on('click', chooseFile('workdir', 'working'));
+    $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
+}
+
+function clearDir(directory, removeDir) {
+    let ok;
+    const files = fs.readdirSync(directory);
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fullPath = path.join(directory, file);
+        const stats = fs.statSync(fullPath);
+
+        if (stats.isFile()) {
+            fs.unlinkSync(fullPath);
+            ok = true;
+        } else if (stats.isDirectory()) {
+            ok = clearDir(fullPath, true);
+        } else {
+            ok = false;
+        }
+
+        if (!ok) {
+            break;
+        }
+    }
+
+    if (ok && removeDir) {
+        fs.rmdirSync(directory);
+    }
+
+    return ok;
+}
+
+function clearWorkingDir(directory) {
+    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
+        const usbJsonFile = path.join(directory, 'usbcopypro.json.lock');
+
+        // sanity check, if "usbcopypro.json.lock" isn't there then this cannot be the working dir
+        if (fs.existsSync(usbJsonFile)) {
+            messageCallback('Clearing working dir ...');
+
+            clearDir(directory, false);
+        }
+    }
+}
+
+function doContinue() {
+    setBtnEnabled(false);
+
+    if (workingPath) {
+        clearWorkingDir(workingPath);
+
+        workingPath = null;
+    }
+
+    setTimeout(() => {
+        // clear the output message
+        messageCallback(false);
+
+        toggleButton(false);
+    }, 800);
+}
+
+$(() => {
     let enccfg;
     if (fs.existsSync(conffile)) {
+        // eslint-disable-next-line global-require, import/no-dynamic-require
         enccfg = require(conffile);
     } else {
         enccfg = {};
