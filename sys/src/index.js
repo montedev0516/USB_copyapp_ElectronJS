@@ -106,21 +106,30 @@ function onDomReady(win) {
     // Standard JS injection.
     // * remove the PDF toolbar to put roadblock against download
     // * provide callback for opening external URLs in
-    //   the electron browser (insecure)
+    //   the electron browser (insecure), if we have node integration.
     win.webContents.executeJavaScript(`
-        const {ipcRenderer} = require('electron');
-        if (typeof(window.jQuery) === 'undefined') {
-            window.$ = window.jQuery = require('jquery');
+        if (typeof(require) === "function") {
+            const {ipcRenderer} = require('electron');
+            if (typeof(window.jQuery) === 'undefined') {
+                window.$ = window.jQuery = require('jquery');
+            }
+            $("[data-openlocal='true']").click(function(ev) {
+                ev.preventDefault();
+                // this will prevent triggering the onOpenUrl()
+                // call below.
+                ipcRenderer.send('openlocal-message', ev.target.href);
+            });
         }
-        $("[data-openlocal='true']").click(function(ev) {
-            ev.preventDefault();
-            // this will prevent triggering the onOpenUrl()
-            // call below.
-            ipcRenderer.send('openlocal-message', ev.target.href);
-        });
 
         tb = document.querySelector('viewer-pdf-toolbar');
-        if (tb) { tb.style.display = 'none'; }
+        if (tb) {
+            tb.style.display = 'none';
+        }
+
+        vtb = document.querySelector('video');
+        if (vtb) {
+            vtb.setAttribute('controlsList', 'nodownload');
+        }
     `);
 }
 
