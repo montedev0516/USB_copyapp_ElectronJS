@@ -102,7 +102,27 @@ function findLocator() {
     return locator;
 }
 
-function onDomReady(win) {
+// When in file browser mode, we want the title of the
+// window to reflect the decrypted document, not the URL.
+function setTitle(win, nurl) {
+    if (!nurl) {
+        return '';
+    }
+
+    const fbmatch = nurl.match(/b?.*f=(.*)$/);
+    let title = '';
+    if (fbmatch && fbmatch[1]) {
+        title = fbmatch[1].replace('.lock', '');
+        win.setTitle(title);
+    }
+
+    return title;
+}
+
+function onDomReady(win, nurl) {
+    // Helper function to set the title when using the file browser.
+    const title = setTitle(win, nurl);
+
     // Standard JS injection.
     // * remove the PDF toolbar to put roadblock against download
     // * provide callback for opening external URLs in
@@ -124,6 +144,12 @@ function onDomReady(win) {
         tb = document.querySelector('viewer-pdf-toolbar');
         if (tb) {
             tb.style.display = 'none';
+            const nt = '${title}';
+            if (nt) {
+                window.addEventListener('pdf-loaded', () => {
+                    document.title = nt;
+                });
+            }
         }
 
         vtb = document.querySelector('video');
@@ -213,7 +239,7 @@ function createWindow() {
         });
         win.loadURL(nurl);
 
-        win.webContents.on('dom-ready', () => onDomReady(win));
+        win.webContents.on('dom-ready', () => onDomReady(win, nurl));
         win.webContents.on('will-navigate', onOpenUrl);
 
         mainWindow.newGuest = win;
