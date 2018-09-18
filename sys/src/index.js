@@ -112,7 +112,7 @@ function setTitle(win, nurl) {
     const fbmatch = nurl.match(/b?.*f=(.*)$/);
     let title = '';
     if (fbmatch && fbmatch[1]) {
-        title = fbmatch[1].replace('.lock', '');
+        title = decodeURIComponent(fbmatch[1]).replace('.lock', '');
         win.setTitle(title);
     }
 
