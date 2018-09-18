@@ -102,25 +102,60 @@ function findLocator() {
     return locator;
 }
 
-function onDomReady(win) {
+// When in file browser mode, we want the title of the
+// window to reflect the decrypted document, not the URL.
+function setTitle(win, nurl) {
+    if (!nurl) {
+        return '';
+    }
+
+    const fbmatch = nurl.match(/b?.*f=(.*)$/);
+    let title = '';
+    if (fbmatch && fbmatch[1]) {
+        title = decodeURIComponent(fbmatch[1]).replace('.lock', '');
+        win.setTitle(title);
+    }
+
+    return title;
+}
+
+function onDomReady(win, nurl) {
+    // Helper function to set the title when using the file browser.
+    const title = setTitle(win, nurl);
+
     // Standard JS injection.
     // * remove the PDF toolbar to put roadblock against download
     // * provide callback for opening external URLs in
-    //   the electron browser (insecure)
+    //   the electron browser (insecure), if we have node integration.
     win.webContents.executeJavaScript(`
-        const {ipcRenderer} = require('electron');
-        if (typeof(window.jQuery) === 'undefined') {
-            window.$ = window.jQuery = require('jquery');
+        if (typeof(require) === "function") {
+            const {ipcRenderer} = require('electron');
+            if (typeof(window.jQuery) === 'undefined') {
+                window.$ = window.jQuery = require('jquery');
+            }
+            $("[data-openlocal='true']").click(function(ev) {
+                ev.preventDefault();
+                // this will prevent triggering the onOpenUrl()
+                // call below.
+                ipcRenderer.send('openlocal-message', ev.target.href);
+            });
         }
-        $("[data-openlocal='true']").click(function(ev) {
-            ev.preventDefault();
-            // this will prevent triggering the onOpenUrl()
-            // call below.
-            ipcRenderer.send('openlocal-message', ev.target.href);
-        });
 
         tb = document.querySelector('viewer-pdf-toolbar');
-        if (tb) { tb.style.display = 'none'; }
+        if (tb) {
+            tb.style.display = 'none';
+            const nt = '${title}';
+            if (nt) {
+                window.addEventListener('pdf-loaded', () => {
+                    document.title = nt;
+                });
+            }
+        }
+
+        vtb = document.querySelector('video');
+        if (vtb) {
+            vtb.setAttribute('controlsList', 'nodownload');
+        }
     `);
 }
 
@@ -204,7 +239,7 @@ function createWindow() {
         });
         win.loadURL(nurl);
 
-        win.webContents.on('dom-ready', () => onDomReady(win));
+        win.webContents.on('dom-ready', () => onDomReady(win, nurl));
         win.webContents.on('will-navigate', onOpenUrl);
 
         mainWindow.newGuest = win;
