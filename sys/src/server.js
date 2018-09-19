@@ -26,11 +26,11 @@ const reqThrottle = {
 const path = require('path');
 const express = require('express');
 const fs = require('fs');
-const pwsys = require('./password');
 const crypto = require('crypto');
 const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
+const pwsys = require('./password');
 
 let lastmod;
 
@@ -251,11 +251,6 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
 
             input.once('readable', () => unmask(input, bytestart, res, req));
         } else {
-            input.on('end', () => {
-                req.finished = true;
-                res.end();
-            });
-
             // decrypt, no streaming
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
             decipher.on('error', streamError);
