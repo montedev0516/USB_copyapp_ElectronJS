@@ -6,7 +6,7 @@
   "main": "src/encrypt-main.js",
   "scripts": {
     "start": "electron-forge start",
-    "package": "git describe --long > .usbgittag ; electron-forge package",
+    "package": "sh -c 'git describe --long > .usbgittag ; electron-forge package'",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint src --color",
