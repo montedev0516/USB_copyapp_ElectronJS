@@ -136,6 +136,22 @@ function checkDirectoryEmpty(dir, desc) {
     return ok;
 }
 
+function checkDirectoryNotEmpty(dir, desc) {
+    let ok = true;
+
+    if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir);
+
+        if (files.length == 0) {
+            ok = false;
+
+            messageCallback('The ' + desc + ' directory should not be empty', true);
+        }
+    }
+
+    return ok;
+}
+
 function validate(enccfg) {
     const inPath = enccfg.inPath || '';
     const outPath = enccfg.outPath || '';
@@ -150,6 +166,7 @@ function validate(enccfg) {
     ok = ok && validatePath(outPath, inPath, workPath, 'output');
 
     ok = ok && checkDirectoryEmpty(workPath, 'working');
+    ok = ok && checkDirectoryNotEmpty(inPath, 'input');
 
     return ok;
 }
@@ -265,6 +282,54 @@ function chooseFile(inputEl, desc) {
     return chooseFileFn;
 }
 
+function askClearWorkingDir(inputEl, desc) {
+
+    const askClearWorkingDirFn = () => {
+        const choice = dialog.showMessageBox({
+            type: "question",
+            buttons: ['Yes', 'No'],
+            defaultId: 0,
+            title: 'Clear the working dir?',
+            message: 'Do you want to clear the working dir?'
+        });
+
+        if (choice == 0) {  // yes
+            workingPath = $("input[name='workdir']").val();
+
+            if (workingPath) {
+
+                if (clearWorkingDir(workingPath)) {
+
+                    dialog.showMessageBox({
+                        type: "info",
+                        buttons: ['OK'],
+                        title: 'Working dir was cleared',
+                        message: 'The working dir was cleared successfully'
+                    });
+
+                } else {
+                    dialog.showMessageBox({
+                        type: "warning",
+                        buttons: ['OK'],
+                        title: 'Working dir not cleared',
+                        message: 'The working dir was already empty, or it does not exist'
+                    });
+                }
+
+            } else {
+                dialog.showMessageBox({
+                    type: "warning",
+                    buttons: ['OK'],
+                    title: 'Working dir not defined',
+                    message: 'The working dir is not defined yet'
+                });
+            }
+        }
+    };
+
+    return askClearWorkingDirFn;
+}
+
 function loadUI(enccfg) {
     // version
     try {
@@ -317,6 +382,7 @@ function loadUI(enccfg) {
 
     $('#btn-select-indir').on('click', chooseFile('indir', 'input'));
     $('#btn-select-workdir').on('click', chooseFile('workdir', 'working'));
+    $('#btn-clear-workdir').on('click', askClearWorkingDir('workdir', 'working'));
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
 }
 
@@ -359,15 +425,19 @@ function clearWorkingDir(directory) {
             messageCallback('Clearing working dir ...');
 
             clearDir(directory, false);
+
+            return true;
         }
     }
+
+    return false;
 }
 
 function doContinue() {
     setBtnEnabled(false);
 
     if (workingPath) {
-        clearWorkingDir(workingPath);
+        clearWorkingDir(Path);
 
         workingPath = null;
     }
