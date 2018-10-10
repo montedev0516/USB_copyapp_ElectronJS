@@ -152,6 +152,36 @@ function checkDirectoryNotEmpty(dir, desc) {
     return ok;
 }
 
+function isAlphaNumeric(ch) {
+	return ch.match(/^[a-f0-9]+$/i) !== null;
+}
+
+function validateNumber(num, desc) {
+    const value = num.trim().toLowerCase();
+
+    if (value === '') {
+        messageCallback('The ' + desc + ' should not be empty', true);
+        return false;
+    }
+
+    if (value.length > 4) {
+        messageCallback('The ' + desc + ' should not be longer than 4 chars', true);
+        return false;
+    }
+
+    if (!isAlphaNumeric(value)) {
+        messageCallback('The ' + desc + ' should only contain hex chars: letters (a to f) or digits', true);
+        return false;
+    }
+
+    if (value > 'ffff') {
+        messageCallback('The ' + desc + ' should not exceed the value "ffff"', true);
+        return false;
+    }
+
+    return true;
+}
+
 function validate(enccfg) {
     const inPath = enccfg.inPath || '';
     const outPath = enccfg.outPath || '';
@@ -160,6 +190,9 @@ function validate(enccfg) {
     let ok = true;
 
     messageCallback(false);
+
+    ok = ok && validateNumber(enccfg.vid || '', 'VID');
+    ok = ok && validateNumber(enccfg.pid || '', 'PID');
 
     ok = ok && validatePath(inPath, outPath, workPath, 'input');
     ok = ok && validatePath(workPath, inPath, outPath, 'working');
