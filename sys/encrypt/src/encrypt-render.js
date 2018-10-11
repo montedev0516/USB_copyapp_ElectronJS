@@ -318,16 +318,18 @@ function chooseFile(inputEl, desc) {
 function askClearWorkingDir(inputEl, desc) {
 
     const askClearWorkingDirFn = () => {
+
+        workingPath = $("input[name='workdir']").val();
+
         const choice = dialog.showMessageBox({
             type: "question",
             buttons: ['Yes', 'No'],
             defaultId: 0,
             title: 'Clear the working dir?',
-            message: 'Do you want to clear the working dir?'
+            message: 'Are you sure you want to clear the working dir ("' + workingPath + '") ?'
         });
 
         if (choice == 0) {  // yes
-            workingPath = $("input[name='workdir']").val();
 
             if (workingPath) {
 
@@ -450,17 +452,13 @@ function clearDir(directory, removeDir) {
 }
 
 function clearWorkingDir(directory) {
+    
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        const usbJsonFile = path.join(directory, 'usbcopypro.json.lock');
+        messageCallback('Clearing working dir ...');
 
-        // sanity check, if "usbcopypro.json.lock" isn't there then this cannot be the working dir
-        if (fs.existsSync(usbJsonFile)) {
-            messageCallback('Clearing working dir ...');
+        clearDir(directory, false);
 
-            clearDir(directory, false);
-
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -470,7 +468,7 @@ function doContinue() {
     setBtnEnabled(false);
 
     if (workingPath) {
-        clearWorkingDir(Path);
+        clearWorkingDir(workingPath);
 
         workingPath = null;
     }
