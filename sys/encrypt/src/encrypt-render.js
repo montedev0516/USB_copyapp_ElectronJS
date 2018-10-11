@@ -467,12 +467,6 @@ function clearWorkingDir(directory) {
 function doContinue() {
     setBtnEnabled(false);
 
-    if (workingPath) {
-        clearWorkingDir(workingPath);
-
-        workingPath = null;
-    }
-
     setTimeout(() => {
         // clear the output message
         messageCallback(false);
