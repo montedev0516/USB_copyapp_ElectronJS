@@ -80,6 +80,8 @@ function saveUI() {
         enccfg.filematch.push($(els[i]).find('[name="matchrow"]').text());
     }
 
+    enccfg.fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
+
     fs.writeFileSync(
         conffile,
         JSON.stringify(enccfg),
@@ -276,6 +278,11 @@ function doneCallback() {
     toggleButton(true);
 }
 
+function changeFileBrowserEnabled() {
+    const fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
+    $('#displayFileBrowserEnabled').text(fileBrowserEnabled ? 'enabled' : 'disabled');
+}
+
 function runEncrypt() {
     const enccfg = saveUI();
 
@@ -402,6 +409,11 @@ function loadUI(enccfg) {
         enccfg.filematch = [];
     }
 
+    const fileBrowserEnabled = enccfg.hasOwnProperty('fileBrowserEnabled') && enccfg.fileBrowserEnabled === true;
+
+    $('#displayFileBrowserEnabled').text(fileBrowserEnabled ? 'enabled' : 'disabled');
+    $('#fileBrowserEnabled').prop('checked', fileBrowserEnabled);
+
     let masks = '';
     for (let i = 0; i < enccfg.filematch.length; i++) {
         masks += newMaskHTML(enccfg.filematch[i], i);
@@ -409,6 +421,8 @@ function loadUI(enccfg) {
     maskCounter = enccfg.filematch.length;
 
     $('#matchlist').html(masks);
+
+    $('#fileBrowserEnabled').change(changeFileBrowserEnabled);
 
     $('#btn-encrypt')
         .on('click', runEncrypt);
