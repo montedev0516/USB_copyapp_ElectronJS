@@ -22,10 +22,15 @@ exports.makeNewPassword = (serial, firmvers, salt, apikey) => {
 
 exports.makePassword = makePassword;
 
+function zeroPad(value, size) {
+    var s = "0000" + value.trim().toLowerCase();
+    return s.substr(s.length - size);
+}
+
 exports.getSerial = (enccfg, srvcfg) => {
     return [
-        enccfg.vid,
-        enccfg.pid,
+        zeroPad(enccfg.vid, 4),
+        zeroPad(enccfg.pid, 4),
         enccfg.descString1,
         enccfg.descString2,
         enccfg.descString3.substr(0, srvcfg.serialLength)].join(":");

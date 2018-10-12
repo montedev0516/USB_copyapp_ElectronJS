@@ -22,6 +22,9 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
     srvcfg.validVendors = [enccfg.vid];
     // save version
     srvcfg.version = enccfg.version;
+    // save file browser enabled
+    srvcfg.fileBrowserEnabled = enccfg.fileBrowserEnabled;
+
     msgcb('writing config file...');
     fs.writeFileSync(
         path.join(enccfg.outPath, 'usbcopypro.json'),

@@ -80,6 +80,8 @@ function saveUI() {
         enccfg.filematch.push($(els[i]).find('[name="matchrow"]').text());
     }
 
+    enccfg.fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
+
     fs.writeFileSync(
         conffile,
         JSON.stringify(enccfg),
@@ -136,6 +138,52 @@ function checkDirectoryEmpty(dir, desc) {
     return ok;
 }
 
+function checkDirectoryNotEmpty(dir, desc) {
+    let ok = true;
+
+    if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir);
+
+        if (files.length == 0) {
+            ok = false;
+
+            messageCallback('The ' + desc + ' directory should not be empty', true);
+        }
+    }
+
+    return ok;
+}
+
+function isAlphaNumeric(ch) {
+	return ch.match(/^[a-f0-9]+$/i) !== null;
+}
+
+function validateNumber(num, desc) {
+    const value = num.trim().toLowerCase();
+
+    if (value === '') {
+        messageCallback('The ' + desc + ' should not be empty', true);
+        return false;
+    }
+
+    if (value.length > 4) {
+        messageCallback('The ' + desc + ' should not be longer than 4 chars', true);
+        return false;
+    }
+
+    if (!isAlphaNumeric(value)) {
+        messageCallback('The ' + desc + ' should only contain hex chars: letters (a to f) or digits', true);
+        return false;
+    }
+
+    if (value > 'ffff') {
+        messageCallback('The ' + desc + ' should not exceed the value "ffff"', true);
+        return false;
+    }
+
+    return true;
+}
+
 function validate(enccfg) {
     const inPath = enccfg.inPath || '';
     const outPath = enccfg.outPath || '';
@@ -145,11 +193,15 @@ function validate(enccfg) {
 
     messageCallback(false);
 
+    ok = ok && validateNumber(enccfg.vid || '', 'VID');
+    ok = ok && validateNumber(enccfg.pid || '', 'PID');
+
     ok = ok && validatePath(inPath, outPath, workPath, 'input');
     ok = ok && validatePath(workPath, inPath, outPath, 'working');
     ok = ok && validatePath(outPath, inPath, workPath, 'output');
 
     ok = ok && checkDirectoryEmpty(workPath, 'working');
+    ok = ok && checkDirectoryNotEmpty(inPath, 'input');
 
     return ok;
 }
@@ -226,6 +278,11 @@ function doneCallback() {
     toggleButton(true);
 }
 
+function changeFileBrowserEnabled() {
+    const fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
+    $('#displayFileBrowserEnabled').text(fileBrowserEnabled ? 'enabled' : 'disabled');
+}
+
 function runEncrypt() {
     const enccfg = saveUI();
 
@@ -265,6 +322,56 @@ function chooseFile(inputEl, desc) {
     return chooseFileFn;
 }
 
+function askClearWorkingDir(inputEl, desc) {
+
+    const askClearWorkingDirFn = () => {
+
+        workingPath = $("input[name='workdir']").val();
+
+        const choice = dialog.showMessageBox({
+            type: "question",
+            buttons: ['Yes', 'No'],
+            defaultId: 0,
+            title: 'Clear the working dir?',
+            message: 'Are you sure you want to clear the working dir ("' + workingPath + '") ?'
+        });
+
+        if (choice == 0) {  // yes
+
+            if (workingPath) {
+
+                if (clearWorkingDir(workingPath)) {
+
+                    dialog.showMessageBox({
+                        type: "info",
+                        buttons: ['OK'],
+                        title: 'Working dir was cleared',
+                        message: 'The working dir was cleared successfully'
+                    });
+
+                } else {
+                    dialog.showMessageBox({
+                        type: "warning",
+                        buttons: ['OK'],
+                        title: 'Working dir not cleared',
+                        message: 'The working dir was already empty, or it does not exist'
+                    });
+                }
+
+            } else {
+                dialog.showMessageBox({
+                    type: "warning",
+                    buttons: ['OK'],
+                    title: 'Working dir not defined',
+                    message: 'The working dir is not defined yet'
+                });
+            }
+        }
+    };
+
+    return askClearWorkingDirFn;
+}
+
 function loadUI(enccfg) {
     // version
     try {
@@ -302,6 +409,11 @@ function loadUI(enccfg) {
         enccfg.filematch = [];
     }
 
+    const fileBrowserEnabled = enccfg.hasOwnProperty('fileBrowserEnabled') && enccfg.fileBrowserEnabled === true;
+
+    $('#displayFileBrowserEnabled').text(fileBrowserEnabled ? 'enabled' : 'disabled');
+    $('#fileBrowserEnabled').prop('checked', fileBrowserEnabled);
+
     let masks = '';
     for (let i = 0; i < enccfg.filematch.length; i++) {
         masks += newMaskHTML(enccfg.filematch[i], i);
@@ -310,6 +422,8 @@ function loadUI(enccfg) {
 
     $('#matchlist').html(masks);
 
+    $('#fileBrowserEnabled').change(changeFileBrowserEnabled);
+
     $('#btn-encrypt')
         .on('click', runEncrypt);
 
@@ -317,6 +431,7 @@ function loadUI(enccfg) {
 
     $('#btn-select-indir').on('click', chooseFile('indir', 'input'));
     $('#btn-select-workdir').on('click', chooseFile('workdir', 'working'));
+    $('#btn-clear-workdir').on('click', askClearWorkingDir('workdir', 'working'));
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
 }
 
@@ -351,26 +466,20 @@ function clearDir(directory, removeDir) {
 }
 
 function clearWorkingDir(directory) {
+    
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        const usbJsonFile = path.join(directory, 'usbcopypro.json.lock');
+        messageCallback('Clearing working dir ...');
 
-        // sanity check, if "usbcopypro.json.lock" isn't there then this cannot be the working dir
-        if (fs.existsSync(usbJsonFile)) {
-            messageCallback('Clearing working dir ...');
+        clearDir(directory, false);
 
-            clearDir(directory, false);
-        }
+        return true;
     }
+
+    return false;
 }
 
 function doContinue() {
     setBtnEnabled(false);
-
-    if (workingPath) {
-        clearWorkingDir(workingPath);
-
-        workingPath = null;
-    }
 
     setTimeout(() => {
         // clear the output message

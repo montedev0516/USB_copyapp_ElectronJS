@@ -7,16 +7,16 @@
 
 ## Process
 
-1. Prepare 3 directories (`input`, `output` and `shared`), as follows:
+1. Prepare 3 directories (`input`, `working` and `shared`), as follows:
   * Go to the root of the `secure-usb-content` project (that is, the parent directory of the `sys` directory)
-  * Create the 3 directories: `mkdir input; mkdir output; mkdir shared`
+  * Create the 3 directories: `mkdir input; mkdir working; mkdir shared`
   * Copy your `usbcopypro.json` file to the `shared` directory, and to the `input` directory
   * Extract the original, unencrypted content files into the `input` directory; make sure that the `input` directory contains an `index.html` file which loads the content (for instance with a `video` tag); see example below under "Notes".
 2. Run the encryption UI:
 ```
 $(npm bin)/electron ./encrypt/src/encrypt-main.js
 ```
-The UI shows a form where you should enter the directory paths of the `input`, `output` and `shared` directories.
+The UI shows a form where you should enter the directory paths of the `input`, `working` and `shared` directories.
 
 When the encryption is done (this may take a few minutes), the `shared` directory should contain a `content.asar` file, and a bunch of other files (for instance the `usbcopypro.json` file which you've copied in step 1 above).
 
