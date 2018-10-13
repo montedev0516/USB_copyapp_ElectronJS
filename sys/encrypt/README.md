@@ -10,7 +10,6 @@
 1. Prepare 3 directories (`input`, `working` and `shared`), as follows:
   * Go to the root of the `secure-usb-content` project (that is, the parent directory of the `sys` directory)
   * Create the 3 directories: `mkdir input; mkdir working; mkdir shared`
-  * Copy your `usbcopypro.json` file to the `shared` directory, and to the `input` directory
   * Extract the original, unencrypted content files into the `input` directory; make sure that the `input` directory contains an `index.html` file which loads the content (for instance with a `video` tag); see example below under "Notes".
 2. Run the encryption UI:
 ```
@@ -18,7 +17,7 @@ $(npm bin)/electron ./encrypt/src/encrypt-main.js
 ```
 The UI shows a form where you should enter the directory paths of the `input`, `working` and `shared` directories.
 
-When the encryption is done (this may take a few minutes), the `shared` directory should contain a `content.asar` file, and a bunch of other files (for instance the `usbcopypro.json` file which you've copied in step 1 above).
+When the encryption is done (this may take a few minutes), the `shared` directory should contain a `content.asar` file, and a bunch of other files, e.g. `usbcopypro.json`.
 
 You should now be able to successfully run the secure-usb-content app, for instance as follows:
 ```
@@ -28,8 +27,7 @@ npm start
 
 ## Notes
 
-The `input` directory mentioned under "Process" will normally contain at least 3 files (but often more than 3), namely:
-* A `usbcopypro.json` file
+The `input` directory mentioned under "Process" will normally contain at least 2 files (but often more than 2), namely:
 * An `index.html` file (the name should be exactly that) which loads the media/content
 * One or more media files, for instance a video file (mov, mp3 etcetera)
 
