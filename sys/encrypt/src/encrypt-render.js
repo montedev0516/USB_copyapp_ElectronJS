@@ -322,7 +322,7 @@ function chooseFile(inputEl, desc) {
     return chooseFileFn;
 }
 
-function askClearWorkingDir(inputEl, desc) {
+function askClearWorkingDir() {
 
     const askClearWorkingDirFn = () => {
 
@@ -370,6 +370,56 @@ function askClearWorkingDir(inputEl, desc) {
     };
 
     return askClearWorkingDirFn;
+}
+
+function askClearOutputDir() {
+
+    const askClearOutputDirFn = () => {
+
+        var outPath = $("input[name='outdir']").val();
+
+        const choice = dialog.showMessageBox({
+            type: "question",
+            buttons: ['Yes', 'No'],
+            defaultId: 0,
+            title: 'Clear the output dir?',
+            message: 'Are you sure you want to clear the output dir ("' + outPath + '") ?'
+        });
+
+        if (choice == 0) {  // yes
+
+            if (outPath) {
+
+                if (clearOutputDir(outPath)) {
+
+                    dialog.showMessageBox({
+                        type: "info",
+                        buttons: ['OK'],
+                        title: 'Output dir was cleared',
+                        message: 'The output dir was cleared successfully'
+                    });
+
+                } else {
+                    dialog.showMessageBox({
+                        type: "warning",
+                        buttons: ['OK'],
+                        title: 'Output dir not cleared',
+                        message: 'The output dir was already empty, or it does not exist'
+                    });
+                }
+
+            } else {
+                dialog.showMessageBox({
+                    type: "warning",
+                    buttons: ['OK'],
+                    title: 'Output dir not defined',
+                    message: 'The output dir is not defined yet'
+                });
+            }
+        }
+    };
+
+    return askClearOutputDirFn;
 }
 
 function loadUI(enccfg) {
@@ -431,8 +481,9 @@ function loadUI(enccfg) {
 
     $('#btn-select-indir').on('click', chooseFile('indir', 'input'));
     $('#btn-select-workdir').on('click', chooseFile('workdir', 'working'));
-    $('#btn-clear-workdir').on('click', askClearWorkingDir('workdir', 'working'));
+    $('#btn-clear-workdir').on('click', askClearWorkingDir());
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
+    $('#btn-clear-outdir').on('click', askClearOutputDir());
 }
 
 function clearDir(directory, removeDir) {
@@ -444,7 +495,9 @@ function clearDir(directory, removeDir) {
         const fullPath = path.join(directory, file);
         const stats = fs.statSync(fullPath);
 
-        if (stats.isFile()) {
+        // Program a workaround/exception, for the ASAR files, because on some systems (OSX ?) it "thinks" that the
+        // .asar file is a directory ...
+        if (stats.isFile() || file.endsWith('.asar')) {
             fs.unlinkSync(fullPath);
             ok = true;
         } else if (stats.isDirectory()) {
@@ -469,6 +522,19 @@ function clearWorkingDir(directory) {
     
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
         messageCallback('Clearing working dir ...');
+
+        clearDir(directory, false);
+
+        return true;
+    }
+
+    return false;
+}
+
+function clearOutputDir(directory) {
+    
+    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
+        messageCallback('Clearing output dir ...');
 
         clearDir(directory, false);
 
