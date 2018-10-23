@@ -123,6 +123,18 @@ function onDomReady(win, nurl) {
     // Helper function to set the title when using the file browser.
     const title = setTitle(win, nurl);
 
+    // Prevent a "save file" dialog on files that cannot be viewed in the browser - we want to prevent downloading files
+    // See: https://github.com/electron/electron/blob/master/docs/api/session.md#event-will-download
+    // and https://github.com/electron/electron/issues/5024#issuecomment-206050802
+    win.webContents.session.on('will-download', (event, item, webContents) => {
+        // Cancel the download
+        event.preventDefault();
+
+        // Load the "unsupported content" page into the window
+        // https://electronjs.org/docs/api/web-contents#contentsloadurlurl-options
+        webContents.loadFile('src/unsupported-content.html');
+    });
+
     // Standard JS injection.
     // * remove the PDF toolbar to put roadblock against download
     // * provide callback for opening external URLs in
