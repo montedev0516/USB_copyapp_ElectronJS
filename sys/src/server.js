@@ -78,7 +78,7 @@ function startServer() {
 function scanDevices(devices) {
     for (let i = 0; i < devices.length; i++) {
         const device = devices[i];
-        if (cfg.validVendors.includes(device.vendorId.toString(16))) {
+        if (isValidVendor(cfg.validVendors, device.vendorId.toString(16))) {           
             usbcfg = {
                 vid: device.vendorId.toString(16),
                 pid: device.productId.toString(16),
@@ -100,6 +100,26 @@ function scanDevices(devices) {
             break;
         }
     }
+}
+
+function zeroPad(value, size) {
+    var s = "0000" + value.trim().toLowerCase();
+    return s.substr(s.length - size);
+}
+
+function isValidVendor(validVendors, vendorId) {
+    let valid = false;
+    const vid = zeroPad(vendorId, 4);
+
+    for (let i=0; i<validVendors.length; i++) 
+    {
+        if (zeroPad(validVendors[i], 4) === vid) {
+            valid = true;
+            break;
+        }
+    }
+
+    return valid;
 }
 
 function readUSBThenStart() {
