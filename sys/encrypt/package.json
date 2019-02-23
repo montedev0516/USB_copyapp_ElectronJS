@@ -1,7 +1,7 @@
 {
   "name": "usbcopypro-encrypt",
   "productName": "usbcopypro-encrypt",
-  "version": "1.1.2",
+  "version": "1.2.1",
   "description": "USB Copy Pro Encryption Tool",
   "main": "src/encrypt-main.js",
   "scripts": {

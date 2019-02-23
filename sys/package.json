@@ -1,6 +1,6 @@
 {
   "name": "usbcopypro",
-  "version": "1.1.2",
+  "version": "1.2.1",
   "description": "USBCopyPro Content System",
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
