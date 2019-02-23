@@ -232,6 +232,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
             input.pipe(output);
         }
         input.on('end', () => {
+            output.end();
+
             if (isEnc) {
                 if (enccb) enccb(idx + 1, encFiles.length);
             } else if (unenccb) {
