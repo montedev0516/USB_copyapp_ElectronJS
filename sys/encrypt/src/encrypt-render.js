@@ -34,7 +34,7 @@ function newMaskHTML(name, i) {
         name +
         '</span>&nbsp;' +
         '<span class="xbtn" ' +
-              'onclick="ctl.delMask(\\"#matchrow_" + i + "\\")" ' +
+              'onclick=\'ctl.delMask("#matchrow_' + i + '")\' ' +
               'id="delmatch_' + i + '">&times;</span>' +
         '</div>';
 }
