@@ -121,7 +121,14 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
                 enccfg.workPath,
                 outfile,
                 // next step: certificate
-                () => makeCertificate(),
+                (err) => {
+                    if (err) {
+                        msgcb(err, true);
+                    } else {
+                        asar.uncacheAll();
+                        makeCertificate();
+                    }
+                },
             );
         } catch (e) {
             msgcb('Exception!');
