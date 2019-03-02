@@ -28,7 +28,9 @@
     "electron-forge": "^5.2.4",
     "electron-prebuilt-compile": "2.0.4",
     "electron-rebuild": "^1.8.4",
-    "eslint-config-airbnb": "^17.1.0"
+    "eslint": "^5.15.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.16.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
