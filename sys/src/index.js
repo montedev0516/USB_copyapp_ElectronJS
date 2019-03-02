@@ -123,15 +123,21 @@ function onDomReady(win, nurl) {
     // Helper function to set the title when using the file browser.
     const title = setTitle(win, nurl);
 
-    // Prevent a "save file" dialog on files that cannot be viewed in the browser - we want to prevent downloading files
-    // See: https://github.com/electron/electron/blob/master/docs/api/session.md#event-will-download
-    // and https://github.com/electron/electron/issues/5024#issuecomment-206050802
+    // Prevent a "save file" dialog on files that cannot be viewed in
+    // the browser - we want to prevent downloading files
+    // See:
+    // https://github.com/electron/electron/blob/master/docs/api/
+    //                                   session.md#event-will-download
+    // and
+    // https://github.com/electron/electron/issues/5024#issuecomment-206050802
+
     win.webContents.session.on('will-download', (event, item, webContents) => {
         // Cancel the download
         event.preventDefault();
 
         // Load the "unsupported content" page into the window
-        // https://electronjs.org/docs/api/web-contents#contentsloadurlurl-options
+        // https://electronjs.org/docs/api/
+        //                web-contents#contentsloadurlurl-options
         webContents.loadFile('src/unsupported-content.html');
     });
 
@@ -139,6 +145,7 @@ function onDomReady(win, nurl) {
     // * remove the PDF toolbar to put roadblock against download
     // * provide callback for opening external URLs in
     //   the electron browser (insecure), if we have node integration.
+    // * add retry loop for the video, if any
     win.webContents.executeJavaScript(`
         if (typeof(require) === "function") {
             const {ipcRenderer} = require('electron');
@@ -167,6 +174,24 @@ function onDomReady(win, nurl) {
         vtb = document.querySelector('video');
         if (vtb) {
             vtb.setAttribute('controlsList', 'nodownload');
+        }
+
+        let sources = vtb.querySelectorAll('source');
+        if (sources.length !== 0) {
+            let lastSource = sources[sources.length - 1];
+            let retries = 120;
+            lastSource.addEventListener('error', function() {
+                setTimeout( function() {
+                    retries--;
+                    if (retries > 0) {
+                        vtb.appendChild(lastSource);
+                        vtb.load();
+                        vtb.play();
+                    } else {
+                        alert('video cannot be played');
+                    }
+                }, 500);
+            });
         }
     `);
 }
@@ -286,4 +311,3 @@ if (notPrimary) {
 } else {
     app.on('ready', createWindow);
 }
-
