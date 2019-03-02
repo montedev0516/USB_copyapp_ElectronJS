@@ -5,13 +5,13 @@
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {
-    "bluebird": "^3.5.1",
-    "electron-compile": "^6.4.2",
+    "bluebird": "^3.5.3",
+    "electron-compile": "^6.4.4",
     "electron-squirrel-startup": "^1.0.0",
     "express": "^4.16.2",
     "file-browser": "file:../repo/file-browser/file-browser-0.2.3.tgz",
     "jquery": "^3.3.1",
-    "mime-types": "^2.1.18",
+    "mime-types": "^2.1.22",
     "node-gyp": "^3.7.0",
     "on-finished": "^2.3.0",
     "opn": "^5.2.0",
@@ -20,14 +20,15 @@
     "uuid": "^3.2.1"
   },
   "devDependencies": {
-    "asar": "^0.14.2",
+    "asar": "^0.14.6",
     "babel-plugin-transform-async-to-generator": "^6.24.1",
     "babel-preset-env": "^1.6.1",
     "babel-preset-react": "^6.24.1",
     "electron": "^1.8.2",
-    "electron-forge": "^5.2.0",
+    "electron-forge": "^5.2.4",
     "electron-prebuilt-compile": "2.0.4",
-    "electron-rebuild": "^1.8.1"
+    "electron-rebuild": "^1.8.4",
+    "eslint-config-airbnb": "^17.1.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
