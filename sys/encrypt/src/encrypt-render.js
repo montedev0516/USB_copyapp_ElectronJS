@@ -22,6 +22,8 @@ let barHidden = true;
 let workingPath = null;
 let longVersion = '<unknown>';
 
+let ignoreSpaceWarnings = false;
+
 function delMask(elid) {
     $(elid).remove();
 }
@@ -274,8 +276,45 @@ function toggleButton(val) {
     }
 }
 
-function doneCallback() {
+function doneCallback(runAborted) {
     toggleButton(true);
+
+    if (runAborted) {
+        barHidden = true;
+        messageCallback('The run was aborted');
+        $('#progress').hide();
+    }
+}
+
+function checkSpaceCallback(message) {
+
+    // ignore all further space warnings - don't show warning and return true ("continue")
+    if (ignoreSpaceWarnings) {
+        return true;
+    }
+
+    const choice = dialog.showMessageBox({
+        type: "question",
+        buttons: ['Stop', 'Continue', 'Ignore all'],
+        defaultId: 0,
+        title: 'Limited disk space',
+        message: message
+    });
+
+    let ok;
+
+    if (choice == 0) {  // stop
+        ok = false;
+
+    } else if (choice == 1) {   // continue
+        ok = true;
+
+    } else if (choice == 2) {   // ignore all
+        ok = true;
+        ignoreSpaceWarnings = true;
+    }
+
+    return ok;
 }
 
 function changeFileBrowserEnabled() {
@@ -294,11 +333,14 @@ function runEncrypt() {
 
         setTimeout(() => {
             try {
-                encrypt(enccfg, messageCallback, encCallback, unencCallback, doneCallback);
+                // reset "check space ignore warnings" flag for this session
+                ignoreSpaceWarnings = false;
+
+                encrypt(enccfg, messageCallback, encCallback, unencCallback, doneCallback, checkSpaceCallback);
             } catch (e) {
                 messageCallback('Exception!');
                 messageCallback(e, true);
-                doneCallback();
+                doneCallback(false);
             }
         }, 333);
     }
@@ -519,7 +561,7 @@ function clearDir(directory, removeDir) {
 }
 
 function clearWorkingDir(directory) {
-    
+
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
         messageCallback('Clearing working dir ...');
 
@@ -532,7 +574,7 @@ function clearWorkingDir(directory) {
 }
 
 function clearOutputDir(directory) {
-    
+
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
         messageCallback('Clearing output dir ...');
 
