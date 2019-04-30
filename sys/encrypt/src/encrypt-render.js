@@ -21,6 +21,12 @@ const conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
 let barHidden = true;
 let workingPath = null;
 let longVersion = '<unknown>';
+let presets = [{
+    name: 'Foo',
+    vid: '1',
+    pid: '2',
+    serial: '3',
+}];
 
 let ignoreSpaceWarnings = false;
 
@@ -71,6 +77,7 @@ function saveUI() {
         workPath: workingPath,
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
+        presets: presets,
     };
 
     // Always encrypt.
@@ -474,6 +481,14 @@ function loadUI(enccfg) {
     }
 
     $('#version-info').text('Version: ' + longVersion);
+
+    for(let i = 0; i < presets.length; i++) {
+        let el = presets[i];
+        let opt = document.createElement('option');
+        opt.innerHTML=el.name;
+        opt.value=el.name;
+        $('#presets-select')[0].appendChild(opt);
+    }
 
     // backwards compatibility
     if (enccfg.hasOwnProperty('inputPath')) {
