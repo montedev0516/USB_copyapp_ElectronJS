@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const fs = require('fs');
 const pwsys = require('./password');
 const path = require('path');
-const asar = require('asar');
 const { exec } = require('child_process');
 const srvcfg = require('./config.json');
 const stream = require('stream');
@@ -109,6 +108,9 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     }
 
     function makeAsar() {
+        // eslint-disable-next-line global-require
+        const asar = require('asar');
+
         msgcb('writing file size information');
         fs.writeFileSync(
             path.join(enccfg.outPath, 'size.json'),
