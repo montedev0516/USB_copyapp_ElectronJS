@@ -18,6 +18,14 @@ fi
 
 mkdir dist
 
+# note this requires uglify-es@3
+obf=`which uglifyjs`
+
+if [ -z "$obf" ] ; then
+    echo 'ERROR: uglifyjs required' >&2
+    exit 1
+fi
+
 set -x
 : 'Copying source to working directory...'
 cp -r src package* default_app locator.json es6-shim-server.js dist/
@@ -37,9 +45,6 @@ if uname | grep -iq cygwin ; then
         ../../../rebuild-module.sh
     ) || exit
 fi
-
-# note this requires uglify-es@3
-obf=`which uglifyjs`
 
 if [ -n "$obf" ] ; then
     find ./src -name \*.js -exec sh -c '
