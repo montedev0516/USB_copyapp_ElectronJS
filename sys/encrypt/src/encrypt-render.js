@@ -22,13 +22,7 @@ const conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
 let barHidden = true;
 let workingPath = null;
 let longVersion = '<unknown>';
-let presets = [{
-    name: 'Foo',
-    vid: '1',
-    pid: '2',
-    serial: '3',
-}];
-
+let presets;
 let ignoreSpaceWarnings = false;
 
 function delMask(elid) {
@@ -62,7 +56,7 @@ function addNewMask() {
 }
 
 function saveUI() {
-    $('#btn-save-config').innerHTML = 'Saving...';
+    $('#btn-save-config')[0].innerHTML = 'Saving...';
     workingPath = $("input[name='workdir']").val();
 
     const enccfg = {
@@ -97,6 +91,10 @@ function saveUI() {
         conffile,
         JSON.stringify(enccfg),
     );
+
+    setTimeout(() => {
+        $('#btn-save-config')[0].innerHTML = 'Save';
+    }, 300);
 
     return enccfg;
 }
@@ -521,6 +519,34 @@ function askClearOutputDir() {
     return askClearOutputDirFn;
 }
 
+function loadUIParams(enccfg) {
+    $('input[name="vid"]').val(enccfg.vid);
+    $('input[name="pid"]').val(enccfg.pid);
+    $('input[name="serial"]').val(enccfg.descString3);
+}
+
+function restorePreset() {
+    const restorePresetFn = () => {
+        const v = $('#presets-select').val();
+        if (typeof v === 'undefined' || v === '') {
+            return;
+        }
+        const p = presets[v];
+
+        if (typeof p === 'undefined') {
+            return;
+        }
+
+        const enccfg = {};
+        enccfg.vid = p.vid;
+        enccfg.pid = p.pid;
+        enccfg.descString3 = p.descString3;
+
+        loadUIParams(enccfg);
+    };
+    return restorePresetFn;
+}
+
 function loadUI(enccfg) {
     // version
     try {
@@ -532,11 +558,17 @@ function loadUI(enccfg) {
 
     $('#version-info').text('Version: ' + longVersion);
 
-    for (let i = 0; i < presets.length; i++) {
-        let el = presets[i];
-        let opt = document.createElement('option');
-        opt.innerHTML = el.name;
-        opt.value = el.name;
+    if (typeof enccfg.presets === 'undefined') {
+        presets = {};
+    } else {
+        ({ presets } = enccfg);
+    }
+
+    const keys = Object.keys(presets);
+    for (let i = 0; i < keys.length; i++) {
+        const opt = document.createElement('option');
+        opt.innerHTML = keys[i];
+        opt.value = keys[i];
         $('#presets-select')[0].appendChild(opt);
     }
 
@@ -554,9 +586,7 @@ function loadUI(enccfg) {
         enccfg.outPath = enccfg.workingPath;
     }
 
-    $('input[name="vid"]').val(enccfg.vid);
-    $('input[name="pid"]').val(enccfg.pid);
-    $('input[name="serial"]').val(enccfg.descString3);
+    loadUIParams(enccfg);
     $('input[name="indir"]').val(enccfg.inPath);
     $('input[name="outdir"]').val(enccfg.outPath);
     $('input[name="workdir"]').val(enccfg.workPath);
@@ -592,6 +622,7 @@ function loadUI(enccfg) {
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
     $('#btn-clear-outdir').on('click', askClearOutputDir());
     $('#btn-save-config').on('click', () => { saveUI(); });
+    $('#presets-select').on('click', restorePreset());
 }
 
 function doContinue() {
