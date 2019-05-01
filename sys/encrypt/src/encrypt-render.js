@@ -3,6 +3,7 @@
 //
 
 /* global $ */
+/* global document */
 
 const encrypt = require('./encrypt');
 const fs = require('fs');
@@ -61,6 +62,7 @@ function addNewMask() {
 }
 
 function saveUI() {
+    $('#btn-save-config').innerHTML = 'Saving...';
     workingPath = $("input[name='workdir']").val();
 
     const enccfg = {
@@ -77,7 +79,7 @@ function saveUI() {
         workPath: workingPath,
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
-        presets: presets,
+        presets,
     };
 
     // Always encrypt.
@@ -153,7 +155,7 @@ function checkDirectoryNotEmpty(dir, desc) {
     if (fs.existsSync(dir)) {
         const files = fs.readdirSync(dir);
 
-        if (files.length == 0) {
+        if (files.length === 0) {
             ok = false;
 
             messageCallback('The ' + desc + ' directory should not be empty', true);
@@ -164,7 +166,7 @@ function checkDirectoryNotEmpty(dir, desc) {
 }
 
 function isAlphaNumeric(ch) {
-	return ch.match(/^[a-f0-9]+$/i) !== null;
+    return ch.match(/^[a-f0-9]+$/i) !== null;
 }
 
 function validateNumber(num, desc) {
@@ -294,29 +296,26 @@ function doneCallback(runAborted) {
 }
 
 function checkSpaceCallback(message) {
-
     // ignore all further space warnings - don't show warning and return true ("continue")
     if (ignoreSpaceWarnings) {
         return true;
     }
 
     const choice = dialog.showMessageBox({
-        type: "question",
+        type: 'question',
         buttons: ['Stop', 'Continue', 'Ignore all'],
         defaultId: 0,
         title: 'Limited disk space',
-        message: message
+        message,
     });
 
     let ok;
 
-    if (choice == 0) {  // stop
+    if (choice === 0) { // stop
         ok = false;
-
-    } else if (choice == 1) {   // continue
+    } else if (choice === 1) { // continue
         ok = true;
-
-    } else if (choice == 2) {   // ignore all
+    } else if (choice === 2) { // ignore all
         ok = true;
         ignoreSpaceWarnings = true;
     }
@@ -326,7 +325,8 @@ function checkSpaceCallback(message) {
 
 function changeFileBrowserEnabled() {
     const fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
-    $('#displayFileBrowserEnabled').text(fileBrowserEnabled ? 'enabled' : 'disabled');
+    $('#displayFileBrowserEnabled')
+        .text(fileBrowserEnabled ? 'enabled' : 'disabled');
 }
 
 function runEncrypt() {
@@ -343,7 +343,10 @@ function runEncrypt() {
                 // reset "check space ignore warnings" flag for this session
                 ignoreSpaceWarnings = false;
 
-                encrypt(enccfg, messageCallback, encCallback, unencCallback, doneCallback, checkSpaceCallback);
+                encrypt(
+                    enccfg, messageCallback, encCallback,
+                    unencCallback, doneCallback, checkSpaceCallback,
+                );
             } catch (e) {
                 messageCallback('Exception!');
                 messageCallback(e, true);
@@ -371,48 +374,88 @@ function chooseFile(inputEl, desc) {
     return chooseFileFn;
 }
 
+function clearDir(directory, removeDir) {
+    let ok;
+    const files = fs.readdirSync(directory);
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fullPath = path.join(directory, file);
+        const stats = fs.statSync(fullPath);
+
+        // Program a workaround/exception, for the ASAR files, because
+        // on some systems (OSX ?) it "thinks" that the .asar file is
+        // a directory ...
+        if (stats.isFile() || file.endsWith('.asar')) {
+            fs.unlinkSync(fullPath);
+            ok = true;
+        } else if (stats.isDirectory()) {
+            ok = clearDir(fullPath, true);
+        } else {
+            ok = false;
+        }
+
+        if (!ok) {
+            break;
+        }
+    }
+
+    if (ok && removeDir) {
+        fs.rmdirSync(directory);
+    }
+
+    return ok;
+}
+
+function clearWorkingDir(directory) {
+    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
+        messageCallback('Clearing working dir ...');
+
+        clearDir(directory, false);
+
+        return true;
+    }
+
+    return false;
+}
+
 function askClearWorkingDir() {
-
     const askClearWorkingDirFn = () => {
-
         workingPath = $("input[name='workdir']").val();
 
         const choice = dialog.showMessageBox({
-            type: "question",
+            type: 'question',
             buttons: ['Yes', 'No'],
             defaultId: 0,
             title: 'Clear the working dir?',
-            message: 'Are you sure you want to clear the working dir ("' + workingPath + '") ?'
+            message: 'Are you sure you want to clear the working dir ("' +
+                     workingPath + '") ?',
         });
 
-        if (choice == 0) {  // yes
-
+        if (choice === 0) { // yes
             if (workingPath) {
-
                 if (clearWorkingDir(workingPath)) {
-
                     dialog.showMessageBox({
-                        type: "info",
+                        type: 'info',
                         buttons: ['OK'],
                         title: 'Working dir was cleared',
-                        message: 'The working dir was cleared successfully'
+                        message: 'The working dir was cleared successfully',
                     });
-
                 } else {
                     dialog.showMessageBox({
-                        type: "warning",
+                        type: 'warning',
                         buttons: ['OK'],
                         title: 'Working dir not cleared',
-                        message: 'The working dir was already empty, or it does not exist'
+                        message: 'The working dir was already empty, ' +
+                                 'or it does not exist',
                     });
                 }
-
             } else {
                 dialog.showMessageBox({
-                    type: "warning",
+                    type: 'warning',
                     buttons: ['OK'],
                     title: 'Working dir not defined',
-                    message: 'The working dir is not defined yet'
+                    message: 'The working dir is not defined yet',
                 });
             }
         }
@@ -421,48 +464,55 @@ function askClearWorkingDir() {
     return askClearWorkingDirFn;
 }
 
+function clearOutputDir(directory) {
+    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
+        messageCallback('Clearing output dir ...');
+
+        clearDir(directory, false);
+
+        return true;
+    }
+
+    return false;
+}
+
 function askClearOutputDir() {
-
     const askClearOutputDirFn = () => {
-
-        var outPath = $("input[name='outdir']").val();
+        const outPath = $("input[name='outdir']").val();
 
         const choice = dialog.showMessageBox({
-            type: "question",
+            type: 'question',
             buttons: ['Yes', 'No'],
             defaultId: 0,
             title: 'Clear the output dir?',
-            message: 'Are you sure you want to clear the output dir ("' + outPath + '") ?'
+            message: 'Are you sure you want to clear the output dir ("' +
+                     outPath + '") ?',
         });
 
-        if (choice == 0) {  // yes
-
+        if (choice === 0) { // yes
             if (outPath) {
-
                 if (clearOutputDir(outPath)) {
-
                     dialog.showMessageBox({
-                        type: "info",
+                        type: 'info',
                         buttons: ['OK'],
                         title: 'Output dir was cleared',
-                        message: 'The output dir was cleared successfully'
+                        message: 'The output dir was cleared successfully',
                     });
-
                 } else {
                     dialog.showMessageBox({
-                        type: "warning",
+                        type: 'warning',
                         buttons: ['OK'],
                         title: 'Output dir not cleared',
-                        message: 'The output dir was already empty, or it does not exist'
+                        message: 'The output dir was already empty, ' +
+                                 'or it does not exist',
                     });
                 }
-
             } else {
                 dialog.showMessageBox({
-                    type: "warning",
+                    type: 'warning',
                     buttons: ['OK'],
                     title: 'Output dir not defined',
-                    message: 'The output dir is not defined yet'
+                    message: 'The output dir is not defined yet',
                 });
             }
         }
@@ -482,11 +532,11 @@ function loadUI(enccfg) {
 
     $('#version-info').text('Version: ' + longVersion);
 
-    for(let i = 0; i < presets.length; i++) {
+    for (let i = 0; i < presets.length; i++) {
         let el = presets[i];
         let opt = document.createElement('option');
-        opt.innerHTML=el.name;
-        opt.value=el.name;
+        opt.innerHTML = el.name;
+        opt.value = el.name;
         $('#presets-select')[0].appendChild(opt);
     }
 
@@ -541,64 +591,7 @@ function loadUI(enccfg) {
     $('#btn-clear-workdir').on('click', askClearWorkingDir());
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
     $('#btn-clear-outdir').on('click', askClearOutputDir());
-}
-
-function clearDir(directory, removeDir) {
-    let ok;
-    const files = fs.readdirSync(directory);
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fullPath = path.join(directory, file);
-        const stats = fs.statSync(fullPath);
-
-        // Program a workaround/exception, for the ASAR files, because on some systems (OSX ?) it "thinks" that the
-        // .asar file is a directory ...
-        if (stats.isFile() || file.endsWith('.asar')) {
-            fs.unlinkSync(fullPath);
-            ok = true;
-        } else if (stats.isDirectory()) {
-            ok = clearDir(fullPath, true);
-        } else {
-            ok = false;
-        }
-
-        if (!ok) {
-            break;
-        }
-    }
-
-    if (ok && removeDir) {
-        fs.rmdirSync(directory);
-    }
-
-    return ok;
-}
-
-function clearWorkingDir(directory) {
-
-    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        messageCallback('Clearing working dir ...');
-
-        clearDir(directory, false);
-
-        return true;
-    }
-
-    return false;
-}
-
-function clearOutputDir(directory) {
-
-    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        messageCallback('Clearing output dir ...');
-
-        clearDir(directory, false);
-
-        return true;
-    }
-
-    return false;
+    $('#btn-save-config').on('click', () => { saveUI(); });
 }
 
 function doContinue() {
