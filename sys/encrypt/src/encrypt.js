@@ -7,12 +7,13 @@ const asar = require('asar');
 const { exec } = require('child_process');
 const srvcfg = require('./config.json');
 const stream = require('stream');
+const disk = require('diskusage');
 
 const sizes = {};
 
 let bytes;
 
-function main(enccfg, _msgcb, enccb, unenccb, donecb) {
+function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     let msgcb = _msgcb;
     if (!msgcb) msgcb = () => { };
 
@@ -102,7 +103,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
                 msgcb('Certificates generated');
                 msgcb('Finished!');
 
-                if (donecb) donecb();
+                if (donecb) donecb(false);
             }
         });
     }
@@ -136,6 +137,28 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
         }
     }
 
+    function checkSpace(checkSpaceCB, outpath, dirType, spaceRequired, bytesRequired) {
+        let ok = true;
+
+        const dir = path.dirname(outpath);
+
+        try {
+            let info = disk.checkSync(dir);
+
+            if (info.free < bytesRequired) {
+                const message =
+                    'There is less than ' + spaceRequired + ' available in the ' + dirType + ' directory, ' +
+                    'what do you want to do?'
+
+                ok = checkSpaceCB(message);
+            }
+        } catch (err) {
+            console.log(err);
+        }
+
+        return ok;
+    }
+
     function go(idx, serial, vers, secret) {
         let file;
         const isEnc = !(serial.length === 0 &&
@@ -158,6 +181,11 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
 
             if (idx >= unencFiles.length) {
                 if (unenccb) unenccb(idx, unencFiles.length, true);
+
+                if (!checkSpace(checkSpaceCB, enccfg.outPath, 'output', '3gb', 3221225472)) {
+                    if (donecb) donecb(true);
+                    return
+                }
 
                 // package
                 makeAsar();
@@ -183,6 +211,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
             useMask = true;
         }
 
+        let dirType;
+
         // Large files are streamable and are not stored in the asar,
         // which has a hard-limit of 2Gb and seems to allocate
         // the entire file in memory.
@@ -192,13 +222,18 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
                 enccfg.inPath,
                 path.join(enccfg.outPath, 'm'),
             );
+
+            dirType = 'output';
         } else {
             // put encrypted files into working dir for asar creation
             fnout = fnout.replace(enccfg.inPath, enccfg.workPath);
+
+            dirType = 'working';
         }
 
         // recursively create output dir
         const dir = path.dirname(fnout);
+
         function mkdirp(ndir) {
             const ppath = ndir.split(path.sep).slice(0, -1).join(path.sep);
             if (ppath.length !== 0 && !fs.existsSync(ppath)) {
@@ -208,6 +243,11 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb) {
         }
         if (!fs.existsSync(dir)) {
             mkdirp(dir);
+        }
+
+        if (!checkSpace(checkSpaceCB, fnout, dirType, '10mb', 10485760)) {
+            if (donecb) donecb(true);
+            return
         }
 
         const input = fs.createReadStream(file);
