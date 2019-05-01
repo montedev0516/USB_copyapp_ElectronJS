@@ -59,15 +59,24 @@ function saveUI() {
     $('#btn-save-config')[0].innerHTML = 'Saving...';
     workingPath = $("input[name='workdir']").val();
 
+    const pname = $("input[name='save-as']").val();
+    const vid = $("input[name='vid']").val();
+    const pid = $("input[name='pid']").val();
+    const descString3 = $("input[name='serial']").val();
+
+    if (typeof pname !== 'undefined' && pname.trim().length !== 0) {
+        presets[pname.trim()] = { vid, pid, descString3 };
+    }
+
     const enccfg = {
-        vid: $("input[name='vid']").val(),
-        pid: $("input[name='pid']").val(),
+        vid,
+        pid,
         mfg: 0, // unused
         prod: 0, // unused
         serial: 0, // unused
         descString1: '', // unused
         descString2: '', // unused
-        descString3: $("input[name='serial']").val(),
+        descString3,
         inPath: $("input[name='indir']").val(),
         outPath: $("input[name='outdir']").val(),
         workPath: workingPath,
@@ -543,6 +552,7 @@ function restorePreset() {
         enccfg.descString3 = p.descString3;
 
         loadUIParams(enccfg);
+        $("input[name='save-as']").val(v);
     };
     return restorePresetFn;
 }
@@ -565,11 +575,18 @@ function loadUI(enccfg) {
     }
 
     const keys = Object.keys(presets);
+    const jqselect = $('#presets-select');
+    jqselect.empty();
+    jqselect.append('<option value="">Presets...</option>');
     for (let i = 0; i < keys.length; i++) {
-        const opt = document.createElement('option');
-        opt.innerHTML = keys[i];
-        opt.value = keys[i];
-        $('#presets-select')[0].appendChild(opt);
+        if (keys[i].trim().length === 0) {
+            delete presets[keys[i]];
+        } else {
+            const opt = document.createElement('option');
+            opt.innerHTML = keys[i];
+            opt.value = keys[i];
+            jqselect[0].appendChild(opt);
+        }
     }
 
     // backwards compatibility
@@ -621,7 +638,10 @@ function loadUI(enccfg) {
     $('#btn-clear-workdir').on('click', askClearWorkingDir());
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
     $('#btn-clear-outdir').on('click', askClearOutputDir());
-    $('#btn-save-config').on('click', () => { saveUI(); });
+    $('#btn-save-config').on('click', () => {
+        const cfg = saveUI();
+        loadUI(cfg);
+    });
     $('#presets-select').on('click', restorePreset());
 }
 
