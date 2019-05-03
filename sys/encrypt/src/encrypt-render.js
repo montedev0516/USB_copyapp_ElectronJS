@@ -642,7 +642,7 @@ function loadUI(enccfg) {
         const cfg = saveUI();
         loadUI(cfg);
     });
-    $('#presets-select').on('click', restorePreset());
+    $('#presets-select').on('change', restorePreset());
 }
 
 function doContinue() {
