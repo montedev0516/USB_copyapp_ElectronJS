@@ -3,6 +3,7 @@
 //
 
 /* global $ */
+/* global document */
 
 const encrypt = require('./encrypt');
 const fs = require('fs');
@@ -21,7 +22,7 @@ const conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
 let barHidden = true;
 let workingPath = null;
 let longVersion = '<unknown>';
-
+let presets;
 let ignoreSpaceWarnings = false;
 
 function delMask(elid) {
@@ -55,22 +56,33 @@ function addNewMask() {
 }
 
 function saveUI() {
+    $('#btn-save-config')[0].innerHTML = 'Saving...';
     workingPath = $("input[name='workdir']").val();
 
+    const pname = $("input[name='save-as']").val();
+    const vid = $("input[name='vid']").val();
+    const pid = $("input[name='pid']").val();
+    const descString3 = $("input[name='serial']").val();
+
+    if (typeof pname !== 'undefined' && pname.trim().length !== 0) {
+        presets[pname.trim()] = { vid, pid, descString3 };
+    }
+
     const enccfg = {
-        vid: $("input[name='vid']").val(),
-        pid: $("input[name='pid']").val(),
+        vid,
+        pid,
         mfg: 0, // unused
         prod: 0, // unused
         serial: 0, // unused
         descString1: '', // unused
         descString2: '', // unused
-        descString3: $("input[name='serial']").val(),
+        descString3,
         inPath: $("input[name='indir']").val(),
         outPath: $("input[name='outdir']").val(),
         workPath: workingPath,
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
+        presets,
     };
 
     // Always encrypt.
@@ -88,6 +100,10 @@ function saveUI() {
         conffile,
         JSON.stringify(enccfg),
     );
+
+    setTimeout(() => {
+        $('#btn-save-config')[0].innerHTML = 'Save';
+    }, 300);
 
     return enccfg;
 }
@@ -146,7 +162,7 @@ function checkDirectoryNotEmpty(dir, desc) {
     if (fs.existsSync(dir)) {
         const files = fs.readdirSync(dir);
 
-        if (files.length == 0) {
+        if (files.length === 0) {
             ok = false;
 
             messageCallback('The ' + desc + ' directory should not be empty', true);
@@ -157,7 +173,7 @@ function checkDirectoryNotEmpty(dir, desc) {
 }
 
 function isAlphaNumeric(ch) {
-	return ch.match(/^[a-f0-9]+$/i) !== null;
+    return ch.match(/^[a-f0-9]+$/i) !== null;
 }
 
 function validateNumber(num, desc) {
@@ -287,29 +303,26 @@ function doneCallback(runAborted) {
 }
 
 function checkSpaceCallback(message) {
-
     // ignore all further space warnings - don't show warning and return true ("continue")
     if (ignoreSpaceWarnings) {
         return true;
     }
 
     const choice = dialog.showMessageBox({
-        type: "question",
+        type: 'question',
         buttons: ['Stop', 'Continue', 'Ignore all'],
         defaultId: 0,
         title: 'Limited disk space',
-        message: message
+        message,
     });
 
     let ok;
 
-    if (choice == 0) {  // stop
+    if (choice === 0) { // stop
         ok = false;
-
-    } else if (choice == 1) {   // continue
+    } else if (choice === 1) { // continue
         ok = true;
-
-    } else if (choice == 2) {   // ignore all
+    } else if (choice === 2) { // ignore all
         ok = true;
         ignoreSpaceWarnings = true;
     }
@@ -319,7 +332,8 @@ function checkSpaceCallback(message) {
 
 function changeFileBrowserEnabled() {
     const fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
-    $('#displayFileBrowserEnabled').text(fileBrowserEnabled ? 'enabled' : 'disabled');
+    $('#displayFileBrowserEnabled')
+        .text(fileBrowserEnabled ? 'enabled' : 'disabled');
 }
 
 function runEncrypt() {
@@ -336,7 +350,10 @@ function runEncrypt() {
                 // reset "check space ignore warnings" flag for this session
                 ignoreSpaceWarnings = false;
 
-                encrypt(enccfg, messageCallback, encCallback, unencCallback, doneCallback, checkSpaceCallback);
+                encrypt(
+                    enccfg, messageCallback, encCallback,
+                    unencCallback, doneCallback, checkSpaceCallback,
+                );
             } catch (e) {
                 messageCallback('Exception!');
                 messageCallback(e, true);
@@ -364,48 +381,88 @@ function chooseFile(inputEl, desc) {
     return chooseFileFn;
 }
 
+function clearDir(directory, removeDir) {
+    let ok;
+    const files = fs.readdirSync(directory);
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fullPath = path.join(directory, file);
+        const stats = fs.statSync(fullPath);
+
+        // Program a workaround/exception, for the ASAR files, because
+        // on some systems (OSX ?) it "thinks" that the .asar file is
+        // a directory ...
+        if (stats.isFile() || file.endsWith('.asar')) {
+            fs.unlinkSync(fullPath);
+            ok = true;
+        } else if (stats.isDirectory()) {
+            ok = clearDir(fullPath, true);
+        } else {
+            ok = false;
+        }
+
+        if (!ok) {
+            break;
+        }
+    }
+
+    if (ok && removeDir) {
+        fs.rmdirSync(directory);
+    }
+
+    return ok;
+}
+
+function clearWorkingDir(directory) {
+    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
+        messageCallback('Clearing working dir ...');
+
+        clearDir(directory, false);
+
+        return true;
+    }
+
+    return false;
+}
+
 function askClearWorkingDir() {
-
     const askClearWorkingDirFn = () => {
-
         workingPath = $("input[name='workdir']").val();
 
         const choice = dialog.showMessageBox({
-            type: "question",
+            type: 'question',
             buttons: ['Yes', 'No'],
             defaultId: 0,
             title: 'Clear the working dir?',
-            message: 'Are you sure you want to clear the working dir ("' + workingPath + '") ?'
+            message: 'Are you sure you want to clear the working dir ("' +
+                     workingPath + '") ?',
         });
 
-        if (choice == 0) {  // yes
-
+        if (choice === 0) { // yes
             if (workingPath) {
-
                 if (clearWorkingDir(workingPath)) {
-
                     dialog.showMessageBox({
-                        type: "info",
+                        type: 'info',
                         buttons: ['OK'],
                         title: 'Working dir was cleared',
-                        message: 'The working dir was cleared successfully'
+                        message: 'The working dir was cleared successfully',
                     });
-
                 } else {
                     dialog.showMessageBox({
-                        type: "warning",
+                        type: 'warning',
                         buttons: ['OK'],
                         title: 'Working dir not cleared',
-                        message: 'The working dir was already empty, or it does not exist'
+                        message: 'The working dir was already empty, ' +
+                                 'or it does not exist',
                     });
                 }
-
             } else {
                 dialog.showMessageBox({
-                    type: "warning",
+                    type: 'warning',
                     buttons: ['OK'],
                     title: 'Working dir not defined',
-                    message: 'The working dir is not defined yet'
+                    message: 'The working dir is not defined yet',
                 });
             }
         }
@@ -414,54 +471,90 @@ function askClearWorkingDir() {
     return askClearWorkingDirFn;
 }
 
+function clearOutputDir(directory) {
+    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
+        messageCallback('Clearing output dir ...');
+
+        clearDir(directory, false);
+
+        return true;
+    }
+
+    return false;
+}
+
 function askClearOutputDir() {
-
     const askClearOutputDirFn = () => {
-
-        var outPath = $("input[name='outdir']").val();
+        const outPath = $("input[name='outdir']").val();
 
         const choice = dialog.showMessageBox({
-            type: "question",
+            type: 'question',
             buttons: ['Yes', 'No'],
             defaultId: 0,
             title: 'Clear the output dir?',
-            message: 'Are you sure you want to clear the output dir ("' + outPath + '") ?'
+            message: 'Are you sure you want to clear the output dir ("' +
+                     outPath + '") ?',
         });
 
-        if (choice == 0) {  // yes
-
+        if (choice === 0) { // yes
             if (outPath) {
-
                 if (clearOutputDir(outPath)) {
-
                     dialog.showMessageBox({
-                        type: "info",
+                        type: 'info',
                         buttons: ['OK'],
                         title: 'Output dir was cleared',
-                        message: 'The output dir was cleared successfully'
+                        message: 'The output dir was cleared successfully',
                     });
-
                 } else {
                     dialog.showMessageBox({
-                        type: "warning",
+                        type: 'warning',
                         buttons: ['OK'],
                         title: 'Output dir not cleared',
-                        message: 'The output dir was already empty, or it does not exist'
+                        message: 'The output dir was already empty, ' +
+                                 'or it does not exist',
                     });
                 }
-
             } else {
                 dialog.showMessageBox({
-                    type: "warning",
+                    type: 'warning',
                     buttons: ['OK'],
                     title: 'Output dir not defined',
-                    message: 'The output dir is not defined yet'
+                    message: 'The output dir is not defined yet',
                 });
             }
         }
     };
 
     return askClearOutputDirFn;
+}
+
+function loadUIParams(enccfg) {
+    $('input[name="vid"]').val(enccfg.vid);
+    $('input[name="pid"]').val(enccfg.pid);
+    $('input[name="serial"]').val(enccfg.descString3);
+}
+
+function restorePreset() {
+    const restorePresetFn = () => {
+        const v = $('#presets-select').val();
+        if (typeof v === 'undefined' || v === '') {
+            return;
+        }
+        const p = presets[v];
+
+        if (typeof p === 'undefined') {
+            return;
+        }
+
+        const enccfg = {};
+        enccfg.vid = p.vid;
+        enccfg.pid = p.pid;
+        enccfg.descString3 = p.descString3;
+
+        loadUIParams(enccfg);
+        $("input[name='save-as']").val(v);
+    };
+    return restorePresetFn;
 }
 
 function loadUI(enccfg) {
@@ -474,6 +567,27 @@ function loadUI(enccfg) {
     }
 
     $('#version-info').text('Version: ' + longVersion);
+
+    if (typeof enccfg.presets === 'undefined') {
+        presets = {};
+    } else {
+        ({ presets } = enccfg);
+    }
+
+    const keys = Object.keys(presets);
+    const jqselect = $('#presets-select');
+    jqselect.empty();
+    jqselect.append('<option value="">Presets...</option>');
+    for (let i = 0; i < keys.length; i++) {
+        if (keys[i].trim().length === 0) {
+            delete presets[keys[i]];
+        } else {
+            const opt = document.createElement('option');
+            opt.innerHTML = keys[i];
+            opt.value = keys[i];
+            jqselect[0].appendChild(opt);
+        }
+    }
 
     // backwards compatibility
     if (enccfg.hasOwnProperty('inputPath')) {
@@ -489,9 +603,7 @@ function loadUI(enccfg) {
         enccfg.outPath = enccfg.workingPath;
     }
 
-    $('input[name="vid"]').val(enccfg.vid);
-    $('input[name="pid"]').val(enccfg.pid);
-    $('input[name="serial"]').val(enccfg.descString3);
+    loadUIParams(enccfg);
     $('input[name="indir"]').val(enccfg.inPath);
     $('input[name="outdir"]').val(enccfg.outPath);
     $('input[name="workdir"]').val(enccfg.workPath);
@@ -526,64 +638,11 @@ function loadUI(enccfg) {
     $('#btn-clear-workdir').on('click', askClearWorkingDir());
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
     $('#btn-clear-outdir').on('click', askClearOutputDir());
-}
-
-function clearDir(directory, removeDir) {
-    let ok;
-    const files = fs.readdirSync(directory);
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fullPath = path.join(directory, file);
-        const stats = fs.statSync(fullPath);
-
-        // Program a workaround/exception, for the ASAR files, because on some systems (OSX ?) it "thinks" that the
-        // .asar file is a directory ...
-        if (stats.isFile() || file.endsWith('.asar')) {
-            fs.unlinkSync(fullPath);
-            ok = true;
-        } else if (stats.isDirectory()) {
-            ok = clearDir(fullPath, true);
-        } else {
-            ok = false;
-        }
-
-        if (!ok) {
-            break;
-        }
-    }
-
-    if (ok && removeDir) {
-        fs.rmdirSync(directory);
-    }
-
-    return ok;
-}
-
-function clearWorkingDir(directory) {
-
-    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        messageCallback('Clearing working dir ...');
-
-        clearDir(directory, false);
-
-        return true;
-    }
-
-    return false;
-}
-
-function clearOutputDir(directory) {
-
-    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        messageCallback('Clearing output dir ...');
-
-        clearDir(directory, false);
-
-        return true;
-    }
-
-    return false;
+    $('#btn-save-config').on('click', () => {
+        const cfg = saveUI();
+        loadUI(cfg);
+    });
+    $('#presets-select').on('change', restorePreset());
 }
 
 function doContinue() {
