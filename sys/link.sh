@@ -1,6 +1,6 @@
 #!/bin/sh
 
-OS=`/bin/uname -s`
+OS=`uname -s`
 
 if [ $OS = "Linux" ] ; then
     link=node_modules/usb-detection.linux
