@@ -6,7 +6,7 @@
 
 set -e
 
-SYSNAME=usbcopypro
+SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
 
 cd `dirname $0` || exit
 _pwd=`pwd`
@@ -89,18 +89,18 @@ find ./resources/app/src -type f -exec sh -c 'echo -n > {}' \;
 find . -iname \*.md -delete
 
 if [ $suffix = darwin ] ; then
-    mv resources ../..
+    mv Resources ../../../resources
     mkdir resources
-    mv ../../resources/electron.asar ../../resources/*.lproj ../../resources/*.icns ./resources
-    mv ../../resources/app/default_app.asar ./resources
+    mv ../../../resources/electron.asar ../../../resources/*.lproj ../../../resources/*.icns ./resources
+    mv ../../../resources/app/default_app.asar ./resources
+    cd ../../../resources
 else
     mv resources ..
     mkdir resources
     mv ../resources/electron.asar ./resources
     mv ../resources/app/default_app.asar ./resources
     cd ../resources
-    mv ./app/locator.json .
-    asar p app app.asar
-    rm -r app
 fi
-
+mv ./app/locator.json .
+asar p app app.asar
+rm -r app

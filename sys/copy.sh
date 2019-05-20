@@ -10,11 +10,18 @@ rm -rf app/* drive/*
 
 [ ! -d app ] && mkdir app
 
-app="resources/app.asar"
 if [ `uname -s` = "Linux" ] ; then
     drive="usbcopypro-linux-x64"
+    app="resources/app.asar"
 elif [ `uname -s` = "CYGWIN_NT-6.1" ] ; then
     drive="usbcopypro-win32-ia32"
+    app="resources/app.asar"
+elif [ `uname -s` = "Darwin" ] ; then
+    drive="usbcopypro-darwin-x64"
+    app="resources/app.asar"
+else
+    echo ERROR: unknown system `uname -s`
+    exit 1
 fi
 
 mkdir app/sys
@@ -28,8 +35,6 @@ cp -v resources/locator.json ../../../drive/
 if [ -n "$drive" ] ; then
     mkdir ../../../drive/sys
     cp -r $drive ../../../drive/sys/
-
-    # OSX is manual
 fi
 
 popd
