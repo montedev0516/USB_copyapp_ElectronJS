@@ -4,6 +4,8 @@
 # run package.sh first
 #
 
+SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
+
 cd `dirname $0`/..
 
 rm -rf app/* drive/*
@@ -11,13 +13,13 @@ rm -rf app/* drive/*
 [ ! -d app ] && mkdir app
 
 if [ `uname -s` = "Linux" ] ; then
-    drive="usbcopypro-linux-x64"
+    drive="${SYSNAME}-linux-x64"
     app="resources/app.asar"
 elif [ `uname -s` = "CYGWIN_NT-6.1" ] ; then
-    drive="usbcopypro-win32-ia32"
+    drive="${SYSNAME}-win32-ia32"
     app="resources/app.asar"
 elif [ `uname -s` = "Darwin" ] ; then
-    drive="usbcopypro-darwin-x64"
+    drive="${SYSNAME}-darwin-x64"
     app="resources/app.asar"
 else
     echo ERROR: unknown system `uname -s`
