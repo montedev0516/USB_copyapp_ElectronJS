@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const fs = require('fs');
 const pwsys = require('./password');
 const path = require('path');
-const asar = require('asar');
 const { exec } = require('child_process');
 const srvcfg = require('./config.json');
 const stream = require('stream');
@@ -109,6 +108,9 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     }
 
     function makeAsar() {
+        // eslint-disable-next-line global-require
+        const asar = require('asar');
+
         msgcb('writing file size information');
         fs.writeFileSync(
             path.join(enccfg.outPath, 'size.json'),
@@ -137,23 +139,26 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         }
     }
 
-    function checkSpace(checkSpaceCB, outpath, dirType, spaceRequired, bytesRequired) {
+    function checkSpace(checkSpaceCB2, outpath, dirType, spaceRequired, bytesRequired) {
         let ok = true;
 
         const dir = path.dirname(outpath);
 
         try {
-            let info = disk.checkSync(dir);
+            const info = disk.checkSync(dir);
 
             if (info.free < bytesRequired) {
                 const message =
-                    'There is less than ' + spaceRequired + ' available in the ' + dirType + ' directory, ' +
-                    'what do you want to do?'
+                    'There is less than ' + spaceRequired +
+                    ' available in the ' + dirType +
+                    ' directory, ' +
+                    'what do you want to do?';
 
-                ok = checkSpaceCB(message);
+                ok = checkSpaceCB2(message);
             }
         } catch (err) {
-            console.log(err);
+            msgcb('Exception!');
+            msgcb(err, true);
         }
 
         return ok;
@@ -184,7 +189,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
                 if (!checkSpace(checkSpaceCB, enccfg.outPath, 'output', '3gb', 3221225472)) {
                     if (donecb) donecb(true);
-                    return
+                    return;
                 }
 
                 // package
@@ -247,7 +252,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
         if (!checkSpace(checkSpaceCB, fnout, dirType, '10mb', 10485760)) {
             if (donecb) donecb(true);
-            return
+            return;
         }
 
         const input = fs.createReadStream(file);
