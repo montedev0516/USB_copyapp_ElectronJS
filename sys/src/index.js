@@ -179,7 +179,7 @@ function onDomReady(win, nurl) {
         let sources = vtb.querySelectorAll('source');
         if (sources.length !== 0) {
             let lastSource = sources[sources.length - 1];
-            let retries = 120;
+            let retries = 20;
             lastSource.addEventListener('error', function() {
                 setTimeout( function() {
                     retries--;
@@ -190,7 +190,7 @@ function onDomReady(win, nurl) {
                     } else {
                         alert('video cannot be played');
                     }
-                }, 500);
+                }, 2000);
             });
         }
     `);
