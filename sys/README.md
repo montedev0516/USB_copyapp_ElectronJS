@@ -73,6 +73,12 @@ rm -f package-lock.json && \
 ```bash
 npm install
 ```
+
+Link the platform-dependent modules:
+```bash
+./link.sh
+```
+
 NOTE: at this point, you can start the development version of the system by
 using `npm start`.  Note that paths in `locator.json` need to be set correctly
 in order for the system to execute.
