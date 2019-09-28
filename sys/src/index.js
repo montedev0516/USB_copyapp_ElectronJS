@@ -172,12 +172,11 @@ function onDomReady(win, nurl) {
         }
 
         vtb = document.querySelector('video');
-
+        let sources = [];
         if (vtb) {
             vtb.setAttribute('controlsList', 'nodownload');
+            sources = vtb.querySelectorAll('source');
         }
-
-        let sources = vtb ? vtb.querySelectorAll('source') : [];
 
         if (sources.length !== 0) {
             let lastSource = sources[sources.length - 1];
