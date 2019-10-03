@@ -382,9 +382,10 @@ function chooseFile(inputEl, desc) {
 }
 
 function clearDir(directory, removeDir) {
-    let ok;
+    let ok = false;
     try {
         const files = fs.readdirSync(directory);
+        ok = (files.length == 0);
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
