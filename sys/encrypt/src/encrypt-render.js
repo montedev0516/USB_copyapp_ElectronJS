@@ -6,7 +6,7 @@
 /* global document */
 
 const encrypt = require('./encrypt');
-const fs = require('fs');
+const fs = require('original-fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');

@@ -1,6 +1,6 @@
 
 const crypto = require('crypto');
-const fs = require('fs');
+const fs = require('original-fs');
 const pwsys = require('./password');
 const path = require('path');
 const { exec } = require('child_process');
