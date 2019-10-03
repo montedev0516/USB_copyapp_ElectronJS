@@ -383,32 +383,37 @@ function chooseFile(inputEl, desc) {
 
 function clearDir(directory, removeDir) {
     let ok;
-    const files = fs.readdirSync(directory);
+    try {
+        const files = fs.readdirSync(directory);
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fullPath = path.join(directory, file);
-        const stats = fs.statSync(fullPath);
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fullPath = path.join(directory, file);
+            const stats = fs.statSync(fullPath);
 
-        // Program a workaround/exception, for the ASAR files, because
-        // on some systems (OSX ?) it "thinks" that the .asar file is
-        // a directory ...
-        if (stats.isFile() || file.endsWith('.asar')) {
-            fs.unlinkSync(fullPath);
-            ok = true;
-        } else if (stats.isDirectory()) {
-            ok = clearDir(fullPath, true);
-        } else {
-            ok = false;
+            // Program a workaround/exception, for the ASAR files, because
+            // on some systems (OSX ?) it "thinks" that the .asar file is
+            // a directory ...
+            if (stats.isFile() || file.endsWith('.asar')) {
+                fs.unlinkSync(fullPath);
+                ok = true;
+            } else if (stats.isDirectory()) {
+                ok = clearDir(fullPath, true);
+            } else {
+                ok = false;
+            }
+
+            if (!ok) {
+                break;
+            }
         }
 
-        if (!ok) {
-            break;
+        if (ok && removeDir) {
+            fs.rmdirSync(directory);
         }
-    }
-
-    if (ok && removeDir) {
-        fs.rmdirSync(directory);
+    } catch (e) {
+        messageCallback(e, true);
+        ok = false;
     }
 
     return ok;
@@ -418,9 +423,7 @@ function clearWorkingDir(directory) {
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
         messageCallback('Clearing working dir ...');
 
-        clearDir(directory, false);
-
-        return true;
+        return clearDir(directory, false);
     }
 
     return false;
@@ -475,9 +478,7 @@ function clearOutputDir(directory) {
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
         messageCallback('Clearing output dir ...');
 
-        clearDir(directory, false);
-
-        return true;
+        return clearDir(directory, false);
     }
 
     return false;
@@ -510,8 +511,7 @@ function askClearOutputDir() {
                         type: 'warning',
                         buttons: ['OK'],
                         title: 'Output dir not cleared',
-                        message: 'The output dir was already empty, ' +
-                                 'or it does not exist',
+                        message: 'Failed to clear output dir'
                     });
                 }
             } else {
