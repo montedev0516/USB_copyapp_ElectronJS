@@ -385,7 +385,7 @@ function clearDir(directory, removeDir) {
     let ok = false;
     try {
         const files = fs.readdirSync(directory);
-        ok = (files.length == 0);
+        ok = (files.length === 0);
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -512,7 +512,7 @@ function askClearOutputDir() {
                         type: 'warning',
                         buttons: ['OK'],
                         title: 'Output dir not cleared',
-                        message: 'Failed to clear output dir'
+                        message: 'Failed to clear output dir',
                     });
                 }
             } else {

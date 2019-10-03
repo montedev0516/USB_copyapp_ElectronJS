@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
+/* eslint-disable no-console, global-require, import/no-dynamic-require */
+
 const encrypt = require('./encrypt');
+
+let enccfg;
 
 if (process.argv[2] === '-h' || process.argv[2] === '--help') {
     console.error('Usage: ' + process.argv[1] + '[--config file.json]');
@@ -8,7 +12,6 @@ if (process.argv[2] === '-h' || process.argv[2] === '--help') {
     process.exit(0);
 }
 
-var enccfg;
 if (process.argv[2] === '--config') {
     enccfg = require(process.argv[3]);
 } else {
