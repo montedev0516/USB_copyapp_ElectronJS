@@ -118,6 +118,12 @@ function scanDevices(devices) {
             startServer();
             devmon = device;
 
+            usb.on('remove:' + device.vendorId + ':' + device.productId, () => {
+                console.log('closed');
+                exports.keepAlive = false;
+            });
+
+
             break;
         }
     }
