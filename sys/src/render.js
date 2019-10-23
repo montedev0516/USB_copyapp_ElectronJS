@@ -23,7 +23,7 @@ function checkLoad(cfg, retry) {
     }).fail(function(jqXHR, textStatus, err) {
         console.log('Error reading status, retry ' + retry);
         if (retry > 0) {
-            setTimeout(() => {checkLoad(cfg, retry - 1)}, 333);
+            setTimeout(() => {checkLoad(cfg, retry - 1)}, 500);
         } else {
             loadStat(locked);
         }
@@ -60,5 +60,5 @@ $(function(){
 
     $.ajax({ accepts: "application/json" });
 
-    setTimeout(() => {checkLoad(cfg, 10)}, 150);
+    setTimeout(() => {checkLoad(cfg, 15)}, 150);
 });

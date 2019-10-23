@@ -33,6 +33,7 @@ const https = require('https');
 const pwsys = require('./password');
 
 let lastmod;
+let devmon;
 
 let usb; // not cross platform
 if (os.platform() === 'linux') {
@@ -75,10 +76,29 @@ function startServer() {
     });
 }
 
+function zeroPad(value, size) {
+    const s = '0000' + value.trim().toLowerCase();
+    return s.substr(s.length - size);
+}
+
+function isValidVendor(validVendors, vendorId) {
+    let valid = false;
+    const vid = zeroPad(vendorId, 4);
+
+    for (let i = 0; i < validVendors.length; i++) {
+        if (zeroPad(validVendors[i], 4) === vid) {
+            valid = true;
+            break;
+        }
+    }
+
+    return valid;
+}
+
 function scanDevices(devices) {
     for (let i = 0; i < devices.length; i++) {
         const device = devices[i];
-        if (isValidVendor(cfg.validVendors, device.vendorId.toString(16))) {           
+        if (isValidVendor(cfg.validVendors, device.vendorId.toString(16))) {
             usbcfg = {
                 vid: device.vendorId.toString(16),
                 pid: device.productId.toString(16),
@@ -96,33 +116,15 @@ function scanDevices(devices) {
             // console.log('vers   : ' + firmVers);
 
             startServer();
+            devmon = device;
 
             break;
         }
     }
-}
-
-function zeroPad(value, size) {
-    var s = "0000" + value.trim().toLowerCase();
-    return s.substr(s.length - size);
-}
-
-function isValidVendor(validVendors, vendorId) {
-    let valid = false;
-    const vid = zeroPad(vendorId, 4);
-
-    for (let i=0; i<validVendors.length; i++) 
-    {
-        if (zeroPad(validVendors[i], 4) === vid) {
-            valid = true;
-            break;
-        }
-    }
-
-    return valid;
 }
 
 function readUSBThenStart() {
+    usb.startMonitoring();
     return usb.find().then(devices => scanDevices(devices));
 }
 exports.readUSBThenStart = readUSBThenStart;
@@ -505,10 +507,28 @@ function lockSession(uuid, agent) {
 }
 exports.lockSession = lockSession;
 
-// try and keep the server from dying of boredom
-function keepAlive() {
-    if (exports.keepAlive) {
-        setTimeout(() => keepAlive(), 333);
+function checkUSB() {
+    if (devmon !== undefined) {
+        usb.find(devmon.vendorId, devmon.productId, (err, devs) => {
+            if (devs.length <= 0) {
+                // console.log('USB device removed, exiting');
+                exports.keepAlive = false;
+            }
+        });
     }
 }
-keepAlive();
+
+// Make sure that the USB device remains plugged in
+// as long as the server is alive.
+function keepAliveProc() {
+    if (exports.keepAlive) {
+        setTimeout(() => {
+            checkUSB();
+            keepAliveProc();
+        }, 750);
+    } else if (typeof usb !== 'undefined') {
+        usb.stopMonitoring();
+        process.exit(0);
+    }
+}
+keepAliveProc();
