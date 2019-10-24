@@ -3,7 +3,7 @@
 const crypto = require('crypto');
 
 function makePassword(serial, firmvers, salt, apikey, bytes) {
-    const s = new Buffer(serial + firmvers + salt + apikey);
+    const s = Buffer.from(serial + firmvers + salt + apikey);
     const res = [];
     let j = 0;
     for (let i = 0; i < bytes.length; i++) {
@@ -14,11 +14,11 @@ function makePassword(serial, firmvers, salt, apikey, bytes) {
         j++;
     }
 
-    return new Buffer(res);
+    return Buffer.from(res);
 }
 
 exports.makeNewPassword = (serial, firmvers, salt, apikey) => {
-    const bytes = new Buffer(crypto.randomBytes(2048));
+    const bytes = Buffer.alloc(crypto.randomBytes(2048));
     return [bytes, makePassword(serial, firmvers, salt, apikey, bytes)];
 };
 

@@ -119,7 +119,7 @@ function scanDevices(devices) {
             devmon = device;
 
             usb.on('remove:' + device.vendorId + ':' + device.productId, () => {
-                console.log('closed');
+                // console.log('closed');
                 exports.keepAlive = false;
             });
 
