@@ -355,7 +355,7 @@ function runEncrypt() {
                     unencCallback, doneCallback, checkSpaceCallback,
                 );
             } catch (e) {
-                messageCallback('Exception!');
+                messageCallback('Exception running encryption!');
                 messageCallback(e, true);
                 doneCallback(false);
             }

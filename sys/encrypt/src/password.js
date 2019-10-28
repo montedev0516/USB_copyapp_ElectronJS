@@ -18,7 +18,7 @@ function makePassword(serial, firmvers, salt, apikey, bytes) {
 }
 
 exports.makeNewPassword = (serial, firmvers, salt, apikey) => {
-    const bytes = Buffer.alloc(crypto.randomBytes(2048));
+    const bytes = Buffer.from(crypto.randomBytes(2048));
     return [bytes, makePassword(serial, firmvers, salt, apikey, bytes)];
 };
 

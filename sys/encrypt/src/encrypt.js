@@ -134,7 +134,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                 },
             );
         } catch (e) {
-            msgcb('Exception!');
+            msgcb('Exception creating ASAR package!');
             msgcb(e, true);
         }
     }
@@ -157,7 +157,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                 ok = checkSpaceCB2(message);
             }
         } catch (err) {
-            msgcb('Exception!');
+            msgcb('Exception checking for disk space!');
             msgcb(err, true);
         }
 
