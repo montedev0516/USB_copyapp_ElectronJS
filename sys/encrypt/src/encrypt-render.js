@@ -278,16 +278,12 @@ function toggleButton(val) {
     if (val) {
         $('#btn-encrypt')
             .text('Done, continue ...')
-            // eslint-disable-next-line no-use-before-define
-            .off('click', runEncrypt)
-            // eslint-disable-next-line no-use-before-define
+            .off('click')
             .on('click', doContinue);
     } else {
         $('#btn-encrypt')
             .text('Encrypt!')
-            // eslint-disable-next-line no-use-before-define
-            .off('click', doContinue)
-            // eslint-disable-next-line no-use-before-define
+            .off('click')
             .on('click', runEncrypt);
     }
 }
@@ -559,6 +555,16 @@ function restorePreset() {
 }
 
 function loadUI(enccfg) {
+    $('#btn-encrypt').off('click');
+    $('#btn-select-indir').off('click');
+    $('#btn-select-workdir').off('click');
+    $('#btn-clear-workdir').off('click');
+    $('#btn-select-outdir').off('click');
+    $('#btn-clear-outdir').off('click');
+    $('#btn-save-config').off('click');
+    $('#presets-select').off('change');
+    $('#fileBrowserEnabled').off('change');
+
     // version
     try {
         const tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
