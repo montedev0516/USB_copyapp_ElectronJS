@@ -4,17 +4,27 @@ const fs = require('original-fs');
 const pwsys = require('./password');
 const path = require('path');
 const { exec } = require('child_process');
-const srvcfg = require('./config.json');
 const stream = require('stream');
 const disk = require('diskusage');
 
 const sizes = {};
+
+const serverconfig = {
+   LAUNCH_URL: 'https://localhost:29500/index.html',
+   SERVER_PORT: 29500,
+   useDeviceSerialNum: false,
+   fileBrowserEnabled: false,
+   salt: 'c17155ee526f4ff9bad7d2623f5a26ad'
+}
 
 let bytes;
 
 function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     let msgcb = _msgcb;
     if (!msgcb) msgcb = () => { };
+
+    const srvcfg = {};
+    Object.assign(srvcfg, serverconfig);
 
     // save serial length
     srvcfg.serialLength = enccfg.descString3.length;
