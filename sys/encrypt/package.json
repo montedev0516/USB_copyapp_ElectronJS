@@ -4,6 +4,7 @@
   "version": "1.2.1",
   "description": "USB Copy Pro Encryption Tool",
   "main": "src/encrypt-main.js",
+  "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "scripts": {
     "start": "electron-forge start",
     "package": "./package.sh",
