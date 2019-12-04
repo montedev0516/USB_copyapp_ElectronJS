@@ -5,12 +5,14 @@ const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const opn = require('opn');
 const Worker = require('tiny-worker');
+const log4js = require('log4js');
 
 const electron = require('electron');
 
 const { app } = electron;
 app.commandLine.appendSwitch('ignore-certificate-errors');
 
+let logger;
 let mainWindow;
 let workerThread;
 const sessionId = uuidv4();
@@ -26,23 +28,23 @@ function createServerWorker() {
             // terminate message
             if (server && e.data.terminate) {
                 server.terminate();
-                console.log('Server terminated');
+                logger.info('Server terminated');
                 worker.terminate();
             }
 
             try {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
                 server = require(e.data.serverjs);
-                console.log('calling server.go()');
+                logger.info('calling server.go()');
                 server.go(e.data);
             } catch (e) {
-                console.log('server exception ' + e);
+                logger.error('server exception ' + e);
                 self.postMessage('EXCEPTION: ' + e);
             }
         };
 
         self.onerror = (e) => {
-            console.log('event exception ' + e);
+            logger.error('event exception ' + e);
             self.postMessage('EXCEPTION: ' + e);
         };
 
@@ -59,17 +61,19 @@ function createServerWorker() {
     return worker;
 }
 
-function workerThreadRestart(code, pserverjs, plocator, psessionId, puserAgent) {
+function workerThreadRestart(code, pserverjs, plocator,
+                             psessionId, puserAgent)
+{
     // exit if main process is gone
     if (!mainWindow) return;
 
     // The worker process does NOT PLAY WELL at all with
     // electron.  We need to keep restarting it.
-    console.log('Starting worker server thread, session ' + psessionId);
+    logger.info('Starting worker server thread, session ' + psessionId);
     workerThread = createServerWorker();
 
     workerThread.child.once('exit', (ecode, sig) => {
-        console.log('Server died with code: ' + ecode + ', signal: ' + sig);
+        logger.error('Server died with code: ' + ecode + ', signal: ' + sig);
         workerThreadRestart(ecode, pserverjs, plocator, psessionId, puserAgent);
     });
 
@@ -104,9 +108,31 @@ function findLocator() {
     locator.shared = path.resolve(dir, locator.shared);
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);
-    // console.log('shared: ' + locator.shared);
-    // console.log('app: ' + locator.app);
-    // console.log('drive: ' + locator.drive);
+
+    if (typeof(locator.logging) != 'undefined') {
+        log4js.configure({
+            appenders: {
+                logs: {
+                    type: 'file',
+                    filename: path.join(locator.logging,'ucp-index.log'),
+                },
+            },
+            categories: {
+                app: { appenders: ['logs'], level: 'debug' },
+                default: { appenders: ['logs'], level: 'debug' },
+            }
+        });
+        logger = log4js.getLogger('app');
+    } else {
+        log4js.configure({
+            appenders: { log: { type: 'stderr' } },
+            categories: { default: { appenders: ['log'], level: 'error' } },
+        });
+        logger = log4js.getLogger();
+    }
+    logger.info('shared: ' + locator.shared);
+    logger.info('app: ' + locator.app);
+    logger.info('drive: ' + locator.drive);
 
     return locator;
 }
@@ -256,7 +282,7 @@ function createWindow() {
 
     // ipc connectors
     electron.ipcMain.on('openlocal-message', (ev, nurl) => {
-        // console.log('Warning: Opening external URL in browser ' + url);
+        logger.warn('Warning: Opening external URL in browser ' + url);
         mainWindow.loadURL(nurl);
     });
     electron.ipcMain.on('getlocator-message', (ev) => {

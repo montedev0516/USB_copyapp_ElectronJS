@@ -33,12 +33,7 @@ const https = require('https');
 const pwsys = require('./password');
 const log4js = require('log4js');
 
-log4js.configure({
-    appenders: { log: { type: 'stderr' } },
-    categories: { default: { appenders: ['log'], level: 'info' } },
-});
-const logger = log4js.getLogger();
-logger.info('UCP Starting...');
+let logger;
 
 let lastmod;
 let devmon;
@@ -75,21 +70,22 @@ function startServer() {
 
     server.on('clientError', (err, socket) => {
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
+        logger.error('https client error: ' + err);
     });
 
     server.on('error', (e) => {
-        console.log('https server error: ' + e);
+        logger.error('https server error: ' + e);
     });
 
     process.on('SIGPIPE', () => {
-        console.log('Warning: Ignoring SIGPIPE signal');
+        logger.warn('Warning: Ignoring SIGPIPE signal');
     });
 
     server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
-            console.log('ERROR starting server: ' + err);
+            logger.error('ERROR starting server: ' + err);
         } else {
-            console.log('Listening on ' + cfg.SERVER_PORT);
+            logger.info('Listening on ' + cfg.SERVER_PORT);
         }
     });
 }
@@ -137,7 +133,7 @@ function scanDevices(devices) {
             devmon = device;
 
             usb.on('remove:' + device.vendorId + ':' + device.productId, () => {
-                // console.log('closed');
+                logger.info('USB removed, closing application.');
                 exports.keepAlive = false;
             });
 
@@ -345,8 +341,8 @@ function streamFile(match, res, req, encfile) {
         if (parts[1]) {
             byteend = parseInt(parts[1], 10);
         }
-        // console.log('got range, start:' + bytestart +
-        //             ' end:' + byteend);
+        logger.info('got range, start:' + bytestart +
+                    ' end:' + byteend);
 
         // Don't hammer the streaming system with requests.
         // BUT use the last one made.  This seems to fit
@@ -399,7 +395,7 @@ function streamFile(match, res, req, encfile) {
             // Assume this is one of the undetectable
             // "cancelled" streaming requests made by
             // the browser.  Not much we can do here.
-            // console.log("THROTTLE");
+            logger.warning("Request was throttled");
         }
     } else {
         openAndCreateStream(encfile)
@@ -409,8 +405,8 @@ function streamFile(match, res, req, encfile) {
                 bytestart, byteend,
                 res, req, input,
             );
-        }).catch(() => {
-            // should probably do something here
+        }).catch((e) => {
+            logger.error('Decryption error: ' + e);
         });
     }
 }
@@ -419,17 +415,29 @@ function configure(locator) {
     // TODO: this shouldn't be a global require
     cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
-    /*log4js.configure({
-        appenders: {
-            logs: { type: 'file', filename: 'ucp.log' },
-        },
-        categories: {
-            app: { appenders: ['logs'], level: 'debug' },
-            default: { appenders: ['logs'], level: 'debug' },
-        }
-    });
-    */
+    if (typeof(locator.logging) !== 'undefined') {
+        log4js.configure({
+            appenders: {
+                logs: {
+                    type: 'file',
+                    filename: path.join(locator.logging,'ucp-server.log'),
+                },
+            },
+            categories: {
+                app: { appenders: ['logs'], level: 'debug' },
+                default: { appenders: ['logs'], level: 'debug' },
+            }
+        });
+        logger = log4js.getLogger('app');
+    } else {
+        log4js.configure({
+            appenders: { log: { type: 'stderr' } },
+            categories: { default: { appenders: ['log'], level: 'error' } },
+        });
+        logger = log4js.getLogger();
+    }
 
+    logger.info('UCP Starting...');
     logger.debug('debug messages enabled');
     logger.info('info messagees enabled');
     logger.error('error messages enabled');
@@ -489,7 +497,7 @@ function configure(locator) {
             } else {
                 res.sendFile(file, options, (err) => {
                     if (err) {
-                        // console.log('sendFile ERROR: ' + err);
+                        logger.error('sendFile ERROR: ' + err);
                     }
                 });
             }
@@ -553,7 +561,7 @@ function checkUSB() {
     if (devmon !== undefined) {
         usb.find(devmon.vendorId, devmon.productId, (err, devs) => {
             if (devs.length <= 0) {
-                // console.log('USB device removed, exiting');
+                logger.info('USB device removed, exiting');
                 exports.keepAlive = false;
             }
         });
