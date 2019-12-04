@@ -69,9 +69,19 @@ function startServer() {
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
     });
 
+    server.on('error', (e) => {
+        console.log('https server error: ' + e);
+    });
+
+    process.on('SIGPIPE', () => {
+        console.log('Warning: Ignoring SIGPIPE signal');
+    });
+
     server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
-            // console.log('ERROR starting server: ' + err);
+            console.log('ERROR starting server: ' + err);
+        } else {
+            console.log('Listening on ' + cfg.SERVER_PORT);
         }
     });
 }
@@ -131,7 +141,10 @@ function scanDevices(devices) {
 
 function readUSBThenStart() {
     usb.startMonitoring();
-    return usb.find().then(devices => scanDevices(devices));
+    usb.find().then((devices) => {
+        scanDevices(devices)
+        keepAliveProc();
+    });
 }
 exports.readUSBThenStart = readUSBThenStart;
 
@@ -537,4 +550,3 @@ function keepAliveProc() {
         process.exit(0);
     }
 }
-keepAliveProc();
