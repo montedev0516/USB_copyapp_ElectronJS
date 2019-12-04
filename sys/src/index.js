@@ -17,38 +17,38 @@ const sessionId = uuidv4();
 
 /* eslint-disable no-restricted-globals */
 
-function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
+function createServerWorker() {
     const worker = new Worker(() => {
         let server;
 
         /* global self */
-        self.onmessage = (event) => {
+        self.onmessage = (e) => {
             // terminate message
-            if (server && event.data.terminate) {
+            if (server && e.data.terminate) {
                 server.terminate();
-                return;
+                console.log('Server terminated');
+                worker.terminate();
             }
 
             try {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
-                server = require(event.data.serverjs);
-                server.go(event.data);
+                server = require(e.data.serverjs);
+                console.log('calling server.go()');
+                server.go(e.data);
             } catch (e) {
-               self.postMessage('EXCEPTION: ' + e);
+                console.log('server exception ' + e);
+                self.postMessage('EXCEPTION: ' + e);
             }
         };
 
-        self.onerror = (event) => {
-           self.postMessage('EXCEPTION: ' + event);
+        self.onerror = (e) => {
+            console.log('event exception ' + e);
+            self.postMessage('EXCEPTION: ' + e);
         };
 
-        self.postMessage('');
-    });
-    worker.postMessage({
-        serverjs: pserverjs,
-        locator: plocator,
-        sessionId: psessionId,
-        userAgent: puserAgent,
+    }, [], {
+        detach: true,
+        stdio: 'ignore',
     });
     worker.onmessage = (event) => {
         if (event.data.length > 0) {
@@ -59,17 +59,26 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
     return worker;
 }
 
-function workerThreadRestart(code, serverjs, locator, newSessionId, ua) {
+function workerThreadRestart(code, pserverjs, plocator, psessionId, puserAgent) {
     // exit if main process is gone
     if (!mainWindow) return;
 
     // The worker process does NOT PLAY WELL at all with
     // electron.  We need to keep restarting it.
-    // console.log('Server died with code: ' + code + ', restarting');
-    workerThread = createServerWorker(serverjs, locator, newSessionId, ua);
+    console.log('Starting worker server thread, session ' + psessionId);
+    workerThread = createServerWorker();
 
-    workerThread.child.on('exit', (ecode) => {
-        workerThreadRestart(ecode, serverjs, locator, newSessionId, ua);
+    workerThread.child.once('exit', (ecode, sig) => {
+        console.log('Server died with code: ' + ecode + ', signal: ' + sig);
+        workerThreadRestart(ecode, pserverjs, plocator, psessionId, puserAgent);
+    });
+
+    // send message to start things...
+    workerThread.postMessage({
+        serverjs: pserverjs,
+        locator: plocator,
+        sessionId: psessionId,
+        userAgent: puserAgent,
     });
 }
 
@@ -288,6 +297,7 @@ function createWindow() {
         workerThread.postMessage({ terminate: true });
         process.nextTick(() => {
             workerThread.terminate();
+            app.exit(0);
             process.exit(0);
         });
     });

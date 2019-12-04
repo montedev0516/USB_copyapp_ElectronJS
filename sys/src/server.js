@@ -31,6 +31,14 @@ const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
 const pwsys = require('./password');
+const log4js = require('log4js');
+
+log4js.configure({
+    appenders: { log: { type: 'stderr' } },
+    categories: { default: { appenders: ['log'], level: 'info' } },
+});
+const logger = log4js.getLogger();
+logger.info('UCP Starting...');
 
 let lastmod;
 let devmon;
@@ -411,6 +419,21 @@ function configure(locator) {
     // TODO: this shouldn't be a global require
     cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
+    /*log4js.configure({
+        appenders: {
+            logs: { type: 'file', filename: 'ucp.log' },
+        },
+        categories: {
+            app: { appenders: ['logs'], level: 'debug' },
+            default: { appenders: ['logs'], level: 'debug' },
+        }
+    });
+    */
+
+    logger.debug('debug messages enabled');
+    logger.info('info messagees enabled');
+    logger.error('error messages enabled');
+
     if (cfg.fileBrowserEnabled) {
         filebrowser = require('file-browser'); // eslint-disable-line global-require
         filebrowser.configure({
@@ -545,8 +568,10 @@ function keepAliveProc() {
             checkUSB();
             keepAliveProc();
         }, 750);
-    } else if (typeof usb !== 'undefined') {
-        usb.stopMonitoring();
+    } else {
+        if (typeof usb !== 'undefined') {
+            usb.stopMonitoring();
+        }
         process.exit(0);
     }
 }
