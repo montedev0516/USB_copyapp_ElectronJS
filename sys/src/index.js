@@ -20,75 +20,10 @@ const sessionId = uuidv4();
 /* eslint-disable no-restricted-globals */
 
 function createServerWorker() {
-    const worker = new Worker(() => {
-        const log4jsw = require('log4js');
-        let server;
-        let wlogger;
-
-        function loggingSetup(logging) {
-            if (typeof(logging) != 'undefined') {
-                log4jsw.configure({
-                    appenders: {
-                        logs: {
-                            type: 'file',
-                            filename: path.join(logging, 'ucp-worker.log'),
-                        },
-                    },
-                    categories: {
-                        worker: { appenders: ['logs'], level: 'debug' },
-                        default: { appenders: ['logs'], level: 'debug' },
-                    }
-                });
-                wlogger = log4jsw.getLogger('worker');
-            } else {
-                log4jsw.configure({
-                    appenders: { logs: { type: 'stderr' } },
-                    categories: { default: { appenders: ['logs'], level: 'error' } },
-                });
-                wlogger = log4jsw.getLogger();
-            }
-        }
-
-        /* global self */
-        self.onmessage = (e) => {
-            if (!wlogger) {
-                loggingSetup(e.data.locator.logging);
-                wlogger.info('worker logger started');
-            }
-
-            // terminate message
-            if (server && e.data.terminate) {
-                server.terminate();
-                if (wlogger) {
-                    wlogger.info('Server terminated');
-                }
-                worker.terminate();
-            }
-
-            // start message
-            try {
-                // eslint-disable-next-line global-require, import/no-dynamic-require
-                server = require(e.data.serverjs);
-                wlogger.info('calling server.go()');
-                server.go(e.data);
-            } catch (e) {
-                if (wlogger) {
-                    wlogger.error('server exception ' + e);
-                }
-                self.postMessage('EXCEPTION: ' + e);
-            }
-        };
-
-        self.onerror = (e) => {
-            if (wlogger) {
-                logger.error('event exception ' + e);
-            }
-            self.postMessage('EXCEPTION: ' + e);
-        };
-
-    }, [], {
+    const worker = new Worker(path.join(__dirname, 'worker.js'), [], {
         detach: true,
         stdio: 'ignore',
+        esm: true,
     });
     worker.onmessage = (event) => {
         if (event.data.length > 0) {
