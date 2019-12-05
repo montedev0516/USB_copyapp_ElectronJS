@@ -21,30 +21,68 @@ const sessionId = uuidv4();
 
 function createServerWorker() {
     const worker = new Worker(() => {
+        const log4jsw = require('log4js');
         let server;
+        let wlogger;
+
+        function loggingSetup(logging) {
+            if (typeof(logging) != 'undefined') {
+                log4jsw.configure({
+                    appenders: {
+                        logs: {
+                            type: 'file',
+                            filename: path.join(logging, 'ucp-worker.log'),
+                        },
+                    },
+                    categories: {
+                        worker: { appenders: ['logs'], level: 'debug' },
+                        default: { appenders: ['logs'], level: 'debug' },
+                    }
+                });
+                wlogger = log4jsw.getLogger('worker');
+            } else {
+                log4jsw.configure({
+                    appenders: { logs: { type: 'stderr' } },
+                    categories: { default: { appenders: ['logs'], level: 'error' } },
+                });
+                wlogger = log4jsw.getLogger();
+            }
+        }
 
         /* global self */
         self.onmessage = (e) => {
+            if (!wlogger) {
+                loggingSetup(e.data.locator.logging);
+                wlogger.info('worker logger started');
+            }
+
             // terminate message
             if (server && e.data.terminate) {
                 server.terminate();
-                logger.info('Server terminated');
+                if (wlogger) {
+                    wlogger.info('Server terminated');
+                }
                 worker.terminate();
             }
 
+            // start message
             try {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
                 server = require(e.data.serverjs);
-                logger.info('calling server.go()');
+                wlogger.info('calling server.go()');
                 server.go(e.data);
             } catch (e) {
-                logger.error('server exception ' + e);
+                if (wlogger) {
+                    wlogger.error('server exception ' + e);
+                }
                 self.postMessage('EXCEPTION: ' + e);
             }
         };
 
         self.onerror = (e) => {
-            logger.error('event exception ' + e);
+            if (wlogger) {
+                logger.error('event exception ' + e);
+            }
             self.postMessage('EXCEPTION: ' + e);
         };
 
@@ -54,6 +92,7 @@ function createServerWorker() {
     });
     worker.onmessage = (event) => {
         if (event.data.length > 0) {
+            logger.error(event.data);
             throw new Error(event.data);
         }
     };
@@ -118,15 +157,15 @@ function findLocator() {
                 },
             },
             categories: {
-                app: { appenders: ['logs'], level: 'debug' },
+                index: { appenders: ['logs'], level: 'debug' },
                 default: { appenders: ['logs'], level: 'debug' },
             }
         });
-        logger = log4js.getLogger('app');
+        logger = log4js.getLogger('index');
     } else {
         log4js.configure({
-            appenders: { log: { type: 'stderr' } },
-            categories: { default: { appenders: ['log'], level: 'error' } },
+            appenders: { logs: { type: 'stderr' } },
+            categories: { default: { appenders: ['logs'], level: 'error' } },
         });
         logger = log4js.getLogger();
     }

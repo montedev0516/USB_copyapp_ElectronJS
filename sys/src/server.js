@@ -70,11 +70,11 @@ function startServer() {
 
     server.on('clientError', (err, socket) => {
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
-        logger.error('https client error: ' + err);
+        logger.error('https client: ' + err);
     });
 
     server.on('error', (e) => {
-        logger.error('https server error: ' + e);
+        logger.error('https server: ' + e);
     });
 
     process.on('SIGPIPE', () => {
@@ -178,6 +178,7 @@ function isValid(av) {
 
 app.get('/status', (req, res) => {
     const valid = isValid([req, res]);
+    logger.debug('request /status valid=' + valid);
     if (res.headersSent) {
         // already responded with "unauthorized"
         return;
@@ -424,11 +425,11 @@ function configure(locator) {
                 },
             },
             categories: {
-                app: { appenders: ['logs'], level: 'debug' },
+                server: { appenders: ['logs'], level: 'debug' },
                 default: { appenders: ['logs'], level: 'debug' },
             }
         });
-        logger = log4js.getLogger('app');
+        logger = log4js.getLogger('server');
     } else {
         log4js.configure({
             appenders: { log: { type: 'stderr' } },
