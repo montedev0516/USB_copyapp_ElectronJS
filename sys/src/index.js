@@ -26,13 +26,15 @@ function createServerWorker() {
         let server;
         let wlogger;
 
-        function loggingSetup(logging) {
-            if (typeof(logging) != 'undefined') {
+        function loggingSetup(plogging) {
+            let vlogging = plogging;
+            if (typeof(vlogging) !== 'undefined') {
+                let fname = path.join(vlogging, 'ucp-worker.log');
                 log4jsw.configure({
                     appenders: {
                         logs: {
                             type: 'file',
-                            filename: path.join(logging, 'ucp-worker.log'),
+                            filename: fname,
                         },
                     },
                     categories: {
@@ -51,11 +53,6 @@ function createServerWorker() {
         }
 
         onmessage = (e) => {
-            if (!wlogger) {
-                loggingSetup(e.data.locator.logging);
-                wlogger.info('worker logger started');
-            }
-
             // terminate message
             if (server && e.data.terminate) {
                 if (wlogger) {
@@ -65,8 +62,16 @@ function createServerWorker() {
                 return;
             }
 
+            if (!wlogger && e.data.locator) {
+                loggingSetup(e.data.locator.logging);
+                wlogger.info('worker logger started');
+            }
+
             if (typeof(e.data.serverjs) === 'undefined') {
-                wlogger.warn('unknown message data: ' + JSON.stringify(e.data));
+                if (wlogger) {
+                    wlogger.warn('unknown message data: ' +
+                                 JSON.stringify(e.data));
+                }
                 return;
             }
 
@@ -98,7 +103,9 @@ function createServerWorker() {
     });
     worker.onmessage = (event) => {
         if (event.data.length > 0) {
-            logger.error(event.data);
+            if (logger) {
+                logger.error('WORKER: ' + event.data);
+            }
             throw new Error(event.data);
         }
     };
@@ -154,12 +161,12 @@ function findLocator() {
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);
 
-    if (typeof(locator.logging) != 'undefined') {
+    if (typeof(locator.logging) !== 'undefined') {
         log4js.configure({
             appenders: {
                 logs: {
                     type: 'file',
-                    filename: path.join(locator.logging,'ucp-index.log'),
+                    filename: path.join(locator.logging, 'ucp-index.log'),
                 },
             },
             categories: {
@@ -244,7 +251,7 @@ function onDomReady(win, nurl) {
             const log4js = require('log4js');
             const locator = ipcRenderer.sendSync('getlocator-message');
 
-            if (typeof(locator.logging) != 'undefined') {
+            if (typeof(locator.logging) !== 'undefined') {
                 log4js.configure({
                     appenders: {
                         logs: {
