@@ -1,6 +1,6 @@
 {
     "shared": "../shared",
     "app": ".",
-    "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe",
-    "logging": "/tmp/ucp"
+    "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe"
 }
+
