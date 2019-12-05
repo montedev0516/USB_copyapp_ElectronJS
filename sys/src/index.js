@@ -156,6 +156,7 @@ function onDomReady(win, nurl) {
     //   the electron browser (insecure), if we have node integration.
     // * add retry loop for the video, if any
     win.webContents.executeJavaScript(`
+        var logger;
         if (typeof(require) === "function") {
             const {ipcRenderer} = require('electron');
             if (typeof(window.jQuery) === 'undefined') {
@@ -167,6 +168,37 @@ function onDomReady(win, nurl) {
                 // call below.
                 ipcRenderer.send('openlocal-message', ev.target.href);
             });
+
+            const path = require('path');
+            const log4js = require('log4js');
+            const locator = ipcRenderer.sendSync('getlocator-message');
+
+            if (typeof(locator.logging) != 'undefined') {
+                log4js.configure({
+                    appenders: {
+                        logs: {
+                            type: 'file',
+                            filename: path.join(locator.logging,
+                                                'ucp-browser.log'),
+                        },
+                    },
+                    categories: {
+                        browser: { appenders: ['logs'], level: 'debug' },
+                        default: { appenders: ['logs'], level: 'debug' },
+                    }
+                });
+                logger = log4js.getLogger('browser');
+            } else {
+                log4js.configure({
+                    appenders: { logs: { type: 'stderr' } },
+                    categories: { default: {
+                        appenders: ['logs'],
+                        level: 'error'
+                    }},
+                });
+                logger = log4js.getLogger();
+            }
+            logger.info('log4js started on page');
         }
 
         tb = document.querySelector('viewer-pdf-toolbar');
@@ -190,14 +222,26 @@ function onDomReady(win, nurl) {
         if (sources.length !== 0) {
             let lastSource = sources[sources.length - 1];
             let retries = 20;
-            lastSource.addEventListener('error', function() {
+            let inhandler = 0;
+            lastSource.addEventListener('error', function(e) {
+                if (logger) {
+                    logger.error('video playback error: ' + vtb.error);
+                }
                 setTimeout( function() {
                     retries--;
                     if (retries > 0) {
+                        if (logger) {
+                            logger.warn('video error, retries: ' + retries);
+                        }
                         vtb.appendChild(lastSource);
                         vtb.load();
-                        vtb.play();
+                        vtb.play().catch(e => {
+                            logger.error('playback: ' + e);
+                        });
                     } else {
+                        if (logger) {
+                            logger.error('failed to play video');
+                        }
                         alert('video cannot be played');
                     }
                 }, 2000);
