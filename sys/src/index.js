@@ -18,18 +18,21 @@ let workerThread;
 const sessionId = uuidv4();
 
 /* eslint-disable no-restricted-globals */
+/* eslint-disable global-require */
 
 function createServerWorker() {
+    // This should be in its own file, but that is very impractical
+    // because of the js compilation and other electrion quirks.
     const worker = new Worker(() => {
-        const path = require('path');
+        const ppath = require('path');
         const log4jsw = require('log4js');
         let server;
         let wlogger;
 
         function loggingSetup(plogging) {
-            let vlogging = plogging;
-            if (typeof(vlogging) !== 'undefined') {
-                let fname = path.join(vlogging, 'ucp-worker.log');
+            const vlogging = plogging;
+            if (typeof vlogging !== 'undefined') {
+                const fname = ppath.join(vlogging, 'ucp-worker.log');
                 log4jsw.configure({
                     appenders: {
                         logs: {
@@ -52,6 +55,7 @@ function createServerWorker() {
             }
         }
 
+        // eslint-disable-next-line no-undef
         onmessage = (e) => {
             // terminate message
             if (server && e.data.terminate) {
@@ -67,7 +71,7 @@ function createServerWorker() {
                 wlogger.info('worker logger started');
             }
 
-            if (typeof(e.data.serverjs) === 'undefined') {
+            if (typeof e.data.serverjs === 'undefined') {
                 if (wlogger) {
                     wlogger.warn('unknown message data: ' +
                                  JSON.stringify(e.data));
@@ -81,19 +85,22 @@ function createServerWorker() {
                 server = require(e.data.serverjs);
                 wlogger.info('calling server.go()');
                 server.go(e.data);
-            } catch (e) {
+            } catch (er) {
                 if (wlogger) {
-                    wlogger.error('server exception ' + e);
-                    wlogger.error(e.stack);
+                    wlogger.error('server exception ' + er);
+                    wlogger.error(er.stack);
                 }
+                // eslint-disable-next-line no-undef
                 postMessage('EXCEPTION: ' + e);
             }
         };
 
+        // eslint-disable-next-line no-undef
         onerror = (e) => {
             if (wlogger) {
                 wlogger.error('event exception ' + e);
             }
+            // eslint-disable-next-line no-undef
             postMessage('EXCEPTION: ' + e);
         };
     }, [], {
@@ -114,8 +121,7 @@ function createServerWorker() {
 }
 
 function workerThreadRestart(code, pserverjs, plocator,
-                             psessionId, puserAgent)
-{
+                             psessionId, puserAgent) {
     // exit if main process is gone
     if (!mainWindow) return;
 
@@ -161,7 +167,7 @@ function findLocator() {
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);
 
-    if (typeof(locator.logging) !== 'undefined') {
+    if (typeof locator.logging !== 'undefined') {
         log4js.configure({
             appenders: {
                 logs: {
@@ -172,7 +178,7 @@ function findLocator() {
             categories: {
                 index: { appenders: ['logs'], level: 'debug' },
                 default: { appenders: ['logs'], level: 'debug' },
-            }
+            },
         });
         logger = log4js.getLogger('index');
     } else {

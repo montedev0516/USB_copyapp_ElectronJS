@@ -30,8 +30,8 @@ const crypto = require('crypto');
 const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
-const pwsys = require('./password');
 const log4js = require('log4js');
+const pwsys = require('./password');
 
 let logger;
 
@@ -132,6 +132,9 @@ function scanDevices(devices) {
             startServer();
             devmon = device;
 
+            // this can only execute once, so this eslint error
+            // is a false positive
+            // eslint-disable-next-line no-loop-func
             usb.on('remove:' + device.vendorId + ':' + device.productId, () => {
                 logger.info('USB removed, closing application.');
                 exports.keepAlive = false;
@@ -143,10 +146,37 @@ function scanDevices(devices) {
     }
 }
 
+function checkUSB() {
+    if (devmon !== undefined) {
+        usb.find(devmon.vendorId, devmon.productId, (err, devs) => {
+            if (devs.length <= 0) {
+                logger.info('USB device removed, exiting');
+                exports.keepAlive = false;
+            }
+        });
+    }
+}
+
+// Make sure that the USB device remains plugged in
+// as long as the server is alive.
+function keepAliveProc() {
+    if (exports.keepAlive) {
+        setTimeout(() => {
+            checkUSB();
+            keepAliveProc();
+        }, 750);
+    } else {
+        if (typeof usb !== 'undefined') {
+            usb.stopMonitoring();
+        }
+        process.exit(0);
+    }
+}
+
 function readUSBThenStart() {
     usb.startMonitoring();
     usb.find().then((devices) => {
-        scanDevices(devices)
+        scanDevices(devices);
         keepAliveProc();
     });
 }
@@ -396,7 +426,7 @@ function streamFile(match, res, req, encfile) {
             // Assume this is one of the undetectable
             // "cancelled" streaming requests made by
             // the browser.  Not much we can do here.
-            logger.warning("Request was throttled");
+            logger.warning('Request was throttled');
         }
     } else {
         openAndCreateStream(encfile)
@@ -416,18 +446,18 @@ function configure(locator) {
     // TODO: this shouldn't be a global require
     cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
 
-    if (typeof(locator.logging) !== 'undefined') {
+    if (typeof locator.logging !== 'undefined') {
         log4js.configure({
             appenders: {
                 logs: {
                     type: 'file',
-                    filename: path.join(locator.logging,'ucp-server.log'),
+                    filename: path.join(locator.logging, 'ucp-server.log'),
                 },
             },
             categories: {
                 server: { appenders: ['logs'], level: 'debug' },
                 default: { appenders: ['logs'], level: 'debug' },
-            }
+            },
         });
         logger = log4js.getLogger('server');
     } else {
@@ -557,30 +587,3 @@ function lockSession(uuid, agent) {
     gAgent = agent;
 }
 exports.lockSession = lockSession;
-
-function checkUSB() {
-    if (devmon !== undefined) {
-        usb.find(devmon.vendorId, devmon.productId, (err, devs) => {
-            if (devs.length <= 0) {
-                logger.info('USB device removed, exiting');
-                exports.keepAlive = false;
-            }
-        });
-    }
-}
-
-// Make sure that the USB device remains plugged in
-// as long as the server is alive.
-function keepAliveProc() {
-    if (exports.keepAlive) {
-        setTimeout(() => {
-            checkUSB();
-            keepAliveProc();
-        }, 750);
-    } else {
-        if (typeof usb !== 'undefined') {
-            usb.stopMonitoring();
-        }
-        process.exit(0);
-    }
-}
