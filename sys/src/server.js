@@ -30,7 +30,10 @@ const crypto = require('crypto');
 const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
+const log4js = require('log4js');
 const pwsys = require('./password');
+
+let logger;
 
 let lastmod;
 let devmon;
@@ -67,11 +70,22 @@ function startServer() {
 
     server.on('clientError', (err, socket) => {
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
+        logger.error('https client: ' + err);
+    });
+
+    server.on('error', (e) => {
+        logger.error('https server: ' + e);
+    });
+
+    process.on('SIGPIPE', () => {
+        logger.warn('Warning: Ignoring SIGPIPE signal');
     });
 
     server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
-            // console.log('ERROR starting server: ' + err);
+            logger.error('ERROR starting server: ' + err);
+        } else {
+            logger.info('Listening on ' + cfg.SERVER_PORT);
         }
     });
 }
@@ -118,8 +132,11 @@ function scanDevices(devices) {
             startServer();
             devmon = device;
 
+            // this can only execute once, so this eslint error
+            // is a false positive
+            // eslint-disable-next-line no-loop-func
             usb.on('remove:' + device.vendorId + ':' + device.productId, () => {
-                // console.log('closed');
+                logger.info('USB removed, closing application.');
                 exports.keepAlive = false;
             });
 
@@ -129,9 +146,39 @@ function scanDevices(devices) {
     }
 }
 
+function checkUSB() {
+    if (devmon !== undefined) {
+        usb.find(devmon.vendorId, devmon.productId, (err, devs) => {
+            if (devs.length <= 0) {
+                logger.info('USB device removed, exiting');
+                exports.keepAlive = false;
+            }
+        });
+    }
+}
+
+// Make sure that the USB device remains plugged in
+// as long as the server is alive.
+function keepAliveProc() {
+    if (exports.keepAlive) {
+        setTimeout(() => {
+            checkUSB();
+            keepAliveProc();
+        }, 750);
+    } else {
+        if (typeof usb !== 'undefined') {
+            usb.stopMonitoring();
+        }
+        process.exit(0);
+    }
+}
+
 function readUSBThenStart() {
     usb.startMonitoring();
-    return usb.find().then(devices => scanDevices(devices));
+    usb.find().then((devices) => {
+        scanDevices(devices);
+        keepAliveProc();
+    });
 }
 exports.readUSBThenStart = readUSBThenStart;
 
@@ -161,6 +208,7 @@ function isValid(av) {
 
 app.get('/status', (req, res) => {
     const valid = isValid([req, res]);
+    logger.debug('request /status valid=' + valid);
     if (res.headersSent) {
         // already responded with "unauthorized"
         return;
@@ -324,8 +372,8 @@ function streamFile(match, res, req, encfile) {
         if (parts[1]) {
             byteend = parseInt(parts[1], 10);
         }
-        // console.log('got range, start:' + bytestart +
-        //             ' end:' + byteend);
+        logger.info('got range, start:' + bytestart +
+                    ' end:' + byteend);
 
         // Don't hammer the streaming system with requests.
         // BUT use the last one made.  This seems to fit
@@ -378,7 +426,7 @@ function streamFile(match, res, req, encfile) {
             // Assume this is one of the undetectable
             // "cancelled" streaming requests made by
             // the browser.  Not much we can do here.
-            // console.log("THROTTLE");
+            logger.warning('Request was throttled');
         }
     } else {
         openAndCreateStream(encfile)
@@ -388,8 +436,8 @@ function streamFile(match, res, req, encfile) {
                 bytestart, byteend,
                 res, req, input,
             );
-        }).catch(() => {
-            // should probably do something here
+        }).catch((e) => {
+            logger.error('Decryption error: ' + e);
         });
     }
 }
@@ -397,6 +445,33 @@ function streamFile(match, res, req, encfile) {
 function configure(locator) {
     // TODO: this shouldn't be a global require
     cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
+
+    if (typeof locator.logging !== 'undefined') {
+        log4js.configure({
+            appenders: {
+                logs: {
+                    type: 'file',
+                    filename: path.join(locator.logging, 'ucp-server.log'),
+                },
+            },
+            categories: {
+                server: { appenders: ['logs'], level: 'debug' },
+                default: { appenders: ['logs'], level: 'debug' },
+            },
+        });
+        logger = log4js.getLogger('server');
+    } else {
+        log4js.configure({
+            appenders: { log: { type: 'stderr' } },
+            categories: { default: { appenders: ['log'], level: 'error' } },
+        });
+        logger = log4js.getLogger();
+    }
+
+    logger.info('UCP Starting...');
+    logger.debug('debug messages enabled');
+    logger.info('info messagees enabled');
+    logger.error('error messages enabled');
 
     if (cfg.fileBrowserEnabled) {
         filebrowser = require('file-browser'); // eslint-disable-line global-require
@@ -453,7 +528,7 @@ function configure(locator) {
             } else {
                 res.sendFile(file, options, (err) => {
                     if (err) {
-                        // console.log('sendFile ERROR: ' + err);
+                        logger.error('sendFile ERROR: ' + err);
                     }
                 });
             }
@@ -512,29 +587,3 @@ function lockSession(uuid, agent) {
     gAgent = agent;
 }
 exports.lockSession = lockSession;
-
-function checkUSB() {
-    if (devmon !== undefined) {
-        usb.find(devmon.vendorId, devmon.productId, (err, devs) => {
-            if (devs.length <= 0) {
-                // console.log('USB device removed, exiting');
-                exports.keepAlive = false;
-            }
-        });
-    }
-}
-
-// Make sure that the USB device remains plugged in
-// as long as the server is alive.
-function keepAliveProc() {
-    if (exports.keepAlive) {
-        setTimeout(() => {
-            checkUSB();
-            keepAliveProc();
-        }, 750);
-    } else if (typeof usb !== 'undefined') {
-        usb.stopMonitoring();
-        process.exit(0);
-    }
-}
-keepAliveProc();

@@ -10,6 +10,7 @@ function go(data) {
     electronCompile.init(__dirname, initScript);
 
     server = require.main.server;
+    server.keepAlive = true;
 
     server.configure(data.locator);
     server.lockSession(data.sessionId,

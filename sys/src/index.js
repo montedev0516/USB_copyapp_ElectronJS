@@ -5,53 +5,114 @@ const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const opn = require('opn');
 const Worker = require('tiny-worker');
+const log4js = require('log4js');
 
 const electron = require('electron');
 
 const { app } = electron;
 app.commandLine.appendSwitch('ignore-certificate-errors');
 
+let logger;
 let mainWindow;
 let workerThread;
 const sessionId = uuidv4();
 
 /* eslint-disable no-restricted-globals */
+/* eslint-disable global-require */
 
-function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
+function createServerWorker() {
+    // This should be in its own file, but that is very impractical
+    // because of the js compilation and other electrion quirks.
     const worker = new Worker(() => {
+        const ppath = require('path');
+        const log4jsw = require('log4js');
         let server;
+        let wlogger;
 
-        /* global self */
-        self.onmessage = (event) => {
+        function loggingSetup(plogging) {
+            const vlogging = plogging;
+            if (typeof vlogging !== 'undefined') {
+                const fname = ppath.join(vlogging, 'ucp-worker.log');
+                log4jsw.configure({
+                    appenders: {
+                        logs: {
+                            type: 'file',
+                            filename: fname,
+                        },
+                    },
+                    categories: {
+                        worker: { appenders: ['logs'], level: 'debug' },
+                        default: { appenders: ['logs'], level: 'debug' },
+                    },
+                });
+                wlogger = log4jsw.getLogger('worker');
+            } else {
+                log4jsw.configure({
+                    appenders: { logs: { type: 'stderr' } },
+                    categories: { default: { appenders: ['logs'], level: 'error' } },
+                });
+                wlogger = log4jsw.getLogger();
+            }
+        }
+
+        // eslint-disable-next-line no-undef
+        onmessage = (e) => {
             // terminate message
-            if (server && event.data.terminate) {
+            if (server && e.data.terminate) {
+                if (wlogger) {
+                    wlogger.info('Server terminating');
+                }
                 server.terminate();
                 return;
             }
 
+            if (!wlogger && e.data.locator) {
+                loggingSetup(e.data.locator.logging);
+                wlogger.info('worker logger started');
+            }
+
+            if (typeof e.data.serverjs === 'undefined') {
+                if (wlogger) {
+                    wlogger.warn('unknown message data: ' +
+                                 JSON.stringify(e.data));
+                }
+                return;
+            }
+
+            // start message
             try {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
-                server = require(event.data.serverjs);
-                server.go(event.data);
-            } catch (e) {
-               self.postMessage('EXCEPTION: ' + e);
+                server = require(e.data.serverjs);
+                wlogger.info('calling server.go()');
+                server.go(e.data);
+            } catch (er) {
+                if (wlogger) {
+                    wlogger.error('server exception ' + er);
+                    wlogger.error(er.stack);
+                }
+                // eslint-disable-next-line no-undef
+                postMessage('EXCEPTION: ' + e);
             }
         };
 
-        self.onerror = (event) => {
-           self.postMessage('EXCEPTION: ' + event);
+        // eslint-disable-next-line no-undef
+        onerror = (e) => {
+            if (wlogger) {
+                wlogger.error('event exception ' + e);
+            }
+            // eslint-disable-next-line no-undef
+            postMessage('EXCEPTION: ' + e);
         };
-
-        self.postMessage('');
-    });
-    worker.postMessage({
-        serverjs: pserverjs,
-        locator: plocator,
-        sessionId: psessionId,
-        userAgent: puserAgent,
+    }, [], {
+        detach: true,
+        stdio: 'ignore',
+        esm: true,
     });
     worker.onmessage = (event) => {
         if (event.data.length > 0) {
+            if (logger) {
+                logger.error('WORKER: ' + event.data);
+            }
             throw new Error(event.data);
         }
     };
@@ -59,17 +120,27 @@ function createServerWorker(pserverjs, plocator, psessionId, puserAgent) {
     return worker;
 }
 
-function workerThreadRestart(code, serverjs, locator, newSessionId, ua) {
+function workerThreadRestart(code, pserverjs, plocator,
+                             psessionId, puserAgent) {
     // exit if main process is gone
     if (!mainWindow) return;
 
     // The worker process does NOT PLAY WELL at all with
     // electron.  We need to keep restarting it.
-    // console.log('Server died with code: ' + code + ', restarting');
-    workerThread = createServerWorker(serverjs, locator, newSessionId, ua);
+    logger.info('Starting worker server thread, session ' + psessionId);
+    workerThread = createServerWorker();
 
-    workerThread.child.on('exit', (ecode) => {
-        workerThreadRestart(ecode, serverjs, locator, newSessionId, ua);
+    workerThread.child.once('exit', (ecode, sig) => {
+        logger.error('Server died with code: ' + ecode + ', signal: ' + sig);
+        workerThreadRestart(ecode, pserverjs, plocator, psessionId, puserAgent);
+    });
+
+    // send message to start things...
+    workerThread.postMessage({
+        serverjs: pserverjs,
+        locator: plocator,
+        sessionId: psessionId,
+        userAgent: puserAgent,
     });
 }
 
@@ -95,9 +166,31 @@ function findLocator() {
     locator.shared = path.resolve(dir, locator.shared);
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);
-    // console.log('shared: ' + locator.shared);
-    // console.log('app: ' + locator.app);
-    // console.log('drive: ' + locator.drive);
+
+    if (typeof locator.logging !== 'undefined') {
+        log4js.configure({
+            appenders: {
+                logs: {
+                    type: 'file',
+                    filename: path.join(locator.logging, 'ucp-index.log'),
+                },
+            },
+            categories: {
+                index: { appenders: ['logs'], level: 'debug' },
+                default: { appenders: ['logs'], level: 'debug' },
+            },
+        });
+        logger = log4js.getLogger('index');
+    } else {
+        log4js.configure({
+            appenders: { logs: { type: 'stderr' } },
+            categories: { default: { appenders: ['logs'], level: 'error' } },
+        });
+        logger = log4js.getLogger();
+    }
+    logger.info('shared: ' + locator.shared);
+    logger.info('app: ' + locator.app);
+    logger.info('drive: ' + locator.drive);
 
     return locator;
 }
@@ -147,6 +240,7 @@ function onDomReady(win, nurl) {
     //   the electron browser (insecure), if we have node integration.
     // * add retry loop for the video, if any
     win.webContents.executeJavaScript(`
+        var logger;
         if (typeof(require) === "function") {
             const {ipcRenderer} = require('electron');
             if (typeof(window.jQuery) === 'undefined') {
@@ -158,6 +252,37 @@ function onDomReady(win, nurl) {
                 // call below.
                 ipcRenderer.send('openlocal-message', ev.target.href);
             });
+
+            const path = require('path');
+            const log4js = require('log4js');
+            const locator = ipcRenderer.sendSync('getlocator-message');
+
+            if (typeof(locator.logging) !== 'undefined') {
+                log4js.configure({
+                    appenders: {
+                        logs: {
+                            type: 'file',
+                            filename: path.join(locator.logging,
+                                                'ucp-browser.log'),
+                        },
+                    },
+                    categories: {
+                        browser: { appenders: ['logs'], level: 'debug' },
+                        default: { appenders: ['logs'], level: 'debug' },
+                    }
+                });
+                logger = log4js.getLogger('browser');
+            } else {
+                log4js.configure({
+                    appenders: { logs: { type: 'stderr' } },
+                    categories: { default: {
+                        appenders: ['logs'],
+                        level: 'error'
+                    }},
+                });
+                logger = log4js.getLogger();
+            }
+            logger.info('log4js started on page');
         }
 
         tb = document.querySelector('viewer-pdf-toolbar');
@@ -181,14 +306,26 @@ function onDomReady(win, nurl) {
         if (sources.length !== 0) {
             let lastSource = sources[sources.length - 1];
             let retries = 20;
-            lastSource.addEventListener('error', function() {
+            let inhandler = 0;
+            lastSource.addEventListener('error', function(e) {
+                if (logger) {
+                    logger.error('video playback error: ' + vtb.error);
+                }
                 setTimeout( function() {
                     retries--;
                     if (retries > 0) {
+                        if (logger) {
+                            logger.warn('video error, retries: ' + retries);
+                        }
                         vtb.appendChild(lastSource);
                         vtb.load();
-                        vtb.play();
+                        vtb.play().catch(e => {
+                            logger.error('playback: ' + e);
+                        });
                     } else {
+                        if (logger) {
+                            logger.error('failed to play video');
+                        }
                         alert('video cannot be played');
                     }
                 }, 2000);
@@ -247,7 +384,7 @@ function createWindow() {
 
     // ipc connectors
     electron.ipcMain.on('openlocal-message', (ev, nurl) => {
-        // console.log('Warning: Opening external URL in browser ' + url);
+        logger.warn('Warning: Opening external URL in browser ' + url);
         mainWindow.loadURL(nurl);
     });
     electron.ipcMain.on('getlocator-message', (ev) => {
@@ -288,6 +425,7 @@ function createWindow() {
         workerThread.postMessage({ terminate: true });
         process.nextTick(() => {
             workerThread.terminate();
+            app.exit(0);
             process.exit(0);
         });
     });
