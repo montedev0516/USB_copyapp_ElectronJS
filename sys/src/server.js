@@ -209,20 +209,25 @@ function isValid(av) {
 app.get('/status', (req, res) => {
     const valid = isValid([req, res]);
     logger.debug('request /status valid=' + valid);
+
     if (res.headersSent) {
         // already responded with "unauthorized"
         return;
     }
 
+    const serialNo = serial.split(':').pop();
+
     if (!valid) {
         res.json({
             running: false,
             status: 'blocked',
+            serial: serialNo,
         });
     } else {
         res.json({
             running: true,
             status: 'running',
+            serial: serialNo,
         });
     }
 });
