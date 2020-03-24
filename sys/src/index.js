@@ -91,7 +91,7 @@ function createServerWorker() {
                     wlogger.error(er.stack);
                 }
                 // eslint-disable-next-line no-undef
-                postMessage('EXCEPTION: ' + e);
+                postMessage('EXCEPTION: ' + er);
             }
         };
 
@@ -108,12 +108,12 @@ function createServerWorker() {
         stdio: 'ignore',
         esm: true,
     });
-    worker.onmessage = (event) => {
-        if (event.data.length > 0) {
+    worker.onmessage = (ev) => {
+        if (ev.data.length > 0) {
             if (logger) {
-                logger.error('WORKER: ' + event.data);
+                logger.error('WORKER: ' + ev.data);
             }
-            throw new Error(event.data);
+            throw new Error(ev.data);
         }
     };
 
