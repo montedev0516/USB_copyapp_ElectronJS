@@ -126,10 +126,11 @@ function scanDevices(devices) {
 
             serial = pwsys.getSerial(usbcfg, cfg);
             firmVers = pwsys.getVersion(usbcfg, cfg);
-            // console.log('serial : ' + serial);
-            // console.log('vers   : ' + firmVers);
+            logger.info('serial : ' + usbcfg.descString3);
+            logger.info('vid    : ' + usbcfg.vid);
+            logger.info('pid    : ' + usbcfg.pid);
+            logger.info('vers   : ' + firmVers);
 
-            startServer();
             devmon = device;
 
             // this can only execute once, so this eslint error
