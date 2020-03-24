@@ -29,7 +29,16 @@ function loadStat(statusStr) {
 }
 
 function checkLoad(cfg, retry) {
-    const URL = 'https://localhost:' + cfg.SERVER_PORT;
+    let URL;
+
+    // on the last try, use http.  If the https server
+    // failed to start, we can at least try to display the
+    // serial number we got.
+    if (retry > 0) {
+        URL = 'https://localhost:' + cfg.SERVER_PORT;
+    } else {
+        URL = 'http://localhost:' + cfg.SERVER_PORT;
+    }
 
     $.ajax(URL + '/status').done((data) => {
 

@@ -57,11 +57,24 @@ let server;
 exports.keepAlive = true;
 
 function startServer() {
-    server = https.createServer({
-        key: privkey,
-        cert: certificate,
-        passphrase: serial,
-    }, app);
+    try {
+        if (typeof serial === 'undefined') {
+            throw new Error('No drives found');
+        }
+        server = https.createServer({
+            key: privkey,
+            cert: certificate,
+            passphrase: serial,
+        }, app);
+    } catch (err) {
+        logger.error(err);
+        logger.error('can\'t start server');
+        // start a single-point server to show bad status
+        server = express();
+        server.get('/status', failStatus);
+        server.listen(cfg.SERVER_PORT, '127.0.0.1');
+        return;
+    }
 
     // Prevent ERR_CONTENT_LENGTH_MISMATCH errors, see:
     // https://github.com/expressjs/express/issues/3392#issuecomment-325681174
@@ -110,6 +123,7 @@ function isValidVendor(validVendors, vendorId) {
 }
 
 function scanDevices(devices) {
+    serial = undefined;
     for (let i = 0; i < devices.length; i++) {
         const device = devices[i];
         if (isValidVendor(cfg.validVendors, device.vendorId.toString(16))) {
@@ -145,6 +159,9 @@ function scanDevices(devices) {
             break;
         }
     }
+
+    // always start the server, even it's the http one that says "failed"
+    startServer();
 }
 
 function checkUSB() {
@@ -205,6 +222,25 @@ function isValid(av) {
     }
 
     return true;
+}
+
+// called if https server failed to start
+function failStatus(req, res) {
+    if (typeof serial === 'undefined') {
+        res.json({
+            running: false,
+            status: 'blocked',
+            serial: 'no drives found',
+        });
+        return;
+    }
+
+    const serialNo = serial.split(':').pop();
+    res.json({
+        running: false,
+        status: 'blocked',
+        serial: serialNo,
+    });
 }
 
 app.get('/status', (req, res) => {
