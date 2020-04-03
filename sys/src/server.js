@@ -18,11 +18,6 @@ require.main.server = exports;
 
 const fileStatCache = {};
 let pwCache;
-const reqThrottle = {
-    available: true,
-    res: null,
-};
-
 const path = require('path');
 const express = require('express');
 const fs = require('fs');
@@ -55,6 +50,25 @@ let server;
 
 // dummy variable used to help keep the parent process alive.
 exports.keepAlive = true;
+
+// called if https server failed to start
+function failStatus(req, res) {
+    if (typeof serial === 'undefined') {
+        res.json({
+            running: false,
+            status: 'blocked',
+            serial: 'no drives found',
+        });
+        return;
+    }
+
+    const serialNo = serial.split(':').pop();
+    res.json({
+        running: false,
+        status: 'blocked',
+        serial: serialNo,
+    });
+}
 
 function startServer() {
     try {
@@ -224,25 +238,6 @@ function isValid(av) {
     return true;
 }
 
-// called if https server failed to start
-function failStatus(req, res) {
-    if (typeof serial === 'undefined') {
-        res.json({
-            running: false,
-            status: 'blocked',
-            serial: 'no drives found',
-        });
-        return;
-    }
-
-    const serialNo = serial.split(':').pop();
-    res.json({
-        running: false,
-        status: 'blocked',
-        serial: serialNo,
-    });
-}
-
 app.get('/status', (req, res) => {
     const valid = isValid([req, res]);
     logger.debug('request /status valid=' + valid);
@@ -404,6 +399,10 @@ function streamFile(match, res, req, encfile) {
     const type = mime.lookup(match);
     const key = req.get('x-api-key');
     const bytestartHdr = req.get('range');
+    const reqThrottle = {
+        available: true,
+        res: null,
+    };
     let bytestart = null;
     let byteend = null;
     if (bytestartHdr) {
