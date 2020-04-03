@@ -4,8 +4,6 @@
 # run this, then copy.sh
 #
 
-set -e
-
 SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
 
 cd `dirname $0` || exit
@@ -25,6 +23,8 @@ if [ -z "$obf" ] ; then
     echo 'ERROR: uglifyjs required' >&2
     exit 1
 fi
+
+set -e
 
 set -x
 : 'Copying source to working directory...'
