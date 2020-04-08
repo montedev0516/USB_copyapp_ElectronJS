@@ -221,7 +221,12 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
         const fstat = fs.statSync(file);
         let useMask = false;
-        if (fstat.size > 32 * 1024 * 1024) {
+        // Automatically allow streaming of certain files.
+        // TODO: this list should be defined in the UI somehow.
+        if (file.match(/\.mp4$/) || file.match(/\.m4v$/)) {
+            useMask = true;
+        }
+        if (useMask || (fstat.size > 32 * 1024 * 1024)) {
             sizes[path.basename(fnout)] = fstat.size;
             useMask = true;
         }
