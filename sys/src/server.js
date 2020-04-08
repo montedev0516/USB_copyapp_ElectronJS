@@ -368,6 +368,8 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
             decipher.on('error', streamError);
             res.set(hdr);
+            // Note that here we do not know the content-length,
+            // so this will automatically set Transfer-Encoding to 'chunked'
             input.pipe(decipher).pipe(res);
         }
     } catch (err) {
