@@ -91,5 +91,5 @@ $(() => {
 
     $.ajax({ accepts: 'application/json' });
 
-    setTimeout(() => { checkLoad(cfg, 15); }, 150);
+    setTimeout(() => { checkLoad(cfg, 25); }, 150);
 });
