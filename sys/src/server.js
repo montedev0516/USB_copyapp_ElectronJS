@@ -96,8 +96,7 @@ function startServer() {
     server.keepAliveTimeout = 60000 * 15;
 
     server.on('clientError', (err, socket) => {
-        socket.end('HTTP/1.1 400 Bad Request\r\n\r\n' + err);
-        logger.error('https client: ' + err);
+        logger.error('https client (ignored): ' + err);
     });
 
     server.on('error', (e) => {
@@ -265,8 +264,18 @@ app.get('/status', (req, res) => {
 });
 
 
-function unmask(input, bytestart, res, req) {
-    if (req.finished) return;
+function unmask(input, bytestart, byteend, res, req) {
+    if (typeof req === 'undefined') {
+        logger.info('unmask returning: undefined request');
+        return;
+    }
+    if (req.finished || bytestart > byteend) {
+        logger.info('unmask closing: finished:' + req.finished + ' or ' +
+                    bytestart + ' > ' + byteend);
+        input.close();
+        res.end();
+        return;
+    }
 
     const chunk = input.read();
 
@@ -277,10 +286,8 @@ function unmask(input, bytestart, res, req) {
     // we're at the end of file, then node will emit the
     // close event and finish the stream.
     if (!chunk) {
-        input.once('readable', () => unmask(input, bytestart, res, req));
-        if (input.listenerCount('close') < 1) {
-            input.once('close', () => res.end());
-        }
+        input.once('readable', () => unmask(input, bytestart,
+                                            byteend, res, req));
         return;
     }
 
@@ -291,11 +298,19 @@ function unmask(input, bytestart, res, req) {
         j = (j + 1) % pwCache.length;
     }
     const nl = bytestart + chunk.length;
+
+    // only for debugging:
+    // logger.info('unmask write ' + bytestart + ' <= ' + byteend +
+    //             ' length:' + chunk.length);
+
     const didFlush = res.write(c);
-    if (didFlush) {
-        input.once('readable', () => unmask(input, nl, res, req));
+    if (didFlush || res.writable) {
+        input.once('readable', () => unmask(input, nl, byteend,
+                                            res, req));
     } else {
-        res.once('drain', () => unmask(input, nl, res, req));
+        logger.info('Waiting for drain...');
+        res.once('drain', () => unmask(input, nl,
+                                       byteend, res, req));
     }
 }
 
@@ -314,31 +329,34 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
         req.finished = false;
 
         req.on('close', () => {
+            logger.info('stream closed ' + fname);
             req.finished = true;
             input.destroy();
         });
 
         req.on('abort', () => {
+            logger.error('stream aborted ' + fname);
             req.finished = true;
         });
 
         const streamError = () => {
-            req.finished = true;
+            logger.error('stream ERROR: ' + fname);
             if (res.headersSent) {
                 res.end();
             } else {
                 res.sendStatus(500);
             }
+            req.finished = true;
         };
         input.on('error', streamError);
 
         // large items have their original lengths cached.
         const base = path.basename(fname);
         if (base in originalSize) {
+            let byteend;
             // used mask, no encrypt
             if (bytestart != null) {
                 // streaming
-                let byteend;
 
                 if (byteendp == null) {
                     byteend = originalSize[base] - 1;
@@ -357,12 +375,13 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
                     originalSize[base];
                 res.writeHead(206, hdr);
             } else {
+                bytestart = 0;
+                byteend = originalSize[base] - 1;
                 res.set(hdr);
             }
 
-            res.flushHeaders();
-
-            input.once('readable', () => unmask(input, bytestart, res, req));
+            input.once('readable', () => unmask(input, bytestart,
+                                                byteend, res, req));
         } else {
             // decrypt, no streaming
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
@@ -373,7 +392,9 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
             input.pipe(decipher).pipe(res);
         }
     } catch (err) {
-        res.sendStatus(404);
+        if (res && !res.headersSent) {
+            res.sendStatus(404);
+        }
         throw new Error(err);
     }
 }
