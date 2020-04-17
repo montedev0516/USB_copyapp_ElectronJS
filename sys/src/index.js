@@ -309,7 +309,12 @@ function onDomReady(win, nurl) {
             let inhandler = 0;
             lastSource.addEventListener('error', function(e) {
                 if (logger) {
-                    logger.error('video playback error: ' + vtb.error);
+                    logger.error('video playback error (VTB): ' + vtb.error);
+                    if (e) {
+                        logger.error('video playback error (E): ' + e);
+                        logger.error('video playback error (MSG): ' +
+                                     e.message);
+                    }
                 }
                 setTimeout( function() {
                     retries--;
