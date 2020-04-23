@@ -324,16 +324,13 @@ function onDomReady(win, nurl) {
                         }
                         vtb.appendChild(lastSource);
                         vtb.load();
-                        vtb.play().catch(e => {
-                            logger.error('playback: ' + e);
-                        });
                     } else {
                         if (logger) {
                             logger.error('failed to play video');
                         }
                         alert('video cannot be played');
                     }
-                }, 2000);
+                }, 1000);
             });
         }
     `);
