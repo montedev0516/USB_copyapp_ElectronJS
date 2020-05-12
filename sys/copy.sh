@@ -37,6 +37,11 @@ cp -v resources/locator.json ../../../drive/
 if [ -n "$drive" ] ; then
     mkdir ../../../drive/sys
     cp -r $drive ../../../drive/sys/
+    # remove duplicates from OSX build
+    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/Electron Framework.framework/Versions'
+    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/Mantle.framework/Versions'
+    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/ReactiveCocoa.framework/Versions'
+    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/Squirrel.framework/Versions'
 fi
 
 popd
