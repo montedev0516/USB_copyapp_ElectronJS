@@ -299,7 +299,12 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                 unenccb(idx + 1, unencFiles.length);
             }
             // process next file
-            go(idx + 1, serial, vers, secret, bytes);
+            try {
+                go(idx + 1, serial, vers, secret, bytes);
+            } catch (e) {
+                msgcb('Exception during encryption');
+                msgcb(e, true);
+            }
         });
     }
 

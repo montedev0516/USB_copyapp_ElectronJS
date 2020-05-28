@@ -139,6 +139,10 @@ function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
         return false;
     }
 
+    if (!fs.existsSync(somePath)) {
+        fs.mkdirSync(somePath, { recursive: true });
+    }
+
     return true;
 }
 
@@ -342,37 +346,43 @@ function changeFileBrowserEnabled() {
 }
 
 function runEncrypt() {
-    const enccfg = saveUI();
+    try {
+        const enccfg = saveUI();
 
-    if (workingDirObj !== undefined) {
-        messageCallback('Clearing working dir...');
-        workingDirObj.removeCallback();
-        workingDirObj = undefined;
-    }
-    workingDirObj = tmp.dirSync({ unsafeCleanup: true });
-    enccfg.workPath = workingDirObj.name;
+        if (workingDirObj !== undefined) {
+            messageCallback('Clearing working dir...');
+            workingDirObj.removeCallback();
+            workingDirObj = undefined;
+        }
+        workingDirObj = tmp.dirSync({ unsafeCleanup: true });
+        enccfg.workPath = workingDirObj.name;
 
-    if (validate(enccfg)) {
-        setBtnEnabled(false);
-        $('#errors').hide();
-        $('#messages').show();
-        messageCallback('Starting...');
+        if (validate(enccfg)) {
+            setBtnEnabled(false);
+            $('#errors').hide();
+            $('#messages').show();
+            messageCallback('Starting...');
 
-        setTimeout(() => {
-            try {
-                // reset "check space ignore warnings" flag for this session
-                ignoreSpaceWarnings = false;
+            setTimeout(() => {
+                try {
+                    // reset "check space ignore warnings" flag for this session
+                    ignoreSpaceWarnings = false;
 
-                encrypt(
-                    enccfg, messageCallback, encCallback,
-                    unencCallback, doneCallback, checkSpaceCallback,
-                );
-            } catch (e) {
-                messageCallback('Exception running encryption!');
-                messageCallback(e, true);
-                doneCallback(false);
-            }
-        }, 333);
+                    encrypt(
+                        enccfg, messageCallback, encCallback,
+                        unencCallback, doneCallback, checkSpaceCallback,
+                    );
+                } catch (e) {
+                    messageCallback('Exception running encryption!');
+                    messageCallback(e, true);
+                    doneCallback(false);
+                }
+            }, 333);
+        }
+    } catch (e) {
+        messageCallback('Exception during setup!');
+        messageCallback(e, true);
+        doneCallback(false);
     }
 }
 
