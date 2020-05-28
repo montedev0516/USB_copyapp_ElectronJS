@@ -253,16 +253,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
         // recursively create output dir
         const dir = path.dirname(fnout);
-
-        function mkdirp(ndir) {
-            const ppath = ndir.split(path.sep).slice(0, -1).join(path.sep);
-            if (ppath.length !== 0 && !fs.existsSync(ppath)) {
-                mkdirp(ppath);
-            }
-            fs.mkdirSync(ndir);
-        }
         if (!fs.existsSync(dir)) {
-            mkdirp(dir);
+            fs.mkdirSync(dir, { recursive: true });
         }
 
         if (!checkSpace(checkSpaceCB, fnout, dirType, '10mb', 10485760)) {
