@@ -10,6 +10,7 @@ const fs = require('original-fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
+const tmp = require('tmp');
 const vers = require('../package.json');
 
 const { dialog } = require('electron').remote;
@@ -20,10 +21,13 @@ require('jquery-ui/ui/widgets/progressbar');
 let maskCounter;
 const conffile = path.join(os.homedir(), '.usbcopypro-encrypt.json');
 let barHidden = true;
-let workingPath = null;
 let longVersion = '<unknown>';
 let presets;
 let ignoreSpaceWarnings = false;
+
+// working dir (tmp object) for temp data
+let workingDirObj;
+tmp.setGracefulCleanup();
 
 function delMask(elid) {
     $(elid).remove();
@@ -57,7 +61,6 @@ function addNewMask() {
 
 function saveUI() {
     $('#btn-save-config')[0].innerHTML = 'Saving...';
-    workingPath = $("input[name='workdir']").val();
 
     const pname = $("input[name='save-as']").val();
     const vid = $("input[name='vid']").val();
@@ -79,7 +82,6 @@ function saveUI() {
         descString3,
         inPath: $("input[name='indir']").val(),
         outPath: $("input[name='outdir']").val(),
-        workPath: workingPath,
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
         presets,
@@ -135,6 +137,10 @@ function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
     if (somePath.trim() === anotherPath.trim() || somePath.trim() === yetAnotherPath.trim()) {
         messageCallback('The ' + desc + ' directory should be different from the other two directories', true);
         return false;
+    }
+
+    if (!fs.existsSync(somePath)) {
+        fs.mkdirSync(somePath, { recursive: true });
     }
 
     return true;
@@ -289,6 +295,13 @@ function toggleButton(val) {
 }
 
 function doneCallback(runAborted) {
+    if (workingDirObj) {
+        messageCallback('Clearing working dir...');
+        workingDirObj.removeCallback();
+        workingDirObj = undefined;
+    }
+    messageCallback('Encryption complete');
+
     toggleButton(true);
 
     if (runAborted) {
@@ -333,29 +346,43 @@ function changeFileBrowserEnabled() {
 }
 
 function runEncrypt() {
-    const enccfg = saveUI();
+    try {
+        const enccfg = saveUI();
 
-    if (validate(enccfg)) {
-        setBtnEnabled(false);
-        $('#errors').hide();
-        $('#messages').show();
-        messageCallback('Starting...');
+        if (workingDirObj !== undefined) {
+            messageCallback('Clearing working dir...');
+            workingDirObj.removeCallback();
+            workingDirObj = undefined;
+        }
+        workingDirObj = tmp.dirSync({ unsafeCleanup: true });
+        enccfg.workPath = workingDirObj.name;
 
-        setTimeout(() => {
-            try {
-                // reset "check space ignore warnings" flag for this session
-                ignoreSpaceWarnings = false;
+        if (validate(enccfg)) {
+            setBtnEnabled(false);
+            $('#errors').hide();
+            $('#messages').show();
+            messageCallback('Starting...');
 
-                encrypt(
-                    enccfg, messageCallback, encCallback,
-                    unencCallback, doneCallback, checkSpaceCallback,
-                );
-            } catch (e) {
-                messageCallback('Exception running encryption!');
-                messageCallback(e, true);
-                doneCallback(false);
-            }
-        }, 333);
+            setTimeout(() => {
+                try {
+                    // reset "check space ignore warnings" flag for this session
+                    ignoreSpaceWarnings = false;
+
+                    encrypt(
+                        enccfg, messageCallback, encCallback,
+                        unencCallback, doneCallback, checkSpaceCallback,
+                    );
+                } catch (e) {
+                    messageCallback('Exception running encryption!');
+                    messageCallback(e, true);
+                    doneCallback(false);
+                }
+            }, 333);
+        }
+    } catch (e) {
+        messageCallback('Exception during setup!');
+        messageCallback(e, true);
+        doneCallback(false);
     }
 }
 
@@ -424,51 +451,6 @@ function clearWorkingDir(directory) {
     }
 
     return false;
-}
-
-function askClearWorkingDir() {
-    const askClearWorkingDirFn = () => {
-        workingPath = $("input[name='workdir']").val();
-
-        const choice = dialog.showMessageBox({
-            type: 'question',
-            buttons: ['Yes', 'No'],
-            defaultId: 0,
-            title: 'Clear the working dir?',
-            message: 'Are you sure you want to clear the working dir ("' +
-                     workingPath + '") ?',
-        });
-
-        if (choice === 0) { // yes
-            if (workingPath) {
-                if (clearWorkingDir(workingPath)) {
-                    dialog.showMessageBox({
-                        type: 'info',
-                        buttons: ['OK'],
-                        title: 'Working dir was cleared',
-                        message: 'The working dir was cleared successfully',
-                    });
-                } else {
-                    dialog.showMessageBox({
-                        type: 'warning',
-                        buttons: ['OK'],
-                        title: 'Working dir not cleared',
-                        message: 'The working dir was already empty, ' +
-                                 'or it does not exist',
-                    });
-                }
-            } else {
-                dialog.showMessageBox({
-                    type: 'warning',
-                    buttons: ['OK'],
-                    title: 'Working dir not defined',
-                    message: 'The working dir is not defined yet',
-                });
-            }
-        }
-    };
-
-    return askClearWorkingDirFn;
 }
 
 function clearOutputDir(directory) {
@@ -557,8 +539,6 @@ function restorePreset() {
 function loadUI(enccfg) {
     $('#btn-encrypt').off('click');
     $('#btn-select-indir').off('click');
-    $('#btn-select-workdir').off('click');
-    $('#btn-clear-workdir').off('click');
     $('#btn-select-outdir').off('click');
     $('#btn-clear-outdir').off('click');
     $('#btn-save-config').off('click');
@@ -605,15 +585,10 @@ function loadUI(enccfg) {
         // eslint-disable-next-line no-param-reassign
         enccfg.workPath = enccfg.outputPath;
     }
-    if (enccfg.hasOwnProperty('workingPath')) {
-        // eslint-disable-next-line no-param-reassign
-        enccfg.outPath = enccfg.workingPath;
-    }
 
     loadUIParams(enccfg);
     $('input[name="indir"]').val(enccfg.inPath);
     $('input[name="outdir"]').val(enccfg.outPath);
-    $('input[name="workdir"]').val(enccfg.workPath);
 
     if (!enccfg.hasOwnProperty('filematch')) {
         // eslint-disable-next-line no-param-reassign
@@ -641,8 +616,6 @@ function loadUI(enccfg) {
     setBtnEnabled(true);
 
     $('#btn-select-indir').on('click', chooseFile('indir', 'input'));
-    $('#btn-select-workdir').on('click', chooseFile('workdir', 'working'));
-    $('#btn-clear-workdir').on('click', askClearWorkingDir());
     $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
     $('#btn-clear-outdir').on('click', askClearOutputDir());
     $('#btn-save-config').on('click', () => {

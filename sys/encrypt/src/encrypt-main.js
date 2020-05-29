@@ -10,6 +10,9 @@ function createWindow() {
     mainWindow = new electron.BrowserWindow({
         width: 800,
         height: 700,
+        webPreferences: {
+            nodeIntegration: true
+        }
     });
 
     mainWindow.loadURL(url.format({
