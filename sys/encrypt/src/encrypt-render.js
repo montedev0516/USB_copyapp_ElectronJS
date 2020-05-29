@@ -278,22 +278,6 @@ function unencCallback(idx, total, isDone) {
     }
 }
 
-function toggleButton(val) {
-    setBtnEnabled(true);
-
-    if (val) {
-        $('#btn-encrypt')
-            .text('Done, continue ...')
-            .off('click')
-            .on('click', doContinue);
-    } else {
-        $('#btn-encrypt')
-            .text('Encrypt!')
-            .off('click')
-            .on('click', runEncrypt);
-    }
-}
-
 function doneCallback(runAborted) {
     if (workingDirObj) {
         messageCallback('Clearing working dir...');
@@ -302,6 +286,7 @@ function doneCallback(runAborted) {
     }
     messageCallback('Encryption complete');
 
+    // eslint-disable-next-line no-use-before-define
     toggleButton(true);
 
     if (runAborted) {
@@ -386,6 +371,34 @@ function runEncrypt() {
     }
 }
 
+function doContinue() {
+    setBtnEnabled(false);
+
+    setTimeout(() => {
+        // clear the output message
+        messageCallback(false);
+
+        // eslint-disable-next-line no-use-before-define
+        toggleButton(false);
+    }, 800);
+}
+
+function toggleButton(val) {
+    setBtnEnabled(true);
+
+    if (val) {
+        $('#btn-encrypt')
+            .text('Done, continue ...')
+            .off('click')
+            .on('click', doContinue);
+    } else {
+        $('#btn-encrypt')
+            .text('Encrypt!')
+            .off('click')
+            .on('click', runEncrypt);
+    }
+}
+
 function chooseFile(inputEl, desc) {
     const chooseFileFn = () => {
         const currentpath = $("input[name='" + inputEl + "']").val();
@@ -441,16 +454,6 @@ function clearDir(directory, removeDir) {
     }
 
     return ok;
-}
-
-function clearWorkingDir(directory) {
-    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        messageCallback('Clearing working dir ...');
-
-        return clearDir(directory, false);
-    }
-
-    return false;
 }
 
 function clearOutputDir(directory) {
@@ -623,17 +626,6 @@ function loadUI(enccfg) {
         loadUI(cfg);
     });
     $('#presets-select').on('change', restorePreset());
-}
-
-function doContinue() {
-    setBtnEnabled(false);
-
-    setTimeout(() => {
-        // clear the output message
-        messageCallback(false);
-
-        toggleButton(false);
-    }, 800);
 }
 
 $(() => {

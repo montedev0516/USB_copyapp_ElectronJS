@@ -11,8 +11,8 @@ function createWindow() {
         width: 800,
         height: 700,
         webPreferences: {
-            nodeIntegration: true
-        }
+            nodeIntegration: true,
+        },
     });
 
     mainWindow.loadURL(url.format({

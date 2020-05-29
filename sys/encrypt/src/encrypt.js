@@ -14,8 +14,8 @@ const serverconfig = {
    SERVER_PORT: 29500,
    useDeviceSerialNum: false,
    fileBrowserEnabled: false,
-   salt: 'c17155ee526f4ff9bad7d2623f5a26ad'
-}
+   salt: 'c17155ee526f4ff9bad7d2623f5a26ad',
+};
 
 let bytes;
 
