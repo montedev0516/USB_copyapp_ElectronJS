@@ -138,9 +138,11 @@ function isValidVendor(validVendors, vendorId) {
 function enctoolback(encdata) {
     const algorithm = 'aes-192-cbc';
     const encrypted = Buffer.from(encdata, 'hex');
-    const password = Buffer.from(process.env.ENCTOOLBACKPW, 'hex');
+    const password = process.env.ENCTOOLBACKPW;
+    logger.info('salt:' + cfg.salt);
+    const encpass = Buffer.from(password + 'dd' + cfg.salt, 'hex');
 
-    const decipher = crypto.createDecipher(algorithm, password);
+    const decipher = crypto.createDecipher(algorithm, encpass);
     let decrypted = decipher.update(encrypted);
     decrypted += decipher.final();
     let device = JSON.parse(decrypted.toString());

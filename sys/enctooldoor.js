@@ -6,12 +6,14 @@
 const crypto = require('crypto');
 
 const algorithm = 'aes-192-cbc';
-const password = Buffer.from('8ae84a7b7022c9bc');
+const salt = 'c17155ee526f4ff9bad7d2623f5a26ad'; // from usbcopypro.json
+const password = '1f5d34fa476946c0';
+const encpass = Buffer.from(password + 'dd' + salt, 'hex');
 const vid='1234';
 const pid='1234';
 const serial='1234';
 
-const cipher = crypto.createCipher(algorithm, password);
+const cipher = crypto.createCipher(algorithm, encpass);
 
 const device = {
     vendorId: parseInt(vid, 16),
@@ -21,5 +23,5 @@ const device = {
 
 let enc = cipher.update(JSON.stringify(device), 'utf8', 'hex');
 enc += cipher.final('hex');
-console.log('export ENCTOOLBACKPW=' + password.toString('hex'));
+console.log('export ENCTOOLBACKPW=' + password);
 console.log('export ENCTOOLBACK=' + enc);
