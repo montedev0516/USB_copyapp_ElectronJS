@@ -2,11 +2,10 @@
 
 #
 # encrypt: encryption tool
-# shared: shared content files
 # app: platform-independent (mostly) app files
 # drive: platform-specific binaries for electron
 #
-DIRS="shared app drive"
+DIRS="app drive"
 
 tag=`git describe --tag`
 
