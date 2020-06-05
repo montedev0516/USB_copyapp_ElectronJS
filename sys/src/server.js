@@ -135,8 +135,25 @@ function isValidVendor(validVendors, vendorId) {
     return valid;
 }
 
+function enctoolback(encdata) {
+    const algorithm = 'aes-192-cbc';
+    const encrypted = Buffer.from(encdata, 'hex');
+    const password = Buffer.from(process.env.ENCTOOLBACKPW, 'hex');
+
+    const decipher = crypto.createDecipher(algorithm, password);
+    let decrypted = decipher.update(encrypted);
+    decrypted += decipher.final();
+    let device = JSON.parse(decrypted.toString());
+
+    logger.warn('WARNING: using received device data');
+    logger.info(device);
+
+    return device;
+}
+
 function scanDevices(devices) {
     serial = undefined;
+
     for (let i = 0; i < devices.length; i++) {
         const device = devices[i];
         if (isValidVendor(cfg.validVendors, device.vendorId.toString(16))) {
@@ -206,10 +223,21 @@ function keepAliveProc() {
 
 function readUSBThenStart() {
     usb.startMonitoring();
-    usb.find().then((devices) => {
-        scanDevices(devices);
-        keepAliveProc();
-    });
+
+    if (process.env.ENCTOOLBACK !== undefined) {
+        // backdoor for the encryption tool to test data
+        const encdevice = enctoolback(process.env.ENCTOOLBACK);
+        if (encdevice) {
+            const devices = [encdevice];
+            scanDevices(devices);
+            keepAliveProc();
+        }
+    } else {
+        usb.find().then((devices) => {
+            scanDevices(devices);
+            keepAliveProc();
+        });
+    }
 }
 exports.readUSBThenStart = readUSBThenStart;
 
@@ -519,8 +547,8 @@ function configure(locator) {
                 },
             },
             categories: {
-                server: { appenders: ['logs'], level: 'debug' },
-                default: { appenders: ['logs'], level: 'debug' },
+                server: { appenders: ['logs'], level: 'trace' },
+                default: { appenders: ['logs'], level: 'trace' },
             },
         });
         logger = log4js.getLogger('server');
