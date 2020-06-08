@@ -25,7 +25,9 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     const outPath = path.join(enccfg.outPath, 'shared');
 
     try {
-        fs.mkdirSync(outPath);
+        if (!fs.existsSync(outPath)) {
+            fs.mkdirSync(outPath);
+        }
     } catch(error) {
         msgcb(error.toString(), true);
         return;
