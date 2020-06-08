@@ -84,6 +84,7 @@ function saveUI() {
         outPath: $("input[name='outdir']").val(),
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
+        sysPath: '/usr/share/usbcopypro',
         presets,
     };
 
@@ -539,6 +540,24 @@ function restorePreset() {
     return restorePresetFn;
 }
 
+function getSystemPath(sysPath) {
+    const checkList = [
+        sysPath,
+        '/usr/share/usbcopypro',
+        '/usr/local/share/usbcopypro'
+    ];
+    for (let i = 0; i < checkList.length; i++) {
+        if (checkList[i] === undefined) {
+            continue;
+        }
+        const checkFile = path.join(checkList[i], 'sys','locator.json');
+        if (fs.existsSync(checkFile)) {
+            return checkList[i];
+        }
+    }
+    return undef;
+}
+
 function loadUI(enccfg) {
     $('#btn-encrypt').off('click');
     $('#btn-select-indir').off('click');
@@ -556,7 +575,12 @@ function loadUI(enccfg) {
         longVersion = vers.version + '+DEV';
     }
 
-    $('#version-info').text('Version: ' + longVersion);
+    $('#version-info').text(longVersion);
+
+    // location of the content app installed on the system
+    let sysPath = getSystemPath(enccfg.sysPath);
+    $('#system-info').text(sysPath ? sysPath : 'SYSTEM NOT FOUND');
+    enccfg.sysPath = sysPath;
 
     if (typeof enccfg.presets === 'undefined') {
         presets = {};
