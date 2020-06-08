@@ -29,5 +29,7 @@ function createWindow() {
     });
 }
 
+// diskusage native proc requires no process reuse
+app.allowRendererProcessReuse = false;
 app.on('ready', createWindow);
 

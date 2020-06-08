@@ -25,3 +25,7 @@ let enc = cipher.update(JSON.stringify(device), 'utf8', 'hex');
 enc += cipher.final('hex');
 console.log('export ENCTOOLBACKPW=' + password);
 console.log('export ENCTOOLBACK=' + enc);
+console.log(
+    'export ENCTOOLLOC=' +
+    '/home/davek/work/usb/secure-usb-content/sys'
+);

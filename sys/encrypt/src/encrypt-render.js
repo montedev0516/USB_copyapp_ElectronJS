@@ -46,6 +46,10 @@ function newMaskHTML(name, i) {
         '</div>';
 }
 
+function btnLaunchClick() {
+
+}
+
 // Add the contents of the input box to the
 // list of masks, and clear the box.
 function addNewMask() {
@@ -558,6 +562,21 @@ function getSystemPath(sysPath) {
     return undef;
 }
 
+function checkSetSystemPath() {
+    let sysPath = getSystemPath(enccfg.sysPath);
+    $('#system-info').text(sysPath ? sysPath : 'SYSTEM NOT FOUND');
+    enccfg.sysPath = sysPath;
+    if (sysPath) {
+        $('#btn-launch')
+            .addClass('btnenabled')
+            .on('click', btnLaunchClick);
+    } else {
+        $('#btn-launch')
+            .addClass('btndisabled')
+            .off('click');
+    }
+}
+
 function loadUI(enccfg) {
     $('#btn-encrypt').off('click');
     $('#btn-select-indir').off('click');
@@ -578,9 +597,7 @@ function loadUI(enccfg) {
     $('#version-info').text(longVersion);
 
     // location of the content app installed on the system
-    let sysPath = getSystemPath(enccfg.sysPath);
-    $('#system-info').text(sysPath ? sysPath : 'SYSTEM NOT FOUND');
-    enccfg.sysPath = sysPath;
+    checkSetSystemPath();
 
     if (typeof enccfg.presets === 'undefined') {
         presets = {};
