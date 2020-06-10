@@ -148,6 +148,7 @@ function findLocator() {
     const locatorFile = 'locator.json';
     let found = false;
     let dir = __dirname;
+    let locatorPath;
 
     // If there is ENCTOOLLOC env defined, use it as the path
     // to the locator.  This is used by the "launch" feature
@@ -155,28 +156,29 @@ function findLocator() {
     let pathDefined = false;
     if (process.env.ENCTOOLLOC !== undefined) {
         pathDefined = true;
-        dir = process.env.ENCTOOLLOC;
+        locatorPath = process.env.ENCTOOLLOC;
     }
 
     do {
-        if (fs.existsSync(path.join(dir, locatorFile))) {
+        if (fs.existsSync(locatorPath)) {
             found = true;
             break;
         }
         if (pathDefined || (path.dirname(dir) === dir)) break;
         dir = path.resolve(dir, '..');
+        locatorPath = path.join(dir, locatorFile);
     } while (!found);
 
     if (!found) {
         let errstr = "can't find locator file: " + locatorFile;
         if (pathDefined) {
-            errstr += ' path: ' + dir;
+            errstr += "\npath: " + locatorPath;
         }
-        throw new Error("can't find locator file: " + locatorFile);
+        throw new Error(errstr);
     }
 
     // eslint-disable-next-line global-require, import/no-dynamic-require
-    const locator = require(path.join(dir, locatorFile));
+    const locator = require(locatorPath);
     locator.shared = path.resolve(dir, locator.shared);
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);

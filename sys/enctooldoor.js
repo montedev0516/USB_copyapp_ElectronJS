@@ -27,5 +27,5 @@ console.log('export ENCTOOLBACKPW=' + password);
 console.log('export ENCTOOLBACK=' + enc);
 console.log(
     'export ENCTOOLLOC=' +
-    '/home/davek/work/usb/secure-usb-content/sys'
+    '/home/davek/work/usb/secure-usb-content/sys/locator.json'
 );
