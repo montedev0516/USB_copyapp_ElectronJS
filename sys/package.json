@@ -16,7 +16,7 @@
     "on-finished": "^2.3.0",
     "opn": "^5.2.0",
     "tiny-worker": "^2.1.2",
-    "usb-detection": "file:../repo/node-usb-detection/usb-detection-2.2.1.tgz",
+    "usb-detection": "file:../repo/node-usb-detection/usb-detection-4.9.1.tgz",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
