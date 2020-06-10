@@ -537,8 +537,8 @@ function streamFile(match, res, req, encfile) {
 }
 
 function configure(locator) {
-    // TODO: this shouldn't be a global require
-    cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
+    const cfgpath = path.join(locator.shared, 'usbcopypro.json');
+    cfg = require(JSON.parse(fs.readFileSync(cfgpath)));
 
     if (typeof locator.logging !== 'undefined') {
         log4js.configure({

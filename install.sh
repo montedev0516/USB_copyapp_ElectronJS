@@ -12,9 +12,10 @@ croak() {
 
 if [ "$SYS" = "Linux" ] ; then
     INSTALLDIR=/usr/share/usbcopypro
-    mkdir -p $INSTALLDIR/sys || croak "no install dir"
-    cd $INSTALLDIR/sys
+    mkdir -p $INSTALLDIR/app || croak "no install dir"
+    cd $INSTALLDIR/app
     for f in $ZIPS ; do 
         unzip $f
     done
+    mv -v locator.json ..
 fi

@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const os = require('os');
 const tmp = require('tmp');
 const vers = require('../package.json');
-
+const { execFile } = require('child_process');
 const { dialog } = require('electron').remote;
 
 require('jquery-ui');
@@ -47,7 +47,63 @@ function newMaskHTML(name, i) {
 }
 
 function btnLaunchClick() {
+    const tempLocator = tmp.fileSync();
+    const enccfg = saveUI();
 
+    if (!enccfg.sysPath) {
+        messageCallback('ERROR: no system path', true);
+        return;
+    }
+
+    const execPath = path.join(enccfg.sysPath,
+        'app', 'sys','usbcopypro-linux-x64','usbcopypro'
+    );
+    const appPath = path.join(enccfg.sysPath,
+        'app', 'sys', 'resources', 'app.asar'
+    );
+
+    if (!fs.existsSync(execPath)) {
+        messageCallback('ERROR: executable not found "' + execPath + '"', true);
+        return;
+    }
+
+    messageCallback(
+        'Launching test application with encrypted data</br>' +
+        'Locator: ' + tempLocator.name + '</br>' +
+        "Executable: " +  execPath
+    );
+
+    const locData = {
+        "shared": path.join(enccfg.outPath, 'shared'),
+        "app": appPath,
+        "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe",
+    };
+
+    try {
+        fs.writeFileSync(tempLocator.fd, JSON.stringify(locData));
+
+        const newenv = Object.assign(process.env, {
+            ENCTOOLBACKPW: 'foo',
+            ENCTOOLBACK: 'foo',
+            ENCTOOLLOC: tempLocator.name,
+        });
+
+        const child = execFile(execPath, [], {
+            env: newenv
+        }, (error, stdout, stderr) => {
+            messageCallback('Process finished');
+            if (error) {
+                messageCallback(error, true);
+            }
+        });
+
+        if (!child) {
+            messageCallback('ERROR spaning process', true);
+        }
+    } catch (e) {
+        messageCallback('ERROR: ' + e.message, true);
+        throw e;
+    }
 }
 
 // Add the contents of the input box to the
@@ -350,7 +406,6 @@ function runEncrypt() {
         if (validate(enccfg)) {
             setBtnEnabled(false);
             $('#errors').hide();
-            $('#messages').show();
             messageCallback('Starting...');
 
             setTimeout(() => {
@@ -554,15 +609,15 @@ function getSystemPath(sysPath) {
         if (checkList[i] === undefined) {
             continue;
         }
-        const checkFile = path.join(checkList[i], 'sys','locator.json');
+        const checkFile = path.join(checkList[i], 'locator.json');
         if (fs.existsSync(checkFile)) {
             return checkList[i];
         }
     }
-    return undef;
+    return;
 }
 
-function checkSetSystemPath() {
+function checkSetSystemPath(enccfg) {
     let sysPath = getSystemPath(enccfg.sysPath);
     $('#system-info').text(sysPath ? sysPath : 'SYSTEM NOT FOUND');
     enccfg.sysPath = sysPath;
@@ -586,6 +641,7 @@ function loadUI(enccfg) {
     $('#presets-select').off('change');
     $('#fileBrowserEnabled').off('change');
 
+    $('#messages').show();
     // version
     try {
         const tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
@@ -597,7 +653,7 @@ function loadUI(enccfg) {
     $('#version-info').text(longVersion);
 
     // location of the content app installed on the system
-    checkSetSystemPath();
+    checkSetSystemPath(enccfg);
 
     if (typeof enccfg.presets === 'undefined') {
         presets = {};
@@ -667,6 +723,8 @@ function loadUI(enccfg) {
         loadUI(cfg);
     });
     $('#presets-select').on('change', restorePreset());
+
+    messageCallback('Encryption Tool version ' + longVersion + ' ready');
 }
 
 $(() => {

@@ -177,8 +177,8 @@ function findLocator() {
         throw new Error(errstr);
     }
 
-    // eslint-disable-next-line global-require, import/no-dynamic-require
-    const locator = require(locatorPath);
+
+    const locator = JSON.parse(fs.readFileSync(locatorPath, 'utf8'));
     locator.shared = path.resolve(dir, locator.shared);
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);
