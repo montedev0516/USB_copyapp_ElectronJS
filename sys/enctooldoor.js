@@ -6,7 +6,7 @@
 const crypto = require('crypto');
 
 const algorithm = 'aes-192-cbc';
-const salt = 'c17155ee526f4ff9bad7d2623f5a26ad'; // from usbcopypro.json
+const salt = '1bbb51d536f620ba6384d62edea2affd0585d6dfca452fa0f54a123b6a364f9c'; // from usbcopypro.json
 const password = '1f5d34fa476946c0';
 const encpass = Buffer.from(password + 'dd' + salt, 'hex');
 const vid='1234';

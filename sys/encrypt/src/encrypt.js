@@ -14,7 +14,6 @@ const serverconfig = {
    SERVER_PORT: 29500,
    useDeviceSerialNum: false,
    fileBrowserEnabled: false,
-   salt: 'c17155ee526f4ff9bad7d2623f5a26ad',
 };
 
 let bytes;
@@ -44,6 +43,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     srvcfg.version = enccfg.version;
     // save file browser enabled
     srvcfg.fileBrowserEnabled = enccfg.fileBrowserEnabled;
+    // salt
+    srvcfg.salt = crypto.randomBytes(32).toString('hex');
 
     msgcb('writing config file...');
     fs.writeFileSync(

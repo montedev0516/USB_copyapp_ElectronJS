@@ -614,7 +614,7 @@ function getSystemPath(sysPath) {
 function checkSetSystemPath(enccfg) {
     const sysPath = getSystemPath(enccfg.sysPath);
     $('#system-info').text(sysPath || 'SYSTEM NOT FOUND');
-    const ret = Object.assign(enccfg, { sysPath });
+    const ret = Object.assign({ sysPath }, enccfg);
     if (sysPath) {
         $('#btn-launch')
             .addClass('btnenabled')
