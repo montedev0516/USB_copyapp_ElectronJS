@@ -181,8 +181,7 @@ function messageCallback(s, isError) {
             .html(s);
     } else {
         $('#messages')
-            .html('')
-            .hide();
+            .html('');
         $('#errors')
             .html('')
             .hide();
@@ -363,7 +362,7 @@ function checkSpaceCallback(message) {
         return true;
     }
 
-    const choice = dialog.showMessageBox({
+    const choice = dialog.showMessageBoxSyncSync({
         type: 'question',
         buttons: ['Stop', 'Continue', 'Ignore all'],
         defaultId: 0,
@@ -460,21 +459,17 @@ function toggleButton(val) {
 }
 
 function chooseFile(inputEl, desc) {
-    const chooseFileFn = () => {
-        const currentpath = $("input[name='" + inputEl + "']").val();
+    const currentpath = $("input[name='" + inputEl + "']").val();
 
-        const paths = dialog.showOpenDialog({
-            title: 'Select the ' + desc + ' directory',
-            defaultPath: currentpath,
-            properties: ['openDirectory'],
-        });
+    const paths = dialog.showOpenDialog({
+        title: 'Select the ' + desc + ' directory',
+        defaultPath: currentpath,
+        properties: ['openDirectory'],
+    });
 
-        if (paths && paths.length === 1) {
-            $("input[name='" + inputEl + "']").val(paths[0]);
-        }
-    };
-
-    return chooseFileFn;
+    if (paths && paths.length === 1) {
+        $("input[name='" + inputEl + "']").val(paths[0]);
+    }
 }
 
 function clearDir(directory, removeDir) {
@@ -527,47 +522,44 @@ function clearOutputDir(directory) {
 }
 
 function askClearOutputDir() {
-    const askClearOutputDirFn = () => {
-        const outPath = $("input[name='outdir']").val();
+    const outPath = $("input[name='outdir']").val();
 
-        const choice = dialog.showMessageBox({
-            type: 'question',
-            buttons: ['Yes', 'No'],
-            defaultId: 0,
-            title: 'Clear the output dir?',
-            message: 'Are you sure you want to clear the output dir ("' +
-                     outPath + '") ?',
-        });
+    const choice = dialog.showMessageBoxSync({
+        type: 'question',
+        buttons: ['Yes', 'No'],
+        defaultId: 0,
+        title: 'Clear the output dir?',
+        message: 'Are you sure you want to clear the output dir ("' +
+                 outPath + '") ?',
+    });
 
-        if (choice === 0) { // yes
-            if (outPath) {
-                if (clearOutputDir(outPath)) {
-                    dialog.showMessageBox({
-                        type: 'info',
-                        buttons: ['OK'],
-                        title: 'Output dir was cleared',
-                        message: 'The output dir was cleared successfully',
-                    });
-                } else {
-                    dialog.showMessageBox({
-                        type: 'warning',
-                        buttons: ['OK'],
-                        title: 'Output dir not cleared',
-                        message: 'Failed to clear output dir',
-                    });
-                }
+    if (choice === 0) { // yes
+        if (outPath) {
+            if (clearOutputDir(outPath)) {
+                dialog.showMessageBoxSync({
+                    type: 'info',
+                    buttons: ['OK'],
+                    title: 'Output dir was cleared',
+                    message: 'The output dir was cleared successfully',
+                });
+                messageCallback('Output dir cleared');
             } else {
-                dialog.showMessageBox({
+                dialog.showMessageBoxSync({
                     type: 'warning',
                     buttons: ['OK'],
-                    title: 'Output dir not defined',
-                    message: 'The output dir is not defined yet',
+                    title: 'Output dir not cleared',
+                    message: 'Failed to clear output dir',
                 });
             }
+        } else {
+            dialog.showMessageBoxSync({
+                type: 'warning',
+                buttons: ['OK'],
+                title: 'Output dir not defined',
+                message: 'The output dir is not defined yet',
+            });
         }
-    };
-
-    return askClearOutputDirFn;
+    }
 }
 
 function loadUIParams(enccfg) {
@@ -715,9 +707,15 @@ function loadUI(enccfg) {
 
     setBtnEnabled(true);
 
-    $('#btn-select-indir').on('click', chooseFile('indir', 'input'));
-    $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
-    $('#btn-clear-outdir').on('click', askClearOutputDir());
+    $('#btn-select-indir').on('click', () => {
+        chooseFile('indir', 'input');
+    });
+    $('#btn-select-outdir').on('click', () => {
+        chooseFile('outdir', 'output');
+    });
+    $('#btn-clear-outdir').on('click', () => {
+        askClearOutputDir();
+    });
     $('#btn-save-config').on('click', () => {
         const cfg = saveUI();
         loadUI(cfg);
