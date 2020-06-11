@@ -538,7 +538,7 @@ function streamFile(match, res, req, encfile) {
 
 function configure(locator) {
     const cfgpath = path.join(locator.shared, 'usbcopypro.json');
-    cfg = require(JSON.parse(fs.readFileSync(cfgpath)));
+    cfg = JSON.parse(fs.readFileSync(cfgpath));
 
     if (typeof locator.logging !== 'undefined') {
         log4js.configure({
