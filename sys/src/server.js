@@ -232,6 +232,7 @@ function readUSBThenStart() {
         if (encdevice) {
             const devices = [encdevice];
             scanDevices(devices);
+            devmon = undefined;
             keepAliveProc();
         }
     } else {
