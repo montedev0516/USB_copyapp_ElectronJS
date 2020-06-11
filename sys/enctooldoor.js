@@ -4,9 +4,13 @@
 
 // generate the backdoor key
 const crypto = require('crypto');
+const fs = require('fs');
+
+const srvcfg = JSON.parse(
+    fs.readFileSync('/home/davek/work/t/encrypt/out/shared/usbcopypro.json'));
 
 const algorithm = 'aes-192-cbc';
-const salt = '1bbb51d536f620ba6384d62edea2affd0585d6dfca452fa0f54a123b6a364f9c'; // from usbcopypro.json
+const salt = srvcfg.salt;
 const password = '1f5d34fa476946c0';
 const encpass = Buffer.from(password + 'dd' + salt, 'hex');
 const vid='1234';
