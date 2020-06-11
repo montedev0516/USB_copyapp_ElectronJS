@@ -2,12 +2,13 @@
 
 cd `dirname $0`
 
-./makezip.sh
-
 if [ "$1" = "-f" ] ; then
     echo Removing existing installation...
-    rm -r /usr/share/usbcopypro/*
+    rm -fv *.zip || exit 1
+    rm -r /usr/share/usbcopypro/* || exit 1
 fi
+
+./makezip.sh || exit 1
 
 SYS=`uname -s`
 ZIPS=$(eval echo `pwd`/*.zip)
