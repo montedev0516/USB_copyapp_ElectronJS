@@ -164,7 +164,7 @@ function btnLaunchClick() {
             if (error) {
                 messageCallback(error, true);
             } else {
-                const s = '<samp>' + stdout + stderr + '</samp>';
+                const s = '<pre>' + stdout + stderr + '</pre>';
                 messageCallback(s);
             }
         });
