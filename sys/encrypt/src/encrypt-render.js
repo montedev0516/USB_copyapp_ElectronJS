@@ -142,20 +142,46 @@ function btnLaunchClick() {
         'Executable: ' + execPath,
     );
 
+    const sharedPath = path.join(enccfg.outPath, 'shared');
     const locData = {
-        shared: path.join(enccfg.outPath, 'shared'),
+        shared: sharedPath,
         app: appPath,
         drive: '.\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
     };
 
     try {
+        const serverCfg = JSON.parse(fs.readFileSync(
+            path.join(sharedPath, 'usbcopypro.json')));
         fs.writeFileSync(tempLocator.fd, JSON.stringify(locData));
+        const salt = serverCfg.salt;
 
-        const newenv = Object.assign(process.env, {
-            ENCTOOLBACKPW: 'foo',
-            ENCTOOLBACK: 'foo',
+        if (!salt) {
+            throw new Error('ERROR: usbcopypro.json is invalid');
+        }
+
+        const algorithm = 'aes-192-cbc';
+        const password = crypto.randomBytes(16).toString('hex');
+        const encpass = Buffer.from(password + 'dd' + salt, 'hex');
+        const vid = enccfg.vid;
+        const pid = enccfg.pid;
+        const serial = enccfg.descString3;
+
+        const cipher = crypto.createCipher(algorithm, encpass);
+
+        const device = {
+            vendorId: parseInt(vid, 16),
+            productId: parseInt(pid, 16),
+            serialNumber: serial,
+        };
+
+        let enc = cipher.update(JSON.stringify(device), 'utf8', 'hex');
+        enc += cipher.final('hex');
+
+        const newenv = Object.assign({
+            ENCTOOLBACKPW: password,
+            ENCTOOLBACK: enc,
             ENCTOOLLOC: tempLocator.name,
-        });
+        }, process.env);
 
         const child = execFile(execPath, [], {
             env: newenv,
