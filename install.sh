@@ -2,6 +2,11 @@
 
 cd `dirname $0`
 
+if [ "$1" = "-f" ] ; then
+    echo Removing existing installation...
+    rm -r /usr/share/usbcopypro/*
+fi
+
 SYS=`uname -s`
 ZIPS=$(eval echo `pwd`/*.zip)
 

@@ -5,6 +5,7 @@
 #
 
 SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
+export NODE_ENV=production
 
 cd `dirname $0` || exit
 _pwd=`pwd`
@@ -32,7 +33,7 @@ cp -r src package* default_app locator.json es6-shim-server.js dist/
 : 'Done!'
 
 cd dist
-npm install
+npm install --production
 cp -v package-lock.json ..
 
 # Hackish build for native module.  This
@@ -65,7 +66,7 @@ popd
     cat ../encrypt/src/password.js
 ) > src/password.js
 
-$(npm bin)/electron-forge package
+../node_modules/.bin/electron-forge package
 if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
     dir=${SYSNAME}-linux-x64
     suffix=linux

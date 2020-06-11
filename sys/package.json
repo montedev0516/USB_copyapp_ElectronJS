@@ -17,13 +17,13 @@
     "opn": "^5.2.0",
     "tiny-worker": "^2.1.2",
     "usb-detection": "file:../repo/node-usb-detection/usb-detection-4.9.1.tgz",
+    "babel-preset-react": "^6.24.1",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
     "asar": "^0.14.6",
     "babel-plugin-transform-async-to-generator": "^6.24.1",
     "babel-preset-env": "^1.6.1",
-    "babel-preset-react": "^6.24.1",
     "electron-forge": "^5.2.4",
     "electron-prebuilt-compile": "3.0.13",
     "electron-rebuild": "^1.8.4",
