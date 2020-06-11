@@ -33,3 +33,6 @@ console.log(
     'export ENCTOOLLOC=' +
     '/home/davek/work/usb/secure-usb-content/sys/locator.json'
 );
+/*
+unset ENCTOOLLOC ENCTOOLBACKPW ENCTOOLBACK
+ */
