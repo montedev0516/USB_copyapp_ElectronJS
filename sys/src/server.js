@@ -213,6 +213,7 @@ function keepAliveProc() {
     if (exports.keepAlive) {
         setTimeout(() => {
             checkUSB();
+            logger.debug('Server keepAliveProc ping');
             keepAliveProc();
         }, 750);
     } else {
@@ -224,8 +225,6 @@ function keepAliveProc() {
 }
 
 function readUSBThenStart() {
-    usb.startMonitoring();
-
     if (process.env.ENCTOOLBACK !== undefined) {
         // backdoor for the encryption tool to test data
         const encdevice = enctoolback(process.env.ENCTOOLBACK);
@@ -236,6 +235,7 @@ function readUSBThenStart() {
             keepAliveProc();
         }
     } else {
+        usb.startMonitoring();
         usb.find().then((devices) => {
             scanDevices(devices);
             keepAliveProc();

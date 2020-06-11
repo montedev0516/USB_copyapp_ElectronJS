@@ -2,6 +2,8 @@
 
 cd `dirname $0`
 
+./makezip.sh
+
 if [ "$1" = "-f" ] ; then
     echo Removing existing installation...
     rm -r /usr/share/usbcopypro/*
