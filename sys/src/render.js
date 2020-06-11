@@ -41,13 +41,11 @@ function checkLoad(cfg, retry) {
     }
 
     $.ajax(URL + '/status').done((data) => {
-
         if (data.running) {
             /* This causes the screen to flash before loading the
              * landing page.  Probably not necessary.
             loadStat(passed); */
         } else {
-
             const serial = `Support Code: ${data.serial}`;
 
             const lockedSerial =

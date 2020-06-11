@@ -172,7 +172,7 @@ function findLocator() {
     if (!found) {
         let errstr = "can't find locator file: " + locatorFile;
         if (pathDefined) {
-            errstr += "\npath: " + locatorPath;
+            errstr += '\npath: ' + locatorPath;
         }
         throw new Error(errstr);
     }

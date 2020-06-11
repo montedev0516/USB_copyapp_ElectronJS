@@ -97,6 +97,7 @@ function startServer() {
 
     server.on('clientError', (err, socket) => {
         logger.error('https client (ignored): ' + err);
+        logger.error('https client socket: ' + socket);
     });
 
     server.on('error', (e) => {
@@ -145,7 +146,7 @@ function enctoolback(encdata) {
     const decipher = crypto.createDecipher(algorithm, encpass);
     let decrypted = decipher.update(encrypted);
     decrypted += decipher.final();
-    let device = JSON.parse(decrypted.toString());
+    const device = JSON.parse(decrypted.toString());
 
     logger.warn('WARNING: using received device data');
     logger.info(device);
@@ -345,7 +346,7 @@ function unmask(input, bytestart, byteend, res, req) {
     }
 }
 
-function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
+function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
     try {
         if (pwCache === undefined) {
             pwCache = pwsys.makePassword(
@@ -385,6 +386,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
         const base = path.basename(fname);
         if (base in originalSize) {
             let byteend;
+            let bytestart = bytestartp;
             // used mask, no encrypt
             if (bytestart != null) {
                 // streaming
