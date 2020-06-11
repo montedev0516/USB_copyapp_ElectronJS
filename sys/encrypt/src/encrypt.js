@@ -270,11 +270,11 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
             // These are the only files available for streaming.
             if (useMask) {
                 const filter = stream.Writable();
+                let j = 0;
                 filter._write = // eslint-disable-line no-underscore-dangle
                     (chunk, encoding, done) => {
                         const c =
                             new Buffer.alloc(chunk.length); // eslint-disable-line new-cap
-                        let j = 0;
                         for (let i = 0; i < chunk.length; i++) {
                             c[i] = chunk[i] ^ secret[j]; // eslint-disable-line
                             j = (j + 1) % secret.length;
