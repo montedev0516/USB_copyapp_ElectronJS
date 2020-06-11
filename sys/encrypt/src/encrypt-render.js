@@ -63,6 +63,57 @@ function messageCallback(s, isError) {
     }
 }
 
+function saveUI() {
+    $('#btn-save-config')[0].innerHTML = 'Saving...';
+
+    const pname = $("input[name='save-as']").val();
+    const vid = $("input[name='vid']").val();
+    const pid = $("input[name='pid']").val();
+    const descString3 = $("input[name='serial']").val();
+
+    if (typeof pname !== 'undefined' && pname.trim().length !== 0) {
+        presets[pname.trim()] = { vid, pid, descString3 };
+    }
+
+    const enccfg = {
+        vid,
+        pid,
+        mfg: 0, // unused
+        prod: 0, // unused
+        serial: 0, // unused
+        descString1: '', // unused
+        descString2: '', // unused
+        descString3,
+        inPath: $("input[name='indir']").val(),
+        outPath: $("input[name='outdir']").val(),
+        apiKey: crypto.randomBytes(32).toString('hex'),
+        version: longVersion,
+        sysPath: '/usr/share/usbcopypro',
+        presets,
+    };
+
+    // Always encrypt.
+    enccfg.encrypt = true;
+
+    enccfg.filematch = [];
+    const els = $('div[name="matchlist"]');
+    for (let i = 0; i < els.length; i++) {
+        enccfg.filematch.push($(els[i]).find('[name="matchrow"]').text());
+    }
+
+    enccfg.fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
+
+    fs.writeFileSync(
+        conffile,
+        JSON.stringify(enccfg),
+    );
+
+    setTimeout(() => {
+        $('#btn-save-config')[0].innerHTML = 'Save';
+    }, 300);
+
+    return enccfg;
+}
 
 function btnLaunchClick() {
     const tempLocator = tmp.fileSync();
@@ -138,58 +189,6 @@ function addNewMask() {
     $('#matchlist').html(nhtml);
     el.val('');
     maskCounter++;
-}
-
-function saveUI() {
-    $('#btn-save-config')[0].innerHTML = 'Saving...';
-
-    const pname = $("input[name='save-as']").val();
-    const vid = $("input[name='vid']").val();
-    const pid = $("input[name='pid']").val();
-    const descString3 = $("input[name='serial']").val();
-
-    if (typeof pname !== 'undefined' && pname.trim().length !== 0) {
-        presets[pname.trim()] = { vid, pid, descString3 };
-    }
-
-    const enccfg = {
-        vid,
-        pid,
-        mfg: 0, // unused
-        prod: 0, // unused
-        serial: 0, // unused
-        descString1: '', // unused
-        descString2: '', // unused
-        descString3,
-        inPath: $("input[name='indir']").val(),
-        outPath: $("input[name='outdir']").val(),
-        apiKey: crypto.randomBytes(32).toString('hex'),
-        version: longVersion,
-        sysPath: '/usr/share/usbcopypro',
-        presets,
-    };
-
-    // Always encrypt.
-    enccfg.encrypt = true;
-
-    enccfg.filematch = [];
-    const els = $('div[name="matchlist"]');
-    for (let i = 0; i < els.length; i++) {
-        enccfg.filematch.push($(els[i]).find('[name="matchrow"]').text());
-    }
-
-    enccfg.fileBrowserEnabled = $('#fileBrowserEnabled').prop('checked');
-
-    fs.writeFileSync(
-        conffile,
-        JSON.stringify(enccfg),
-    );
-
-    setTimeout(() => {
-        $('#btn-save-config')[0].innerHTML = 'Save';
-    }, 300);
-
-    return enccfg;
 }
 
 function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
