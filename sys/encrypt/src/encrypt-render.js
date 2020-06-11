@@ -46,6 +46,24 @@ function newMaskHTML(name, i) {
         '</div>';
 }
 
+function messageCallback(s, isError) {
+    if (isError) {
+        $('#errors')
+            .show()
+            .html(s);
+    } else if (s) {
+        $('#messages')
+            .html(s);
+    } else {
+        $('#messages')
+            .html('');
+        $('#errors')
+            .html('')
+            .hide();
+    }
+}
+
+
 function btnLaunchClick() {
     const tempLocator = tmp.fileSync();
     const enccfg = saveUI();
@@ -56,10 +74,10 @@ function btnLaunchClick() {
     }
 
     const execPath = path.join(enccfg.sysPath,
-        'app', 'sys','usbcopypro-linux-x64','usbcopypro'
+        'app', 'sys', 'usbcopypro-linux-x64', 'usbcopypro',
     );
     const appPath = path.join(enccfg.sysPath,
-        'app', 'sys', 'resources', 'app.asar'
+        'app', 'sys', 'resources', 'app.asar',
     );
 
     if (!fs.existsSync(execPath)) {
@@ -70,13 +88,13 @@ function btnLaunchClick() {
     messageCallback(
         'Launching test application with encrypted data</br>' +
         'Locator: ' + tempLocator.name + '</br>' +
-        "Executable: " +  execPath
+        'Executable: ' + execPath,
     );
 
     const locData = {
-        "shared": path.join(enccfg.outPath, 'shared'),
-        "app": appPath,
-        "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe",
+        shared: path.join(enccfg.outPath, 'shared'),
+        app: appPath,
+        drive: '.\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
     };
 
     try {
@@ -89,11 +107,14 @@ function btnLaunchClick() {
         });
 
         const child = execFile(execPath, [], {
-            env: newenv
+            env: newenv,
         }, (error, stdout, stderr) => {
             messageCallback('Process finished');
             if (error) {
                 messageCallback(error, true);
+            } else {
+                const s = '<samp>' + stdout + stderr + '</samp>';
+                messageCallback(s);
             }
         });
 
@@ -169,23 +190,6 @@ function saveUI() {
     }, 300);
 
     return enccfg;
-}
-
-function messageCallback(s, isError) {
-    if (isError) {
-        $('#errors')
-            .show()
-            .html(s);
-    } else if (s) {
-        $('#messages')
-            .html(s);
-    } else {
-        $('#messages')
-            .html('');
-        $('#errors')
-            .html('')
-            .hide();
-    }
 }
 
 function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
@@ -595,24 +599,23 @@ function getSystemPath(sysPath) {
     const checkList = [
         sysPath,
         '/usr/share/usbcopypro',
-        '/usr/local/share/usbcopypro'
+        '/usr/local/share/usbcopypro',
     ];
     for (let i = 0; i < checkList.length; i++) {
-        if (checkList[i] === undefined) {
-            continue;
-        }
-        const checkFile = path.join(checkList[i], 'locator.json');
-        if (fs.existsSync(checkFile)) {
-            return checkList[i];
+        if (checkList[i] !== undefined) {
+            const checkFile = path.join(checkList[i], 'locator.json');
+            if (fs.existsSync(checkFile)) {
+                return checkList[i];
+            }
         }
     }
-    return;
+    return undefined;
 }
 
 function checkSetSystemPath(enccfg) {
-    let sysPath = getSystemPath(enccfg.sysPath);
-    $('#system-info').text(sysPath ? sysPath : 'SYSTEM NOT FOUND');
-    enccfg.sysPath = sysPath;
+    const sysPath = getSystemPath(enccfg.sysPath);
+    $('#system-info').text(sysPath || 'SYSTEM NOT FOUND');
+    const ret = Object.assign(enccfg, { sysPath });
     if (sysPath) {
         $('#btn-launch')
             .addClass('btnenabled')
@@ -622,9 +625,10 @@ function checkSetSystemPath(enccfg) {
             .addClass('btndisabled')
             .off('click');
     }
+    return ret;
 }
 
-function loadUI(enccfg) {
+function loadUI(enccfgIn) {
     $('#btn-encrypt').off('click');
     $('#btn-select-indir').off('click');
     $('#btn-select-outdir').off('click');
@@ -645,7 +649,7 @@ function loadUI(enccfg) {
     $('#version-info').text(longVersion);
 
     // location of the content app installed on the system
-    checkSetSystemPath(enccfg);
+    const enccfg = checkSetSystemPath(enccfgIn);
 
     if (typeof enccfg.presets === 'undefined') {
         presets = {};

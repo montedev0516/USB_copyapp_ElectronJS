@@ -28,7 +28,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         if (!fs.existsSync(outPath)) {
             fs.mkdirSync(outPath);
         }
-    } catch(error) {
+    } catch (error) {
         msgcb(error.toString(), true);
         return;
     }
