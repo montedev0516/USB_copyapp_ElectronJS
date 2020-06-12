@@ -36,17 +36,6 @@ cd dist
 npm install --production
 cp -v package-lock.json ..
 
-# Hackish build for native module.  This
-# should not be here.
-if uname | grep -iq cygwin ; then
-    (
-        set -e
-        cd node_modules/usb-detection
-        mv binding.gyp.old binding.gyp
-        ../../../rebuild-module.sh
-    ) || exit
-fi
-
 if [ -n "$obf" ] ; then
     find ./src -name \*.js -exec sh -c '
         n=f_.tmp

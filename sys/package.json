@@ -5,6 +5,7 @@
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {
+    "babel-preset-react": "^6.24.1",
     "bluebird": "^3.5.3",
     "electron-compile": "^6.4.4",
     "express": "^4.17.1",
@@ -17,7 +18,6 @@
     "opn": "^5.2.0",
     "tiny-worker": "^2.1.2",
     "usb-detection": "file:../repo/node-usb-detection/usb-detection-4.9.1.tgz",
-    "babel-preset-react": "^6.24.1",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
