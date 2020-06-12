@@ -71,6 +71,7 @@ function saveUI() {
     const vid = $("input[name='vid']").val();
     const pid = $("input[name='pid']").val();
     const descString3 = $("input[name='serial']").val();
+    const sysPath = $('#system-info').text();
 
     if (typeof pname !== 'undefined' && pname.trim().length !== 0) {
         presets[pname.trim()] = { vid, pid, descString3 };
@@ -89,7 +90,7 @@ function saveUI() {
         outPath: $("input[name='outdir']").val(),
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
-        sysPath: '/usr/share/usbcopypro',
+        sysPath: sysPath,
         presets,
     };
 
@@ -154,6 +155,26 @@ function btnFinalizeClick() {
     }
 }
 
+function findExecPath(enccfg) {
+    const execPaths = [
+        path.join(enccfg.sysPath,
+            'app', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
+        ),
+        path.join(enccfg.sysPath,
+            'app', 'sys', 'usbcopypro-linux-x64', 'usbcopypro',
+        ),
+    ];
+
+    for (let i = 0; i < execPaths.length; i++) {
+        if (fs.existsSync(execPaths[i])) {
+            return execPaths[i];
+        }
+    }
+
+    // return something for the error message
+    return execPaths[0];
+}
+
 function btnLaunchClick() {
     const tempLocator = tmp.fileSync();
     const enccfg = saveUI();
@@ -163,9 +184,7 @@ function btnLaunchClick() {
         return;
     }
 
-    const execPath = path.join(enccfg.sysPath,
-        'app', 'sys', 'usbcopypro-linux-x64', 'usbcopypro',
-    );
+    const execPath = findExecPath(enccfg);
     const appPath = path.join(enccfg.sysPath,
         'app', 'sys', 'resources', 'app.asar',
     );
