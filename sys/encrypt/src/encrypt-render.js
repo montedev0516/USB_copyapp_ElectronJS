@@ -130,15 +130,28 @@ function btnFinalizeClick() {
         sysFullPath + ' -><br>' +
         enccfg.outPath);
 
-    process.noAsar = true;
-    fsextra.copy(sysFullPath, enccfg.outPath, err => {
-        process.noAsar = false;
-        if (err) {
-            messageCallback(err, true);
-        } else {
-            messageCallback('Copy complete');
-        }
-    });
+    try {
+        process.noAsar = true;
+        fsextra.copy(sysFullPath, enccfg.outPath, err => {
+            process.noAsar = false;
+            if (err) {
+                messageCallback(err, true);
+            } else {
+                messageCallback('Copy complete');
+            }
+        });
+
+        const locData = {
+            shared: './shared',
+            app: './sys/resources/app.asar',
+            drive: '.\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
+        };
+        const locPath = path.join(enccfg.outPath, 'locator.json');
+        fs.writeFileSync(locPath, JSON.stringify(locData));
+    } catch (e) {
+        messageCallback('Copy sys ERROR: ' + e.message, true);
+        throw e;
+    }
 }
 
 function btnLaunchClick() {
@@ -225,7 +238,7 @@ function btnLaunchClick() {
             messageCallback('ERROR spaning process', true);
         }
     } catch (e) {
-        messageCallback('ERROR: ' + e.message, true);
+        messageCallback('Launch ERROR: ' + e.message, true);
         throw e;
     }
 }
