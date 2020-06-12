@@ -54,6 +54,7 @@
     "electron-compile": "^6.4.4",
     "electron-rebuild": "^1.8.6",
     "electron-squirrel-startup": "^1.0.0",
+    "fs-extra": "^9.0.1",
     "jquery": "^3.3.1",
     "jquery-ui": "^1.12.1",
     "node-gyp": "^5.0.3",

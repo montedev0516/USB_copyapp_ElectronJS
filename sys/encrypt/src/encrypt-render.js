@@ -7,6 +7,7 @@
 
 const encrypt = require('./encrypt');
 const fs = require('original-fs');
+const fsextra = require('fs-extra');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
@@ -113,6 +114,31 @@ function saveUI() {
     }, 300);
 
     return enccfg;
+}
+
+function btnFinalizeClick() {
+    const enccfg = saveUI();
+
+    if (!enccfg.sysPath) {
+        messageCallback('ERROR: no system path', true);
+        return;
+    }
+
+    const sysFullPath = path.join(enccfg.sysPath, 'app');
+
+    messageCallback('Copying system<br>' +
+        sysFullPath + ' -><br>' +
+        enccfg.outPath);
+
+    process.noAsar = true;
+    fsextra.copy(sysFullPath, enccfg.outPath, err => {
+        process.noAsar = false;
+        if (err) {
+            messageCallback(err, true);
+        } else {
+            messageCallback('Copy complete');
+        }
+    });
 }
 
 function btnLaunchClick() {
@@ -645,8 +671,14 @@ function checkSetSystemPath(enccfg) {
         $('#btn-launch')
             .addClass('btnenabled')
             .on('click', btnLaunchClick);
+        $('#btn-finalize')
+            .addClass('btnenabled')
+            .on('click', btnFinalizeClick);
     } else {
         $('#btn-launch')
+            .addClass('btndisabled')
+            .off('click');
+        $('#btn-finalize')
             .addClass('btndisabled')
             .off('click');
     }
