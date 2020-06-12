@@ -664,6 +664,8 @@ function getSystemPath(sysPath) {
         sysPath,
         '/usr/share/usbcopypro',
         '/usr/local/share/usbcopypro',
+        'C:/Program Files/usbcopypro',
+        'C:/Program Files (x86)/usbcopypro',
     ];
     for (let i = 0; i < checkList.length; i++) {
         if (checkList[i] !== undefined) {

@@ -21,15 +21,18 @@ tag=`git describe --tag`
 
 if [ "$SYS" = "Linux" ] ; then
     INSTALLDIR=/usr/share/usbcopypro
-    mkdir -p $INSTALLDIR/app || croak "no install dir"
-    ZIPSDIR=`pwd`
-    cd $INSTALLDIR/app
-    unzip $ZIPSDIR/${tag}-app.zip
-    unzip $ZIPSDIR/${tag}-drive.zip
-    cd ..
-    ENC=$ZIPSDIR/${tag}-encrypt.zip
-    if [ -e $ENC ] ; then
-        unzip $ENC
-    fi
-    mv -v app/locator.json .
+elif [ "$SYS" = "CYGWIN_NT-6.1" ] ; then
+    INSTALLDIR=/cygdrive/c/Program\ Files/usbcopypro
 fi
+
+mkdir -p $INSTALLDIR/app || croak "no install dir"
+ZIPSDIR=`pwd`
+cd $INSTALLDIR/app
+unzip $ZIPSDIR/${tag}-app.zip
+unzip $ZIPSDIR/${tag}-drive.zip
+cd ..
+ENC=$ZIPSDIR/${tag}-encrypt.zip
+if [ -e $ENC ] ; then
+    unzip $ENC
+fi
+mv -v app/locator.json .
