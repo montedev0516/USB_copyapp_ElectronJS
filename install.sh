@@ -8,6 +8,9 @@ if [ "$SYS" = "Linux" ] ; then
     INSTALLDIR=/usr/share/usbcopypro
 elif [ "$SYS" = "CYGWIN_NT-6.1" ] ; then
     INSTALLDIR=/cygdrive/c/Program\ Files/usbcopypro
+else
+    echo "ERROR: unsupported system" >&2
+    exit 1
 fi
 
 if [ "$1" = "-f" ] ; then
