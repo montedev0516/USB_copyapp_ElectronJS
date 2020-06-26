@@ -39,7 +39,7 @@ cp -v package-lock.json ..
 if [ -n "$obf" ] ; then
     find ./src -name \*.js -exec sh -c '
         n=f_.tmp
-        '$obf' --compress --output $n -- "'{}'"
+        "'"$obf"'" --compress --output $n -- "'{}'"
         mv $n "'{}'"
     ' \;
 fi
@@ -65,6 +65,9 @@ elif [ -d ./out/${SYSNAME}-darwin-x64 ] ; then
 elif [ -d ./out/${SYSNAME}-win32-ia32 ] ; then
     dir=${SYSNAME}-win32-ia32
     suffix=win32
+elif [ -d ./out/${SYSNAME}-win32-x64 ] ; then
+    dir=${SYSNAME}-win32-x64
+    suffix=win64
 else
     echo "ERROR: no output dir present"
     exit -1
