@@ -16,7 +16,8 @@
 <body>
 
 <h1>USB Copy Pro Encryption Utility</h1>
-<small id="version-info"></small>
+<div>Version: <code id="version-info"></code></div>
+<div>System: <code id="system-info"></code></div>
 <div style="padding:5px">
     <select id="presets-select">
     </select>
@@ -75,7 +76,17 @@
 
 </table>
 
-<button class="button" id="btn-encrypt">Encrypt!</button>
+<div class="container"> <div class="row">
+<div class="col-sm">
+    <button class="button" id="btn-encrypt">Encrypt</button>
+</div>
+<div class="col-sm">
+    <button class="button" id="btn-launch">Launch</button>
+</div>
+<div class="col-sm">
+    <button class="button" id="btn-finalize">Finalize</button>
+</div>
+</div> </div>
 
 <div class="spacer">&nbsp;</div>
 

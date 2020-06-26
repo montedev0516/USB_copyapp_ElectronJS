@@ -7,12 +7,13 @@
 
 const encrypt = require('./encrypt');
 const fs = require('original-fs');
+const fsextra = require('fs-extra');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
 const tmp = require('tmp');
 const vers = require('../package.json');
-
+const { execFile } = require('child_process');
 const { dialog } = require('electron').remote;
 
 require('jquery-ui');
@@ -46,17 +47,21 @@ function newMaskHTML(name, i) {
         '</div>';
 }
 
-// Add the contents of the input box to the
-// list of masks, and clear the box.
-function addNewMask() {
-    const el = $("input[name='newmask']");
-    if (el.val().length === 0) {
-        return;
+function messageCallback(s, isError) {
+    if (isError) {
+        $('#errors')
+            .show()
+            .html(s);
+    } else if (s) {
+        $('#messages')
+            .html(s);
+    } else {
+        $('#messages')
+            .html('');
+        $('#errors')
+            .html('')
+            .hide();
     }
-    const nhtml = $('#matchlist').html() + newMaskHTML(el.val(), maskCounter);
-    $('#matchlist').html(nhtml);
-    el.val('');
-    maskCounter++;
 }
 
 function saveUI() {
@@ -66,6 +71,7 @@ function saveUI() {
     const vid = $("input[name='vid']").val();
     const pid = $("input[name='pid']").val();
     const descString3 = $("input[name='serial']").val();
+    const sysPath = $('#system-info').text();
 
     if (typeof pname !== 'undefined' && pname.trim().length !== 0) {
         presets[pname.trim()] = { vid, pid, descString3 };
@@ -84,6 +90,7 @@ function saveUI() {
         outPath: $("input[name='outdir']").val(),
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
+        sysPath: sysPath,
         presets,
     };
 
@@ -110,22 +117,162 @@ function saveUI() {
     return enccfg;
 }
 
-function messageCallback(s, isError) {
-    if (isError) {
-        $('#errors')
-            .show()
-            .html(s);
-    } else if (s) {
-        $('#messages')
-            .html(s);
-    } else {
-        $('#messages')
-            .html('')
-            .hide();
-        $('#errors')
-            .html('')
-            .hide();
+function btnFinalizeClick() {
+    const enccfg = saveUI();
+
+    if (!enccfg.sysPath) {
+        messageCallback('ERROR: no system path', true);
+        return;
     }
+
+    const sysFullPath = path.join(enccfg.sysPath, 'app');
+
+    messageCallback('Copying system<br>' +
+        sysFullPath + ' -><br>' +
+        enccfg.outPath);
+
+    try {
+        process.noAsar = true;
+        fsextra.copy(sysFullPath, enccfg.outPath, err => {
+            process.noAsar = false;
+            if (err) {
+                messageCallback(err, true);
+            } else {
+                messageCallback('Copy complete');
+            }
+        });
+
+        const locData = {
+            shared: './shared',
+            app: './sys/resources/app.asar',
+            drive: '.\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
+        };
+        const locPath = path.join(enccfg.outPath, 'locator.json');
+        fs.writeFileSync(locPath, JSON.stringify(locData));
+    } catch (e) {
+        messageCallback('Copy sys ERROR: ' + e.message, true);
+        throw e;
+    }
+}
+
+function findExecPath(enccfg) {
+    const execPaths = [
+        path.join(enccfg.sysPath,
+            'app', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
+        ),
+        path.join(enccfg.sysPath,
+            'app', 'sys', 'usbcopypro-linux-x64', 'usbcopypro',
+        ),
+    ];
+
+    for (let i = 0; i < execPaths.length; i++) {
+        if (fs.existsSync(execPaths[i])) {
+            return execPaths[i];
+        }
+    }
+
+    // return something for the error message
+    return execPaths[0];
+}
+
+function btnLaunchClick() {
+    const tempLocator = tmp.fileSync();
+    const enccfg = saveUI();
+
+    if (!enccfg.sysPath) {
+        messageCallback('ERROR: no system path', true);
+        return;
+    }
+
+    const execPath = findExecPath(enccfg);
+    const appPath = path.join(enccfg.sysPath,
+        'app', 'sys', 'resources', 'app.asar',
+    );
+
+    if (!fs.existsSync(execPath)) {
+        messageCallback('ERROR: executable not found "' + execPath + '"', true);
+        return;
+    }
+
+    messageCallback(
+        'Launching test application with encrypted data</br>' +
+        'Locator: ' + tempLocator.name + '</br>' +
+        'Executable: ' + execPath,
+    );
+
+    const sharedPath = path.join(enccfg.outPath, 'shared');
+    const locData = {
+        shared: sharedPath,
+        app: appPath,
+        drive: '.\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
+    };
+
+    try {
+        const serverCfg = JSON.parse(fs.readFileSync(
+            path.join(sharedPath, 'usbcopypro.json')));
+        fs.writeFileSync(tempLocator.fd, JSON.stringify(locData));
+        const salt = serverCfg.salt;
+
+        if (!salt) {
+            throw new Error('ERROR: usbcopypro.json is invalid');
+        }
+
+        const algorithm = 'aes-192-cbc';
+        const password = crypto.randomBytes(16).toString('hex');
+        const encpass = Buffer.from(password + 'dd' + salt, 'hex');
+        const vid = enccfg.vid;
+        const pid = enccfg.pid;
+        const serial = enccfg.descString3;
+
+        const cipher = crypto.createCipher(algorithm, encpass);
+
+        const device = {
+            vendorId: parseInt(vid, 16),
+            productId: parseInt(pid, 16),
+            serialNumber: serial,
+        };
+
+        let enc = cipher.update(JSON.stringify(device), 'utf8', 'hex');
+        enc += cipher.final('hex');
+
+        const newenv = Object.assign({
+            ENCTOOLBACKPW: password,
+            ENCTOOLBACK: enc,
+            ENCTOOLLOC: tempLocator.name,
+        }, process.env);
+
+        const child = execFile(execPath, [], {
+            env: newenv,
+        }, (error, stdout, stderr) => {
+            messageCallback('Process finished');
+            if (error) {
+                messageCallback(error, true);
+            } else {
+                const s = '<pre>' + stdout + stderr + '</pre>';
+                messageCallback(s);
+            }
+        });
+
+        if (!child) {
+            messageCallback('ERROR spaning process', true);
+        }
+    } catch (e) {
+        messageCallback('Launch ERROR: ' + e.message, true);
+        throw e;
+    }
+}
+
+// Add the contents of the input box to the
+// list of masks, and clear the box.
+function addNewMask() {
+    const el = $("input[name='newmask']");
+    if (el.val().length === 0) {
+        return;
+    }
+    const nhtml = $('#matchlist').html() + newMaskHTML(el.val(), maskCounter);
+    $('#matchlist').html(nhtml);
+    el.val('');
+    maskCounter++;
 }
 
 function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
@@ -278,22 +425,6 @@ function unencCallback(idx, total, isDone) {
     }
 }
 
-function toggleButton(val) {
-    setBtnEnabled(true);
-
-    if (val) {
-        $('#btn-encrypt')
-            .text('Done, continue ...')
-            .off('click')
-            .on('click', doContinue);
-    } else {
-        $('#btn-encrypt')
-            .text('Encrypt!')
-            .off('click')
-            .on('click', runEncrypt);
-    }
-}
-
 function doneCallback(runAborted) {
     if (workingDirObj) {
         messageCallback('Clearing working dir...');
@@ -302,6 +433,7 @@ function doneCallback(runAborted) {
     }
     messageCallback('Encryption complete');
 
+    // eslint-disable-next-line no-use-before-define
     toggleButton(true);
 
     if (runAborted) {
@@ -317,7 +449,7 @@ function checkSpaceCallback(message) {
         return true;
     }
 
-    const choice = dialog.showMessageBox({
+    const choice = dialog.showMessageBoxSyncSync({
         type: 'question',
         buttons: ['Stop', 'Continue', 'Ignore all'],
         defaultId: 0,
@@ -360,7 +492,6 @@ function runEncrypt() {
         if (validate(enccfg)) {
             setBtnEnabled(false);
             $('#errors').hide();
-            $('#messages').show();
             messageCallback('Starting...');
 
             setTimeout(() => {
@@ -386,22 +517,46 @@ function runEncrypt() {
     }
 }
 
+function doContinue() {
+    setBtnEnabled(false);
+
+    setTimeout(() => {
+        // clear the output message
+        messageCallback(false);
+
+        // eslint-disable-next-line no-use-before-define
+        toggleButton(false);
+    }, 800);
+}
+
+function toggleButton(val) {
+    setBtnEnabled(true);
+
+    if (val) {
+        $('#btn-encrypt')
+            .text('Done, continue ...')
+            .off('click')
+            .on('click', doContinue);
+    } else {
+        $('#btn-encrypt')
+            .text('Encrypt!')
+            .off('click')
+            .on('click', runEncrypt);
+    }
+}
+
 function chooseFile(inputEl, desc) {
-    const chooseFileFn = () => {
-        const currentpath = $("input[name='" + inputEl + "']").val();
+    const currentpath = $("input[name='" + inputEl + "']").val();
 
-        const paths = dialog.showOpenDialog({
-            title: 'Select the ' + desc + ' directory',
-            defaultPath: currentpath,
-            properties: ['openDirectory'],
-        });
+    const paths = dialog.showOpenDialog({
+        title: 'Select the ' + desc + ' directory',
+        defaultPath: currentpath,
+        properties: ['openDirectory'],
+    });
 
-        if (paths && paths.length === 1) {
-            $("input[name='" + inputEl + "']").val(paths[0]);
-        }
-    };
-
-    return chooseFileFn;
+    if (paths && paths.length === 1) {
+        $("input[name='" + inputEl + "']").val(paths[0]);
+    }
 }
 
 function clearDir(directory, removeDir) {
@@ -443,16 +598,6 @@ function clearDir(directory, removeDir) {
     return ok;
 }
 
-function clearWorkingDir(directory) {
-    if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        messageCallback('Clearing working dir ...');
-
-        return clearDir(directory, false);
-    }
-
-    return false;
-}
-
 function clearOutputDir(directory) {
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
         messageCallback('Clearing output dir ...');
@@ -464,47 +609,44 @@ function clearOutputDir(directory) {
 }
 
 function askClearOutputDir() {
-    const askClearOutputDirFn = () => {
-        const outPath = $("input[name='outdir']").val();
+    const outPath = $("input[name='outdir']").val();
 
-        const choice = dialog.showMessageBox({
-            type: 'question',
-            buttons: ['Yes', 'No'],
-            defaultId: 0,
-            title: 'Clear the output dir?',
-            message: 'Are you sure you want to clear the output dir ("' +
-                     outPath + '") ?',
-        });
+    const choice = dialog.showMessageBoxSync({
+        type: 'question',
+        buttons: ['Yes', 'No'],
+        defaultId: 0,
+        title: 'Clear the output dir?',
+        message: 'Are you sure you want to clear the output dir ("' +
+                 outPath + '") ?',
+    });
 
-        if (choice === 0) { // yes
-            if (outPath) {
-                if (clearOutputDir(outPath)) {
-                    dialog.showMessageBox({
-                        type: 'info',
-                        buttons: ['OK'],
-                        title: 'Output dir was cleared',
-                        message: 'The output dir was cleared successfully',
-                    });
-                } else {
-                    dialog.showMessageBox({
-                        type: 'warning',
-                        buttons: ['OK'],
-                        title: 'Output dir not cleared',
-                        message: 'Failed to clear output dir',
-                    });
-                }
+    if (choice === 0) { // yes
+        if (outPath) {
+            if (clearOutputDir(outPath)) {
+                dialog.showMessageBoxSync({
+                    type: 'info',
+                    buttons: ['OK'],
+                    title: 'Output dir was cleared',
+                    message: 'The output dir was cleared successfully',
+                });
+                messageCallback('Output dir cleared');
             } else {
-                dialog.showMessageBox({
+                dialog.showMessageBoxSync({
                     type: 'warning',
                     buttons: ['OK'],
-                    title: 'Output dir not defined',
-                    message: 'The output dir is not defined yet',
+                    title: 'Output dir not cleared',
+                    message: 'Failed to clear output dir',
                 });
             }
+        } else {
+            dialog.showMessageBoxSync({
+                type: 'warning',
+                buttons: ['OK'],
+                title: 'Output dir not defined',
+                message: 'The output dir is not defined yet',
+            });
         }
-    };
-
-    return askClearOutputDirFn;
+    }
 }
 
 function loadUIParams(enccfg) {
@@ -536,7 +678,48 @@ function restorePreset() {
     return restorePresetFn;
 }
 
-function loadUI(enccfg) {
+function getSystemPath(sysPath) {
+    const checkList = [
+        sysPath,
+        '/usr/share/usbcopypro',
+        '/usr/local/share/usbcopypro',
+        'C:/Program Files/usbcopypro',
+        'C:/Program Files (x86)/usbcopypro',
+    ];
+    for (let i = 0; i < checkList.length; i++) {
+        if (checkList[i] !== undefined) {
+            const checkFile = path.join(checkList[i], 'locator.json');
+            if (fs.existsSync(checkFile)) {
+                return checkList[i];
+            }
+        }
+    }
+    return undefined;
+}
+
+function checkSetSystemPath(enccfg) {
+    const sysPath = getSystemPath(enccfg.sysPath);
+    $('#system-info').text(sysPath || 'SYSTEM NOT FOUND');
+    const ret = Object.assign({ sysPath }, enccfg);
+    if (sysPath) {
+        $('#btn-launch')
+            .addClass('btnenabled')
+            .on('click', btnLaunchClick);
+        $('#btn-finalize')
+            .addClass('btnenabled')
+            .on('click', btnFinalizeClick);
+    } else {
+        $('#btn-launch')
+            .addClass('btndisabled')
+            .off('click');
+        $('#btn-finalize')
+            .addClass('btndisabled')
+            .off('click');
+    }
+    return ret;
+}
+
+function loadUI(enccfgIn) {
     $('#btn-encrypt').off('click');
     $('#btn-select-indir').off('click');
     $('#btn-select-outdir').off('click');
@@ -545,6 +728,7 @@ function loadUI(enccfg) {
     $('#presets-select').off('change');
     $('#fileBrowserEnabled').off('change');
 
+    $('#messages').show();
     // version
     try {
         const tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
@@ -553,7 +737,10 @@ function loadUI(enccfg) {
         longVersion = vers.version + '+DEV';
     }
 
-    $('#version-info').text('Version: ' + longVersion);
+    $('#version-info').text(longVersion);
+
+    // location of the content app installed on the system
+    const enccfg = checkSetSystemPath(enccfgIn);
 
     if (typeof enccfg.presets === 'undefined') {
         presets = {};
@@ -615,25 +802,22 @@ function loadUI(enccfg) {
 
     setBtnEnabled(true);
 
-    $('#btn-select-indir').on('click', chooseFile('indir', 'input'));
-    $('#btn-select-outdir').on('click', chooseFile('outdir', 'output'));
-    $('#btn-clear-outdir').on('click', askClearOutputDir());
+    $('#btn-select-indir').on('click', () => {
+        chooseFile('indir', 'input');
+    });
+    $('#btn-select-outdir').on('click', () => {
+        chooseFile('outdir', 'output');
+    });
+    $('#btn-clear-outdir').on('click', () => {
+        askClearOutputDir();
+    });
     $('#btn-save-config').on('click', () => {
         const cfg = saveUI();
         loadUI(cfg);
     });
     $('#presets-select').on('change', restorePreset());
-}
 
-function doContinue() {
-    setBtnEnabled(false);
-
-    setTimeout(() => {
-        // clear the output message
-        messageCallback(false);
-
-        toggleButton(false);
-    }, 800);
+    messageCallback('Encryption Tool version ' + longVersion + ' ready');
 }
 
 $(() => {

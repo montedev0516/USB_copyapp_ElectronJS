@@ -1,10 +1,11 @@
 {
   "name": "usbcopypro",
-  "version": "1.2.1",
+  "version": "2.1.0",
   "description": "USBCopyPro Content System",
   "main": "./src/index.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {
+    "babel-preset-react": "^6.24.1",
     "bluebird": "^3.5.3",
     "electron-compile": "^6.4.4",
     "express": "^4.17.1",
@@ -16,14 +17,13 @@
     "on-finished": "^2.3.0",
     "opn": "^5.2.0",
     "tiny-worker": "^2.1.2",
-    "usb-detection": "file:../repo/node-usb-detection/usb-detection-2.2.0.tgz",
+    "usb-detection": "file:../repo/node-usb-detection/usb-detection-4.9.1.tgz",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
     "asar": "^0.14.6",
     "babel-plugin-transform-async-to-generator": "^6.24.1",
     "babel-preset-env": "^1.6.1",
-    "babel-preset-react": "^6.24.1",
     "electron-forge": "^5.2.4",
     "electron-prebuilt-compile": "3.0.13",
     "electron-rebuild": "^1.8.4",

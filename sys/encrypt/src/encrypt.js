@@ -14,14 +14,23 @@ const serverconfig = {
    SERVER_PORT: 29500,
    useDeviceSerialNum: false,
    fileBrowserEnabled: false,
-   salt: 'c17155ee526f4ff9bad7d2623f5a26ad'
-}
+};
 
 let bytes;
 
 function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     let msgcb = _msgcb;
     if (!msgcb) msgcb = () => { };
+    const outPath = path.join(enccfg.outPath, 'shared');
+
+    try {
+        if (!fs.existsSync(outPath)) {
+            fs.mkdirSync(outPath);
+        }
+    } catch (error) {
+        msgcb(error.toString(), true);
+        return;
+    }
 
     const srvcfg = {};
     Object.assign(srvcfg, serverconfig);
@@ -34,10 +43,12 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     srvcfg.version = enccfg.version;
     // save file browser enabled
     srvcfg.fileBrowserEnabled = enccfg.fileBrowserEnabled;
+    // salt
+    srvcfg.salt = crypto.randomBytes(32).toString('hex');
 
     msgcb('writing config file...');
     fs.writeFileSync(
-        path.join(enccfg.outPath, 'usbcopypro.json'),
+        path.join(outPath, 'usbcopypro.json'),
         JSON.stringify(srvcfg),
     );
 
@@ -88,7 +99,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         // There exist node modules to generate certificates, but
         // I could not find one that makes one protected by a passphrase.
         const cfg = path.join(__dirname, 'openssl.cnf');
-        const certout = path.join(enccfg.outPath, 'cert');
+        const certout = path.join(outPath, 'cert');
         const serial = pwsys.getSerial(enccfg, srvcfg);
         const script =
             'openssl req -x509 -newkey rsa:4096 -keyout "' + certout +
@@ -123,11 +134,11 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
         msgcb('writing file size information');
         fs.writeFileSync(
-            path.join(enccfg.outPath, 'size.json'),
+            path.join(outPath, 'size.json'),
             JSON.stringify(sizes),
         );
 
-        const outfile = path.join(enccfg.outPath, 'content.asar');
+        const outfile = path.join(outPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
         try {
             asar.createPackage(
@@ -197,7 +208,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
             if (idx >= unencFiles.length) {
                 if (unenccb) unenccb(idx, unencFiles.length, true);
 
-                if (!checkSpace(checkSpaceCB, enccfg.outPath, 'output', '3gb', 3221225472)) {
+                if (!checkSpace(checkSpaceCB, outPath, 'output', '3gb', 3221225472)) {
                     if (donecb) donecb(true);
                     return;
                 }
@@ -240,7 +251,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
             // put masked files directly in output folder
             fnout = fnout.replace(
                 enccfg.inPath,
-                path.join(enccfg.outPath, 'm'),
+                path.join(outPath, 'm'),
             );
 
             dirType = 'output';
@@ -323,13 +334,13 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         bytes = b;
 
         fs.writeFileSync(
-            path.join(enccfg.outPath, 'bytes.dat'),
+            path.join(outPath, 'bytes.dat'),
             bytes,
         );
 
         const kbuf = Buffer.from(enccfg.apiKey, 'hex');
         fs.writeFileSync(
-            path.join(enccfg.outPath, '.hidfil.sys'),
+            path.join(outPath, '.hidfil.sys'),
             kbuf,
         );
 

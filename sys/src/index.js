@@ -148,21 +148,37 @@ function findLocator() {
     const locatorFile = 'locator.json';
     let found = false;
     let dir = __dirname;
+    let locatorPath;
+
+    // If there is ENCTOOLLOC env defined, use it as the path
+    // to the locator.  This is used by the "launch" feature
+    // in the encryption tool.
+    let pathDefined = false;
+    if (process.env.ENCTOOLLOC !== undefined) {
+        pathDefined = true;
+        locatorPath = process.env.ENCTOOLLOC;
+    }
+
     do {
-        if (fs.existsSync(path.join(dir, locatorFile))) {
+        if (fs.existsSync(locatorPath)) {
             found = true;
             break;
         }
-        if (path.dirname(dir) === dir) break;
+        if (pathDefined || (path.dirname(dir) === dir)) break;
         dir = path.resolve(dir, '..');
+        locatorPath = path.join(dir, locatorFile);
     } while (!found);
 
     if (!found) {
-        throw new Error("can't find locator file: " + locatorFile);
+        let errstr = "can't find locator file: " + locatorFile;
+        if (pathDefined) {
+            errstr += '\npath: ' + locatorPath;
+        }
+        throw new Error(errstr);
     }
 
-    // eslint-disable-next-line global-require, import/no-dynamic-require
-    const locator = require(path.join(dir, locatorFile));
+
+    const locator = JSON.parse(fs.readFileSync(locatorPath, 'utf8'));
     locator.shared = path.resolve(dir, locator.shared);
     locator.app = path.resolve(dir, locator.app);
     locator.drive = path.resolve(dir, locator.drive);

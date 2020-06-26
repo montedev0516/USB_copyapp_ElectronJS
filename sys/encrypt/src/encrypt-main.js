@@ -11,8 +11,8 @@ function createWindow() {
         width: 800,
         height: 700,
         webPreferences: {
-            nodeIntegration: true
-        }
+            nodeIntegration: true,
+        },
     });
 
     mainWindow.loadURL(url.format({
@@ -29,5 +29,7 @@ function createWindow() {
     });
 }
 
+// diskusage native proc requires no process reuse
+app.allowRendererProcessReuse = false;
 app.on('ready', createWindow);
 

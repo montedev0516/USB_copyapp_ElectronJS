@@ -5,6 +5,7 @@
 #
 
 SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
+export NODE_ENV=production
 
 cd `dirname $0` || exit
 _pwd=`pwd`
@@ -32,24 +33,13 @@ cp -r src package* default_app locator.json es6-shim-server.js dist/
 : 'Done!'
 
 cd dist
-npm install
+npm install --production
 cp -v package-lock.json ..
-
-# Hackish build for native module.  This
-# should not be here.
-if uname | grep -iq cygwin ; then
-    (
-        set -e
-        cd node_modules/usb-detection
-        mv binding.gyp.old binding.gyp
-        ../../../rebuild-module.sh
-    ) || exit
-fi
 
 if [ -n "$obf" ] ; then
     find ./src -name \*.js -exec sh -c '
         n=f_.tmp
-        '$obf' --compress --output $n -- "'{}'"
+        "'"$obf"'" --compress --output $n -- "'{}'"
         mv $n "'{}'"
     ' \;
 fi
@@ -65,7 +55,7 @@ popd
     cat ../encrypt/src/password.js
 ) > src/password.js
 
-$(npm bin)/electron-forge package
+../node_modules/.bin/electron-forge package
 if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
     dir=${SYSNAME}-linux-x64
     suffix=linux
@@ -75,6 +65,9 @@ elif [ -d ./out/${SYSNAME}-darwin-x64 ] ; then
 elif [ -d ./out/${SYSNAME}-win32-ia32 ] ; then
     dir=${SYSNAME}-win32-ia32
     suffix=win32
+elif [ -d ./out/${SYSNAME}-win32-x64 ] ; then
+    dir=${SYSNAME}-win32-x64
+    suffix=win64
 else
     echo "ERROR: no output dir present"
     exit -1

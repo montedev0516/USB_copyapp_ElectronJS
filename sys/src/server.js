@@ -97,6 +97,7 @@ function startServer() {
 
     server.on('clientError', (err, socket) => {
         logger.error('https client (ignored): ' + err);
+        logger.error('https client socket: ' + socket);
     });
 
     server.on('error', (e) => {
@@ -135,8 +136,27 @@ function isValidVendor(validVendors, vendorId) {
     return valid;
 }
 
+function enctoolback(encdata) {
+    const algorithm = 'aes-192-cbc';
+    const encrypted = Buffer.from(encdata, 'hex');
+    const password = process.env.ENCTOOLBACKPW;
+    logger.info('salt:' + cfg.salt);
+    const encpass = Buffer.from(password + 'dd' + cfg.salt, 'hex');
+
+    const decipher = crypto.createDecipher(algorithm, encpass);
+    let decrypted = decipher.update(encrypted);
+    decrypted += decipher.final();
+    const device = JSON.parse(decrypted.toString());
+
+    logger.warn('WARNING: using received device data');
+    logger.info(device);
+
+    return device;
+}
+
 function scanDevices(devices) {
     serial = undefined;
+
     for (let i = 0; i < devices.length; i++) {
         const device = devices[i];
         if (isValidVendor(cfg.validVendors, device.vendorId.toString(16))) {
@@ -194,6 +214,7 @@ function keepAliveProc() {
     if (exports.keepAlive) {
         setTimeout(() => {
             checkUSB();
+            logger.debug('Server keepAliveProc ping');
             keepAliveProc();
         }, 750);
     } else {
@@ -205,11 +226,22 @@ function keepAliveProc() {
 }
 
 function readUSBThenStart() {
-    usb.startMonitoring();
-    usb.find().then((devices) => {
-        scanDevices(devices);
-        keepAliveProc();
-    });
+    if (process.env.ENCTOOLBACK !== undefined) {
+        // backdoor for the encryption tool to test data
+        const encdevice = enctoolback(process.env.ENCTOOLBACK);
+        if (encdevice) {
+            const devices = [encdevice];
+            scanDevices(devices);
+            devmon = undefined;
+            keepAliveProc();
+        }
+    } else {
+        usb.startMonitoring();
+        usb.find().then((devices) => {
+            scanDevices(devices);
+            keepAliveProc();
+        });
+    }
 }
 exports.readUSBThenStart = readUSBThenStart;
 
@@ -314,7 +346,7 @@ function unmask(input, bytestart, byteend, res, req) {
     }
 }
 
-function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
+function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
     try {
         if (pwCache === undefined) {
             pwCache = pwsys.makePassword(
@@ -354,6 +386,7 @@ function decrypt(key, fname, type, bytestart, byteendp, res, req, input) {
         const base = path.basename(fname);
         if (base in originalSize) {
             let byteend;
+            let bytestart = bytestartp;
             // used mask, no encrypt
             if (bytestart != null) {
                 // streaming
@@ -507,8 +540,8 @@ function streamFile(match, res, req, encfile) {
 }
 
 function configure(locator) {
-    // TODO: this shouldn't be a global require
-    cfg = require(path.join(locator.shared, 'usbcopypro.json')); // eslint-disable-line global-require,import/no-dynamic-require
+    const cfgpath = path.join(locator.shared, 'usbcopypro.json');
+    cfg = JSON.parse(fs.readFileSync(cfgpath));
 
     if (typeof locator.logging !== 'undefined') {
         log4js.configure({
@@ -519,8 +552,8 @@ function configure(locator) {
                 },
             },
             categories: {
-                server: { appenders: ['logs'], level: 'debug' },
-                default: { appenders: ['logs'], level: 'debug' },
+                server: { appenders: ['logs'], level: 'trace' },
+                default: { appenders: ['logs'], level: 'trace' },
             },
         });
         logger = log4js.getLogger('server');
