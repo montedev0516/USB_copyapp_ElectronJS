@@ -52,4 +52,9 @@ popd
 if [ -x launcher/Release/launcher.exe ] ; then
     cp launcher/Release/launcher.exe drive/Windows_Users_Start.exe
 fi
+
 cp -v "launcher/Start For Windows.lnk" drive/
+
+git describe --long > drive/gittag-drive.txt
+git describe --long > app/gittag-sys.txt
+
