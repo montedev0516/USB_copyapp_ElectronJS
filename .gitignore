@@ -4,3 +4,4 @@ shared
 v*.zip
 locator.json
 nsis/*.exe
+*.exe
