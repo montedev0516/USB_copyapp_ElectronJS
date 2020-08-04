@@ -55,7 +55,7 @@ popd
     cat ../encrypt/src/password.js
 ) > src/password.js
 
-../node_modules/.bin/electron-forge package
+../node_modules/.bin/electron-forge package --arch=ia32
 if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
     dir=${SYSNAME}-linux-x64
     suffix=linux
