@@ -244,6 +244,19 @@ function onDomReady(win, nurl) {
         // Cancel the download
         event.preventDefault();
 
+        // Insert the PDF viewer.  This should not be required
+        // after Electron 9.
+        if (item.getMimeType() === 'application/pdf') {
+            webContents.loadURL('file://' +
+                path.resolve(
+                    __dirname,
+                    `pdfjs/web/viewer.html?file=${item.getURL()}`
+                )
+            );
+            return;
+        }
+
+        logger.info('Preventing download and displaying "unsupported content"');
         // Load the "unsupported content" page into the window
         // https://electronjs.org/docs/api/
         //                web-contents#contentsloadurlurl-options

@@ -97,7 +97,8 @@ function startServer() {
 
     server.on('clientError', (err, socket) => {
         logger.error('https client (ignored): ' + err);
-        logger.error('https client socket: ' + socket);
+        logger.error('https client socket read: ' + socket.bytesRead +
+                     ' bytes');
     });
 
     server.on('error', (e) => {
