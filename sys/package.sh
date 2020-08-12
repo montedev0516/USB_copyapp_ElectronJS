@@ -55,7 +55,12 @@ popd
     cat ../encrypt/src/password.js
 ) > src/password.js
 
-../node_modules/.bin/electron-forge package --arch=ia32
+ARCH=""
+if [ "`uname -s`" = "CYGWIN_NT-10.0" ] ; then
+    ARCH="--arch=ia32"
+fi
+../node_modules/.bin/electron-forge package $ARCH
+
 if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
     dir=${SYSNAME}-linux-x64
     suffix=linux

@@ -240,10 +240,47 @@ function onDomReady(win, nurl) {
     // and
     // https://github.com/electron/electron/issues/5024#issuecomment-206050802
 
+    win.webContents.session.removeAllListeners('will-download');
     win.webContents.session.on('will-download', (event, item, webContents) => {
+        // Insert the PDF viewer.  This should not be required
+        // after Electron 9.
+        if (item.getMimeType() === 'application/pdf' &&
+            item.getURL().indexOf('blob:file:') !== 0)
+        {
+            event.preventDefault();
+
+            const winid = webContents.id;
+
+            webContents.loadURL('file://' +
+                path.resolve(
+                    __dirname,
+                    `pdfjs/web/viewer.html?file=${item.getURL()}`,
+                ));
+
+            mainWindow.webContents.executeJavaScript(`
+                global['_dlenabled'] = global['dlenabled']||false;
+                global['dlenabled'] = false;
+                console.log('yep');
+                global['_dlenabled'];
+            `).then((dlenabled) => {
+                logger.info('win ' + winid +
+                            ' DL enabled: ' + dlenabled);
+                const wc = electron.webContents.fromId(winid);
+                wc.dlenabled = dlenabled;
+            });
+
+            return;
+        }
+
+        if (webContents.dlenabled) {
+            // allow it
+            return;
+        }
+
         // Cancel the download
         event.preventDefault();
 
+        logger.info('Preventing download and displaying "unsupported content"');
         // Load the "unsupported content" page into the window
         // https://electronjs.org/docs/api/
         //                web-contents#contentsloadurlurl-options
