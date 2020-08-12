@@ -242,22 +242,20 @@ function onDomReady(win, nurl) {
 
     win.webContents.session.removeAllListeners('will-download');
     win.webContents.session.on('will-download', (event, item, webContents) => {
-
         // Insert the PDF viewer.  This should not be required
         // after Electron 9.
         if (item.getMimeType() === 'application/pdf' &&
-            item.getURL().indexOf('blob:file:') != 0)
+            item.getURL().indexOf('blob:file:') !== 0)
         {
             event.preventDefault();
 
-            let winid = webContents.id;
+            const winid = webContents.id;
 
             webContents.loadURL('file://' +
                 path.resolve(
                     __dirname,
-                    `pdfjs/web/viewer.html?file=${item.getURL()}`
-                )
-            );
+                    `pdfjs/web/viewer.html?file=${item.getURL()}`,
+                ));
 
             mainWindow.webContents.executeJavaScript(`
                 global['_dlenabled'] = global['dlenabled']||false;
@@ -267,14 +265,14 @@ function onDomReady(win, nurl) {
             `).then((dlenabled) => {
                 logger.info('win ' + winid +
                             ' DL enabled: ' + dlenabled);
-                let wc = electron.webContents.fromId(winid);
-                wc['dlenabled'] = dlenabled;
+                const wc = electron.webContents.fromId(winid);
+                wc.dlenabled = dlenabled;
             });
 
             return;
         }
 
-        if (webContents['dlenabled']) {
+        if (webContents.dlenabled) {
             // allow it
             return;
         }
