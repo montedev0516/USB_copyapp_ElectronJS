@@ -161,6 +161,9 @@ function findExecPath(enccfg) {
             'app', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
         ),
         path.join(enccfg.sysPath,
+            'app', 'drive', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
+        ),
+        path.join(enccfg.sysPath,
             'app', 'sys', 'usbcopypro-linux-x64', 'usbcopypro',
         ),
     ];
