@@ -691,7 +691,8 @@ function getSystemPath(sysPath) {
     ];
     for (let i = 0; i < checkList.length; i++) {
         if (checkList[i] !== undefined) {
-            const checkFile = path.join(checkList[i], 'locator.json');
+            const checkFile = path.join(checkList[i],
+                'app', 'drive', 'locator.json');
             if (fs.existsSync(checkFile)) {
                 return checkList[i];
             }
