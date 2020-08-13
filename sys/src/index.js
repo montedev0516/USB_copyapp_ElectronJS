@@ -260,13 +260,17 @@ function onDomReady(win, nurl) {
             mainWindow.webContents.executeJavaScript(`
                 global['_dlenabled'] = global['dlenabled']||false;
                 global['dlenabled'] = false;
-                console.log('yep');
                 global['_dlenabled'];
             `).then((dlenabled) => {
+                // For new windows opened by window.open js, the global
+                // is used.  For <a> links that use data-dlenabled=true,
+                // the IPC command "dlenabled-message" is used.
+                let ldl = mainWindow.dlenabled || dlenabled;
+                mainWindow.dlenabled = false;
                 logger.info('win ' + winid +
-                            ' DL enabled: ' + dlenabled);
+                            ' DL enabled: ' + ldl);
                 const wc = electron.webContents.fromId(winid);
-                wc.dlenabled = dlenabled;
+                wc.dlenabled = ldl;
             });
 
             return;
@@ -304,6 +308,10 @@ function onDomReady(win, nurl) {
                 // this will prevent triggering the onOpenUrl()
                 // call below.
                 ipcRenderer.send('openlocal-message', ev.target.href);
+            });
+
+            $("[data-dlenabled='true']").click(function(ev) {
+                ipcRenderer.send('dlenabled-message', ev.target.href);
             });
 
             const path = require('path');
@@ -441,6 +449,10 @@ function createWindow() {
     electron.ipcMain.on('openlocal-message', (ev, nurl) => {
         logger.warn('Warning: Opening external URL in browser ' + url);
         mainWindow.loadURL(nurl);
+    });
+    electron.ipcMain.on('dlenabled-message', (ev, nurl) => {
+        logger.warn('Warning: Download enabled for URL ' + url);
+        mainWindow.dlenabled = true;
     });
     electron.ipcMain.on('getlocator-message', (ev) => {
         // eslint-disable-next-line no-param-reassign
