@@ -34,12 +34,13 @@ mkdir -p "$INSTALLDIR/app" || croak "no install dir"
 ZIPSDIR="`pwd`"
 cd "$INSTALLDIR/app"
 unzip $ZIPSDIR/${tag}-app.zip
+mkdir drive ; cd drive
 unzip $ZIPSDIR/${tag}-drive.zip
-cd ..
+cd ../..
+mkdir encryption ; cd encryption
 ENC=$ZIPSDIR/${tag}-encrypt.zip
 if [ -e $ENC ] ; then
     unzip $ENC
 fi
-mv -v app/locator.json .
 
 echo Installed to $INSTALLDIR

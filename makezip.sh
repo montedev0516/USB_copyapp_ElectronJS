@@ -12,7 +12,7 @@ tag=`git describe --tag`
 cat > drive/locator.json <<EOT
 {
     "shared": "./shared",
-    "app": "./app/sys/resources/app.asar",
+    "app": "../sys/resources/app.asar",
     "drive": ".\\\\drive\\\\sys\\\\usbcopypro-win32-ia32\\\\usbcopypro.exe"
 }
 EOT
