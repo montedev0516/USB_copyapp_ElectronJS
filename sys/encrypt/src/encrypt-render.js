@@ -90,7 +90,7 @@ function saveUI() {
         outPath: $("input[name='outdir']").val(),
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
-        sysPath: sysPath,
+        sysPath,
         presets,
     };
 
@@ -125,7 +125,8 @@ function btnFinalizeClick() {
         return;
     }
 
-    const sysFullPath = path.join(enccfg.sysPath, 'app');
+    const driveFullPath = path.join(enccfg.sysPath, 'app', 'drive');
+    const sysFullPath = path.join(enccfg.sysPath, 'app', 'sys');
 
     messageCallback('Copying system<br>' +
         sysFullPath + ' -><br>' +
@@ -133,12 +134,20 @@ function btnFinalizeClick() {
 
     try {
         process.noAsar = true;
-        fsextra.copy(sysFullPath, enccfg.outPath, err => {
-            process.noAsar = false;
-            if (err) {
-                messageCallback(err, true);
+        fsextra.copy(driveFullPath, enccfg.outPath, (err1) => {
+            if (err1) {
+                messageCallback(err1, true);
             } else {
-                messageCallback('Copy complete');
+                messageCallback('Electron Copy complete');
+                fsextra.copy(sysFullPath,
+                             path.join(enccfg.outPath, 'sys'), (err2) => {
+                    process.noAsar = false;
+                    if (err2) {
+                        messageCallback(err2, true);
+                    } else {
+                        messageCallback('System Copy complete');
+                    }
+                });
             }
         });
 
