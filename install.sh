@@ -33,14 +33,14 @@ tag=`git describe --tag`
 mkdir -p "$INSTALLDIR/app" || croak "no install dir"
 ZIPSDIR="`pwd`"
 cd "$INSTALLDIR/app"
-unzip $ZIPSDIR/${tag}-app.zip
-mkdir drive ; cd drive
-unzip $ZIPSDIR/${tag}-drive.zip
+sudo unzip $ZIPSDIR/${tag}-app.zip
+sudo mkdir drive ; cd drive
+sudo unzip $ZIPSDIR/${tag}-drive.zip
 cd ../..
-mkdir encryption ; cd encryption
+sudo mkdir encryption ; cd encryption
 ENC=$ZIPSDIR/${tag}-encrypt.zip
 if [ -e $ENC ] ; then
-    unzip $ENC
+    sudo unzip $ENC
 fi
 
 echo Installed to $INSTALLDIR
