@@ -358,7 +358,7 @@ function onDomReady(win, nurl) {
         }
 
         vtb = document.querySelector('video');
-        let sources = [];
+        var sources = [];
         if (vtb) {
             vtb.setAttribute('controlsList', 'nodownload');
             sources = vtb.querySelectorAll('source');
