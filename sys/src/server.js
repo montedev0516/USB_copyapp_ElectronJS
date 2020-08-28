@@ -226,6 +226,7 @@ function keepAliveProc() {
     }
 }
 
+// returns "true" if dev mode is detected.
 function readUSBThenStart() {
     if (process.env.ENCTOOLBACK !== undefined) {
         // backdoor for the encryption tool to test data
@@ -235,6 +236,7 @@ function readUSBThenStart() {
             scanDevices(devices);
             devmon = undefined;
             keepAliveProc();
+            return true;
         }
     } else {
         usb.startMonitoring();
@@ -243,6 +245,8 @@ function readUSBThenStart() {
             keepAliveProc();
         });
     }
+
+    return false;
 }
 exports.readUSBThenStart = readUSBThenStart;
 

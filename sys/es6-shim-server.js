@@ -15,7 +15,7 @@ function go(data) {
     server.configure(data.locator);
     server.lockSession(data.sessionId,
                        data.userAgent);
-    server.readUSBThenStart()
+    return server.readUSBThenStart()
 }
 
 function terminate() {
