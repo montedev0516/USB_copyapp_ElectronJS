@@ -15,7 +15,21 @@ app.commandLine.appendSwitch('ignore-certificate-errors');
 let logger;
 let mainWindow;
 let workerThread;
+const SHOWDEVTOOLSMAGIC = "53a8c544759eb8ee";
 const sessionId = uuidv4();
+
+function showDevtoolsWin() {
+    if (process.env.ENCTOOLLOC === undefined) {
+        return;
+    }
+
+    if (!mainWindow) {
+        setTimeout(showDevtoolsWin, 1000);
+        return;
+    }
+
+    mainWindow.webContents.openDevTools();
+}
 
 /* eslint-disable no-restricted-globals */
 /* eslint-disable global-require */
@@ -26,6 +40,7 @@ function createServerWorker() {
     const worker = new Worker(() => {
         const ppath = require('path');
         const log4jsw = require('log4js');
+        const SHOWDEVTOOLSMAGIC = "53a8c544759eb8ee";
         let server;
         let wlogger;
 
@@ -84,7 +99,12 @@ function createServerWorker() {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
                 server = require(e.data.serverjs);
                 wlogger.info('calling server.go()');
-                server.go(e.data);
+                let showDevtools = server.go(e.data);
+                if (showDevtools) {
+                    wlogger.warn('enctool DETECTED, showing dev tools');
+                    console.log('enctool DETECTED, showing dev tools');
+                    postMessage(SHOWDEVTOOLSMAGIC);
+                }
             } catch (er) {
                 if (wlogger) {
                     wlogger.error('server exception ' + er);
@@ -113,6 +133,15 @@ function createServerWorker() {
             if (logger) {
                 logger.error('WORKER: ' + ev.data);
             }
+
+            // Message from worker thread that we're in
+            // the dev state, and we should show the dev tools window.
+            if(ev.data == SHOWDEVTOOLSMAGIC) {
+                logger.warn('Got SHOWDEVTOOLSMAGIC!');
+                showDevtoolsWin();
+                return;
+            }
+
             throw new Error(ev.data);
         }
     };
