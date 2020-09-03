@@ -38,6 +38,9 @@ tar cf - $app | pv | ( cd ../../../app/sys ; tar xf - )
 [ ! -d ../../../drive ] && mkdir ../../../drive
 cp -v resources/locator.json ../../../drive/
 
+[ ! -d ../../../drive/doc ] && mkdir ../../../drive/doc
+cp -v ../doc/*.pdf ../../../drive/doc
+
 if [ -n "$drive" ] ; then
     mkdir ../../../drive/sys
     cp -r $drive ../../../drive/sys/

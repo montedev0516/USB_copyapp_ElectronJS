@@ -29,7 +29,7 @@ set -e
 
 set -x
 : 'Copying source to working directory...'
-cp -r src package* default_app locator.json es6-shim-server.js dist/
+cp -r src doc package* default_app locator.json es6-shim-server.js dist/
 : 'Done!'
 
 cd dist
