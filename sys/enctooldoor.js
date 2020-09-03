@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 
 const srvcfg = JSON.parse(
-    fs.readFileSync('/home/davek/work/t/encrypt/out/shared/usbcopypro.json'));
+    fs.readFileSync('/home/davidd/work/t/encrypt/out/shared/usbcopypro.json'));
 
 const algorithm = 'aes-192-cbc';
 const salt = srvcfg.salt;
@@ -31,7 +31,7 @@ console.log('export ENCTOOLBACKPW=' + password);
 console.log('export ENCTOOLBACK=' + enc);
 console.log(
     'export ENCTOOLLOC=' +
-    '/home/davek/work/usb/secure-usb-content/sys/locator.json'
+    '/home/davidd/work/usb/secure-usb-content/sys/locator.json'
 );
 /*
 unset ENCTOOLLOC ENCTOOLBACKPW ENCTOOLBACK

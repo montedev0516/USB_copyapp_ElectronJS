@@ -1,7 +1,7 @@
 {
-    "shared": "/home/davek/work/t/encrypt/out/shared",
+    "shared": "E:\\home\\davidd\\work\\t\\encrypt\\out\\shared",
     "app": ".",
     "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe",
-    "logging": "/tmp"
+    "logging": "C:\\cygwin64\\tmp"
 }
 

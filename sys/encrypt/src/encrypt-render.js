@@ -146,18 +146,26 @@ function btnFinalizeClick() {
                         messageCallback(err2, true);
                     } else {
                         messageCallback('System Copy complete');
+                        const locData = {
+                            shared: './shared',
+                            app: './sys/resources/app.asar',
+                            drive:
+                              '.\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
+                        };
+                        const locPath =
+                            path.join(enccfg.outPath, 'locator.json');
+                        fs.writeFileSync(locPath, JSON.stringify(locData));
+                        messageCallback('Locator created...');
+                        setTimeout(() => {
+                            messageCallback('Complete!<br>' +
+                                            'Data prepared at: <code>' +
+                                            enccfg.outPath + '<code>');
+                        }, 500);
                     }
                 });
             }
         });
 
-        const locData = {
-            shared: './shared',
-            app: './sys/resources/app.asar',
-            drive: '.\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
-        };
-        const locPath = path.join(enccfg.outPath, 'locator.json');
-        fs.writeFileSync(locPath, JSON.stringify(locData));
     } catch (e) {
         messageCallback('Copy sys ERROR: ' + e.message, true);
         throw e;
