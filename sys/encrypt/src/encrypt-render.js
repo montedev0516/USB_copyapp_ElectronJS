@@ -117,8 +117,12 @@ function saveUI() {
     return enccfg;
 }
 
-function btnFinalizeClick() {
+function btnFinalizeClick(ev) {
     const enccfg = saveUI();
+
+    $(ev.target)
+        .html('<span class="spinner-border spinner-border-sm"></span>' +
+              '&nbsp;Finalizing...');
 
     if (!enccfg.sysPath) {
         messageCallback('ERROR: no system path', true);
@@ -157,6 +161,7 @@ function btnFinalizeClick() {
                         fs.writeFileSync(locPath, JSON.stringify(locData));
                         messageCallback('Locator created...');
                         setTimeout(() => {
+                            $(ev.target).html('Finalize');
                             messageCallback('Complete!<br>' +
                                             'Data prepared at: <code>' +
                                             enccfg.outPath + '<code>');
@@ -168,6 +173,7 @@ function btnFinalizeClick() {
 
     } catch (e) {
         messageCallback('Copy sys ERROR: ' + e.message, true);
+        $(ev.target).html('Finalize');
         throw e;
     }
 }
