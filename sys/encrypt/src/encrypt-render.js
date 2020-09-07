@@ -117,8 +117,12 @@ function saveUI() {
     return enccfg;
 }
 
-function btnFinalizeClick() {
+function btnFinalizeClick(ev) {
     const enccfg = saveUI();
+
+    $(ev.target)
+        .html('<span class="spinner-border spinner-border-sm"></span>' +
+              '&nbsp;Finalizing...');
 
     if (!enccfg.sysPath) {
         messageCallback('ERROR: no system path', true);
@@ -157,6 +161,7 @@ function btnFinalizeClick() {
                         fs.writeFileSync(locPath, JSON.stringify(locData));
                         messageCallback('Locator created...');
                         setTimeout(() => {
+                            $(ev.target).html('Finalize');
                             messageCallback('Complete!<br>' +
                                             'Data prepared at: <code>' +
                                             enccfg.outPath + '<code>');
@@ -168,6 +173,7 @@ function btnFinalizeClick() {
 
     } catch (e) {
         messageCallback('Copy sys ERROR: ' + e.message, true);
+        $(ev.target).html('Finalize');
         throw e;
     }
 }
@@ -195,9 +201,13 @@ function findExecPath(enccfg) {
     return execPaths[0];
 }
 
-function btnLaunchClick() {
+function btnLaunchClick(ev) {
     const tempLocator = tmp.fileSync();
     const enccfg = saveUI();
+
+    $(ev.target)
+        .html('<span class="spinner-border spinner-border-sm"></span>' +
+              '&nbsp;Launching...');
 
     if (!enccfg.sysPath) {
         messageCallback('ERROR: no system path', true);
@@ -268,14 +278,22 @@ function btnLaunchClick() {
             if (error) {
                 messageCallback(error, true);
             } else {
-                const s = '<pre>' + stdout + stderr + '</pre>';
+                const s = 'Process finished</br>' +
+                'stdout:</br><samp>' + stdout + '</samp></br>' +
+                'stderr:</br><samp>' + stderr + '</samp>';
                 messageCallback(s);
+                $(ev.target).html('Launch');
             }
         });
 
         if (!child) {
             messageCallback('ERROR spaning process', true);
+        } else {
+            setTimeout(() => {
+                $(ev.target).html('Running');
+            }, 1000);
         }
+
     } catch (e) {
         messageCallback('Launch ERROR: ' + e.message, true);
         throw e;
