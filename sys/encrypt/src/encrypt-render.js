@@ -195,9 +195,13 @@ function findExecPath(enccfg) {
     return execPaths[0];
 }
 
-function btnLaunchClick() {
+function btnLaunchClick(ev) {
     const tempLocator = tmp.fileSync();
     const enccfg = saveUI();
+
+    $(ev.target)
+        .html('<span class="spinner-border spinner-border-sm"></span>' +
+              '&nbsp;Launching...');
 
     if (!enccfg.sysPath) {
         messageCallback('ERROR: no system path', true);
@@ -268,14 +272,22 @@ function btnLaunchClick() {
             if (error) {
                 messageCallback(error, true);
             } else {
-                const s = '<pre>' + stdout + stderr + '</pre>';
+                const s = 'Process finished</br>' +
+                'stdout:</br><samp>' + stdout + '</samp></br>' +
+                'stderr:</br><samp>' + stderr + '</samp>';
                 messageCallback(s);
+                $(ev.target).html('Launch');
             }
         });
 
         if (!child) {
             messageCallback('ERROR spaning process', true);
+        } else {
+            setTimeout(() => {
+                $(ev.target).html('Running');
+            }, 1000);
         }
+
     } catch (e) {
         messageCallback('Launch ERROR: ' + e.message, true);
         throw e;
