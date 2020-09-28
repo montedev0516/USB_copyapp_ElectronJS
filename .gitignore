@@ -5,3 +5,5 @@ v*.zip
 locator.json
 nsis/*.exe
 *.exe
+nsis.log
+repo/osx
