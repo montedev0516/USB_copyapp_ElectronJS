@@ -1,0 +1,15 @@
+#!/bin/bash
+
+_t=`mktemp`
+$(npm bin)/eslint -f compact "$@" > $_t 2>&1
+
+perl -ne '
+    chomp;
+    if (/^(.:\\[^:]*):(.*)$/) {
+        $path = $1;
+        $rest = $2;
+        $cygpath = `cygpath "$path"`;
+        chomp($cygpath);
+        print "$cygpath:$rest\n";
+    }
+' < $_t

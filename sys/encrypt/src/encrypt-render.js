@@ -130,6 +130,8 @@ function btnFinalizeClick(ev) {
     }
 
     const driveFullPath = path.join(enccfg.sysPath, 'app', 'drive');
+    const macFullPath = path.join(enccfg.sysPath,
+                                  'app', 'drive', 'usbcopypro.app');
     const sysFullPath = path.join(enccfg.sysPath, 'app', 'sys');
 
     messageCallback('Copying system<br>' +
@@ -143,13 +145,42 @@ function btnFinalizeClick(ev) {
                 messageCallback(err1, true);
             } else {
                 messageCallback('Electron Copy complete');
-                fsextra.copy(sysFullPath,
-                             path.join(enccfg.outPath, 'sys'), (err2) => {
-                    process.noAsar = false;
-                    if (err2) {
-                        messageCallback(err2, true);
-                    } else {
-                        messageCallback('System Copy complete');
+                const p1 = (resolve, reject) => {
+                    fsextra.copy(sysFullPath,
+                                 path.join(enccfg.outPath, 'sys'),
+                                 (err2) =>
+                        {
+                            if (err2) {
+                                messageCallback(err2, true);
+                                reject();
+                            } else {
+                                messageCallback('System Copy complete');
+                                setTimeout(() => {
+                                    resolve();
+                                }, 1000);
+                            }
+                        });
+                    };
+                const p2 = (resolve, reject) => {
+                    fsextra.copy(macFullPath,
+                                 path.join(enccfg.outPath, 'usbcopypro.app'),
+                                 (err2) =>
+                        {
+                            if (err2) {
+                                messageCallback(err2, true);
+                                reject();
+                            } else {
+                                messageCallback('OSX System Copy complete');
+                                setTimeout(() => {
+                                    resolve();
+                                }, 1000);
+                            }
+                        });
+                    };
+                new Promise(p1)
+                    .then(() => new Promise(p2))
+                    .then(() => {
+                        process.noAsar = false;
                         const locData = {
                             shared: './shared',
                             app: './sys/resources/app.asar',
@@ -165,12 +196,11 @@ function btnFinalizeClick(ev) {
                             messageCallback('Complete!<br>' +
                                             'Data prepared at: <code>' +
                                             enccfg.outPath + '<code>');
-                        }, 500);
-                    }
-                });
+                        }, 1000);
+                    })
+                    .catch(() => {});
             }
         });
-
     } catch (e) {
         messageCallback('Copy sys ERROR: ' + e.message, true);
         $(ev.target).html('Finalize');
@@ -293,7 +323,6 @@ function btnLaunchClick(ev) {
                 $(ev.target).html('Running');
             }, 1000);
         }
-
     } catch (e) {
         messageCallback('Launch ERROR: ' + e.message, true);
         throw e;
