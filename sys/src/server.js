@@ -435,6 +435,8 @@ function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
             input.pipe(decipher).pipe(res);
         }
     } catch (err) {
+        logger.error('Decryption ERROR:');
+        logger.error(err);
         if (res && !res.headersSent) {
             res.sendStatus(404);
         }
