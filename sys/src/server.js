@@ -404,14 +404,19 @@ function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
 
                 const len = (byteend - bytestart) + 1;
                 hdr['Transfer-Encoding'] = 'chunked';
-                hdr['Last-Modified'] = lastmod;
+                hdr['Last-Modified'] = lastmod.toUTCString();
                 hdr['Accept-Ranges'] = 'bytes';
                 hdr['Content-Length'] = len;
                 hdr['Content-Range'] =
                     'bytes ' + bytestart +
                     '-' + byteend + '/' +
                     originalSize[base];
-                res.writeHead(206, hdr);
+                try {
+                    res.writeHead(206, hdr);
+                } catch(e) {
+                    logger.error("Error writing headers!");
+                    logger.info(e);
+                }
             } else {
                 bytestart = 0;
                 byteend = originalSize[base] - 1;
