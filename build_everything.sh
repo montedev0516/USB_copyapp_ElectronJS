@@ -18,7 +18,7 @@ if [ -z "$1" ] ; then
 
     # build 32-bit system
     cd ..
-    rm -r dist
+    rm -rf dist
     ./package.sh
 else
     cd sys/
