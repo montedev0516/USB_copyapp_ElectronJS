@@ -403,7 +403,7 @@ function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
                 }
 
                 const len = (byteend - bytestart) + 1;
-                hdr['Transfer-Encoding'] = 'chunked';
+                res.setHeader('Transfer-Encoding', 'chunked');
                 hdr['Last-Modified'] = lastmod.toUTCString();
                 hdr['Accept-Ranges'] = 'bytes';
                 hdr['Content-Length'] = len;
