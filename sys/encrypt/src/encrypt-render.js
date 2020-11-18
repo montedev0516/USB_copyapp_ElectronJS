@@ -159,8 +159,7 @@ function btnFinalizeClick(ev) {
                 const p1 = (resolve, reject) => {
                     fsextra.copy(sysFullPath,
                                  path.join(enccfg.outPath, 'sys'),
-                                 (err2) =>
-                        {
+                                 (err2) => {
                             if (err2) {
                                 messageCallback(err2, true);
                                 reject();
@@ -175,8 +174,7 @@ function btnFinalizeClick(ev) {
                 const p2 = (resolve, reject) => {
                     fsextra.copy(macFullPath,
                                  path.join(enccfg.outPath, 'usbcopypro.app'),
-                                 (err2) =>
-                        {
+                                 (err2) => {
                             if (err2) {
                                 messageCallback(err2, true);
                                 reject();
@@ -337,7 +335,7 @@ function btnLaunchClick(ev) {
                     '<samp>export ENCTOOLBACKPW=' + password + '</samp></br>' +
                     '<samp>export ENCTOOLBACK=' + enc + '</samp></br>' +
                     '<samp>export ENCTOOLLOC=' + tempLocator.name +
-                    '</samp></br>', false, true
+                    '</samp></br>', false, true,
                 );
             }, 1000);
         }
