@@ -47,14 +47,25 @@ function newMaskHTML(name, i) {
         '</div>';
 }
 
-function messageCallback(s, isError) {
+function messageCallback(s, isError, append) {
     if (isError) {
+        if (append) {
+            $('#errors')
+                .append(s);
+        } else {
+            $('#errors')
+                .html(s);
+        }
         $('#errors')
-            .show()
-            .html(s);
+            .show();
     } else if (s) {
-        $('#messages')
-            .html(s);
+        if (append) {
+            $('#messages')
+                .append(s);
+        } else {
+            $('#messages')
+                .html(s);
+        }
     } else {
         $('#messages')
             .html('');
@@ -148,8 +159,7 @@ function btnFinalizeClick(ev) {
                 const p1 = (resolve, reject) => {
                     fsextra.copy(sysFullPath,
                                  path.join(enccfg.outPath, 'sys'),
-                                 (err2) =>
-                        {
+                                 (err2) => {
                             if (err2) {
                                 messageCallback(err2, true);
                                 reject();
@@ -164,8 +174,7 @@ function btnFinalizeClick(ev) {
                 const p2 = (resolve, reject) => {
                     fsextra.copy(macFullPath,
                                  path.join(enccfg.outPath, 'usbcopypro.app'),
-                                 (err2) =>
-                        {
+                                 (err2) => {
                             if (err2) {
                                 messageCallback(err2, true);
                                 reject();
@@ -304,14 +313,14 @@ function btnLaunchClick(ev) {
         const child = execFile(execPath, [], {
             env: newenv,
         }, (error, stdout, stderr) => {
-            messageCallback('Process finished');
+            messageCallback('</br>Process exited.', false, true);
             if (error) {
                 messageCallback(error, true);
             } else {
-                const s = 'Process finished</br>' +
+                const s = '</br>Launch complete.</br>' +
                 'stdout:</br><samp>' + stdout + '</samp></br>' +
                 'stderr:</br><samp>' + stderr + '</samp>';
-                messageCallback(s);
+                messageCallback(s, false, true);
                 $(ev.target).html('Launch');
             }
         });
@@ -321,6 +330,13 @@ function btnLaunchClick(ev) {
         } else {
             setTimeout(() => {
                 $(ev.target).html('Running');
+                messageCallback(
+                    '</br>' +
+                    '<samp>export ENCTOOLBACKPW=' + password + '</samp></br>' +
+                    '<samp>export ENCTOOLBACK=' + enc + '</samp></br>' +
+                    '<samp>export ENCTOOLLOC=' + tempLocator.name +
+                    '</samp></br>', false, true,
+                );
             }, 1000);
         }
     } catch (e) {
