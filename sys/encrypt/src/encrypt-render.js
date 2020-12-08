@@ -14,7 +14,10 @@ const os = require('os');
 const tmp = require('tmp');
 const vers = require('../package.json');
 const { execFile } = require('child_process');
-const { dialog } = require('electron').remote;
+const electron = require('electron');
+
+const { dialog } = electron.remote;
+const { ipcRenderer } = electron;
 
 require('jquery-ui');
 require('jquery-ui/ui/widgets/progressbar');
@@ -99,6 +102,7 @@ function saveUI() {
         descString3,
         inPath: $("input[name='indir']").val(),
         outPath: $("input[name='outdir']").val(),
+        includePath: $("input[name='includedir']").val(),
         apiKey: crypto.randomBytes(32).toString('hex'),
         version: longVersion,
         sysPath,
@@ -461,13 +465,14 @@ function validate(enccfg) {
 }
 
 function setBtnEnabled(val) {
+    const buttonSelector = '#btn-encrypt,#btn-launch,#btn-finalize';
     if (val) {
-        $('#btn-encrypt')
+        $(buttonSelector)
             .removeClass('btndisabled')
             .addClass('btnenabled')
             .prop('disabled', false);
     } else {
-        $('#btn-encrypt')
+        $(buttonSelector)
             .removeClass('btnenabled')
             .addClass('btndisabled')
             .prop('disabled', true);
@@ -631,7 +636,7 @@ function toggleButton(val) {
 function chooseFile(inputEl, desc) {
     const currentpath = $("input[name='" + inputEl + "']").val();
 
-    const paths = dialog.showOpenDialog({
+    const paths = dialog.showOpenDialogSync({
         title: 'Select the ' + desc + ' directory',
         defaultPath: currentpath,
         properties: ['openDirectory'],
@@ -807,6 +812,7 @@ function loadUI(enccfgIn) {
     $('#btn-encrypt').off('click');
     $('#btn-select-indir').off('click');
     $('#btn-select-outdir').off('click');
+    $('#btn-select-includedir').off('click');
     $('#btn-clear-outdir').off('click');
     $('#btn-save-config').off('click');
     $('#presets-select').off('change');
@@ -860,6 +866,7 @@ function loadUI(enccfgIn) {
     loadUIParams(enccfg);
     $('input[name="indir"]').val(enccfg.inPath);
     $('input[name="outdir"]').val(enccfg.outPath);
+    $('input[name="includedir"]').val(enccfg.includePath);
 
     if (!enccfg.hasOwnProperty('filematch')) {
         // eslint-disable-next-line no-param-reassign
@@ -887,7 +894,10 @@ function loadUI(enccfgIn) {
     setBtnEnabled(true);
 
     $('#btn-select-indir').on('click', () => {
-        chooseFile('indir', 'input');
+        chooseFile('indir', 'common');
+    });
+    $('#btn-select-includedir').on('click', () => {
+        chooseFile('includedir', 'include');
     });
     $('#btn-select-outdir').on('click', () => {
         chooseFile('outdir', 'output');
@@ -903,6 +913,10 @@ function loadUI(enccfgIn) {
 
     messageCallback('Encryption Tool version ' + longVersion + ' ready');
 }
+
+ipcRenderer.on('showabout', () => {
+    $('#aboutbox').modal();
+});
 
 $(() => {
     let enccfg;

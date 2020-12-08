@@ -16,8 +16,27 @@
 <body>
 
 <h1>USB Copy Pro Encryption Utility</h1>
-<div>Version: <code id="version-info"></code></div>
-<div>System: <code id="system-info"></code></div>
+
+<div class="modal" tabindex="-1" role="dialog" id="aboutbox">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">USB Copy Pro</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	<div>Version: <code id="version-info"></code></div>
+	<div>System: <code id="system-info"></code></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div style="padding:5px">
     <select id="presets-select">
     </select>
@@ -26,14 +45,22 @@
 </div>
 
 <table style="width:100%">
-<tr><td class="field">VID</td><td><input type="text" name="vid"/></td></tr>
-<tr><td class="field">PID</td><td><input type="text" name="pid"/></td></tr>
-<tr><td class="field">Serial Number</td><td><input type="text" name="serial"/></td></tr>
-<tr><td colspan=2 style="font-size:75%"><i>Input only leading significant characters of serial number</i></td></tr>
+<tr><td class="field">VID</td><td colspan=2><input type="text" name="vid"/></td></tr>
+<tr><td class="field">PID</td><td colspan=2><input type="text" name="pid"/></td></tr>
+<tr><td class="field">Serial Number</td><td style="width:15%"><input type="text" name="serial"/></td>
+    <td colspan=2><span class="hinttext">Input only leading significant characters of serial number</span></td>
+</tr>
 
+<tr class="hintrow">
+    <td/>
+    <td colspan=2><span class="hinttext movedown">Main folder used for common files.  This folder must hold your <code>index.html</code></td>
+</tr>
 <tr>
-    <td class="field">Input Folder</td>
-    <td>
+    <td class="field">
+        <span class="hinttext moveup">This folder is mandatory</span><br/>
+        <span class="fieldlabel moveup">Common Folder</span>
+    </td>
+    <td colspan=2>
         <div class="input-container">
             <input class="input-left" type="text" name="indir" />
             <button class="input-right button btnenabled" id="btn-select-indir">Choose ...</button>
@@ -41,9 +68,33 @@
     </td>
 </tr>
 
+<tr class="hintrow">
+    <td/>
+    <td colspan=2><span class="hinttext movedown">Included files will be placed on the drive alongside the Common folder above &uarr;</td>
+</tr>
 <tr>
-    <td class="field"><a href="#" class="link" id="btn-clear-outdir">Empty Folder</a>&nbsp;Final Output Folder</td>
-    <td>
+    <td class="field">
+        <span class="hinttext moveup">This folder is optional</span><br/>
+        <span class="fieldlabel moveup">Included Files Folder</span>
+    </td>
+    <td colspan=2>
+        <div class="input-container">
+            <input class="input-left" type="text" name="includedir" />
+            <button class="input-right button btnenabled" id="btn-select-includedir">Choose ...</button>
+        </div>
+    </td>
+</tr>
+<tr class="hintrow">
+    <td/>
+    <td colspan=2><span class="hinttext">Files in this folder &uarr; will be placed in a folder called <code>files</code> at the content root</td>
+</tr>
+
+<tr><td>&nbsp;</td></tr>
+<tr>
+    <td class="field fieldlabel">
+        <a href="#" class="link" id="btn-clear-outdir">Empty Folder</a>&nbsp;Final Output Folder
+    </td>
+    <td colspan=2>
         <div class="input-container">
             <input class="input-left" type="text" name="outdir" />
             <button class="input-right button btnenabled" id="btn-select-outdir">Choose ...</button>
@@ -51,8 +102,8 @@
     </td>
 </tr>
 
-<tr><td class="field">Exclude from encryption:</td>
-    <td>
+<tr><td class="field fieldlabel">Exclude from encryption:</td>
+    <td colspan=2>
         <div id="matchlist"></div>
         <input style="width:7em" type='text' name='newmask'/>&nbsp;
         <span class='plusbtn' onclick='ctl.addNewMask()'>&oplus;</span>
@@ -63,8 +114,8 @@
 </tr>
 
 
-<tr><td class="field">Enable file browser</td>
-    <td>
+<tr><td class="field fieldlabel">Enable file browser</td>
+    <td colspan=2>
         <input style="width:1em" type='checkbox' id='fileBrowserEnabled' name='fileBrowserEnabled'/>
         <span style="font-size:75%">
             <i>File browser is <span style="font-weight: bold;" id="displayFileBrowserEnabled">&nbsp;</span></i>
@@ -97,6 +148,7 @@
 <script>
 var ctl = require('./encrypt-render.js');
 </script>
+<script src="../contrib/js/bootstrap.min.js"></script>
 
 </body>
 </html>

@@ -5,9 +5,11 @@ body {
 
 .field {
     text-align: right;
-    font-weight: bold;
     vertical-align: top;
     width: 15em;
+}
+.fieldlabel {
+    font-weight: bold;
 }
 
 div.spacer {
@@ -88,6 +90,7 @@ input {
     position: relative;
     display: inline-block;
     border-bottom: 1px dotted black;
+    opacity: 100%;
 }
 
 .tooltip .tooltiptext {
@@ -108,4 +111,21 @@ input {
 
 .tooltip:hover .tooltiptext {
     visibility: visible;
+}
+
+.hinttext {
+    font-size: 75%;
+    font-style: italic;
+    vertical-align: bottom;
+}
+.moveup {
+    position: relative;
+    top: -5px;
+}
+.movedown {
+    position: relative;
+    top: 5px;
+}
+.hintrow {
+    line-height: 7px;
 }
