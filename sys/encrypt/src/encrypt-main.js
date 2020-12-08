@@ -1,6 +1,7 @@
 const electron = require('electron');
 const url = require('url');
 const path = require('path');
+
 const Menu = electron.Menu;
 const MenuItem = electron.MenuItem;
 
@@ -8,7 +9,7 @@ const { app } = electron;
 
 let mainWindow;
 
-function onAbout(menuItem, browserWindow, event) {
+function onAbout() {
     mainWindow.webContents.send('showabout');
 }
 
@@ -40,12 +41,12 @@ function createWindow() {
 
     about.append(new MenuItem({
         label: 'About',
-        click: onAbout
+        click: onAbout,
     }));
 
     menu.append(new MenuItem({
         label: 'Help',
-        submenu: about
+        submenu: about,
     }));
 
     Menu.setApplicationMenu(menu);

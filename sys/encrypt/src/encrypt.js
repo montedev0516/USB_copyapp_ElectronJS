@@ -76,23 +76,39 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     msgcb('Constructing File List...');
 
     // construct file list
-    const dirs = [enccfg.inPath];
+    const topdirs = [{
+        path: enccfg.inPath,
+        out: '/',
+    }, {
+        path: enccfg.includePath,
+        out: '/files',
+    }];
     const encFiles = [];
     const unencFiles = [];
-    while (dirs.length > 0) {
-        const dir = dirs.pop();
-        const files = fs.readdirSync(dir);
-        for (let i = 0; i < files.length; i++) {
-            const pathname = path.join(dir, files[i]);
-            const stat = fs.statSync(pathname);
-            if (stat.isDirectory()) {
-                dirs.push(pathname);
-            } else if (includeFile(files[i])) {
-                encFiles.push(pathname);
-            } else {
-                unencFiles.push(pathname);
+    while (topdirs.length > 0) {
+        const topdir = topdirs.pop();
+        let dir = topdir.path;
+        const dirs = [];
+        do {
+            const files = fs.readdirSync(dir);
+            for (let i = 0; i < files.length; i++) {
+                const pathname = path.join(dir, files[i]);
+                const stat = fs.statSync(pathname);
+                const fileDetails = {
+                    dirname: topdir.path,
+                    outname: topdir.out,
+                    pathname,
+                };
+                if (stat.isDirectory()) {
+                    dirs.push(pathname);
+                } else if (includeFile(files[i])) {
+                    encFiles.push(fileDetails);
+                } else {
+                    unencFiles.push(fileDetails);
+                }
             }
-        }
+            dir = dirs.pop();
+        } while (dirs.length > 0);
     }
 
     function makeCertificate() {
@@ -187,6 +203,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
     function go(idx, serial, vers, secret) {
         let file;
+        let dirname;
+        let outname;
         const isEnc = !(serial.length === 0 &&
                       vers.length === 0 &&
                       secret.length === 0);
@@ -201,7 +219,9 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
                 return;
             }
-            file = encFiles[idx];
+            file = encFiles[idx].pathname;
+            dirname = encFiles[idx].dirname;
+            outname = encFiles[idx].outname;
         } else {
             if (unenccb) unenccb(idx, unencFiles.length);
 
@@ -218,7 +238,9 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
                 return;
             }
-            file = unencFiles[idx];
+            file = unencFiles[idx].pathname;
+            dirname = unencFiles[idx].dirname;
+            outname = encFiles[idx].outname;
         }
 
         let cipher;
@@ -250,14 +272,17 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         if (useMask) {
             // put masked files directly in output folder
             fnout = fnout.replace(
-                enccfg.inPath,
-                path.join(outPath, 'm'),
+                dirname,
+                path.join(outPath, 'm', outname),
             );
 
             dirType = 'output';
         } else {
             // put encrypted files into working dir for asar creation
-            fnout = fnout.replace(enccfg.inPath, enccfg.workPath);
+            fnout = fnout.replace(
+                dirname,
+                path.join(enccfg.workPath, outname),
+            );
 
             dirType = 'working';
         }

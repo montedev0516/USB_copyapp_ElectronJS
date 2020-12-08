@@ -15,6 +15,7 @@ const tmp = require('tmp');
 const vers = require('../package.json');
 const { execFile } = require('child_process');
 const electron = require('electron');
+
 const { dialog } = electron.remote;
 const { ipcRenderer } = electron;
 
@@ -464,7 +465,7 @@ function validate(enccfg) {
 }
 
 function setBtnEnabled(val) {
-    const buttonSelector = '#btn-encrypt,#btn-launch,#btn-finalize'
+    const buttonSelector = '#btn-encrypt,#btn-launch,#btn-finalize';
     if (val) {
         $(buttonSelector)
             .removeClass('btndisabled')
