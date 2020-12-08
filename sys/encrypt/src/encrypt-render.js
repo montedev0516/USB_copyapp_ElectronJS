@@ -14,7 +14,9 @@ const os = require('os');
 const tmp = require('tmp');
 const vers = require('../package.json');
 const { execFile } = require('child_process');
-const { dialog } = require('electron').remote;
+const electron = require('electron');
+const dialog = electron.remote;
+const ipcRenderer = electron.ipcRenderer;
 
 require('jquery-ui');
 require('jquery-ui/ui/widgets/progressbar');
@@ -903,6 +905,10 @@ function loadUI(enccfgIn) {
 
     messageCallback('Encryption Tool version ' + longVersion + ' ready');
 }
+
+ipcRenderer.on('showabout', () => {
+    $('#aboutbox').modal();
+});
 
 $(() => {
     let enccfg;
