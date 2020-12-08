@@ -463,13 +463,14 @@ function validate(enccfg) {
 }
 
 function setBtnEnabled(val) {
+    const buttonSelector = '#btn-encrypt,#btn-launch,#btn-finalize'
     if (val) {
-        $('#btn-encrypt')
+        $(buttonSelector)
             .removeClass('btndisabled')
             .addClass('btnenabled')
             .prop('disabled', false);
     } else {
-        $('#btn-encrypt')
+        $(buttonSelector)
             .removeClass('btnenabled')
             .addClass('btndisabled')
             .prop('disabled', true);
