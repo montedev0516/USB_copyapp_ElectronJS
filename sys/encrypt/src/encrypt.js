@@ -108,7 +108,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                 }
             }
             dir = dirs.pop();
-        } while (dirs.length > 0);
+        } while (typeof dir !== 'undefined');
     }
 
     function makeCertificate() {
