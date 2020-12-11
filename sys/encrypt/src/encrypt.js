@@ -73,16 +73,26 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         return true;
     }
 
+    if (typeof enccfg.inPath === 'undefined' ||
+        enccfg.inPath.length === 0) {
+        throw new Error('Common Folder Path is required');
+    }
+
     msgcb('Constructing File List...');
 
     // construct file list
     const topdirs = [{
         path: enccfg.inPath,
         out: '/',
-    }, {
-        path: enccfg.includePath,
-        out: '/files',
     }];
+
+    if (!(typeof enccfg.includePath === 'undefined' ||
+          enccfg.includePath.length === 0)) {
+        topdirs.push({
+            path: enccfg.includePath,
+            out: '/files',
+        });
+    }
     const encFiles = [];
     const unencFiles = [];
     while (topdirs.length > 0) {
