@@ -1,7 +1,7 @@
 {
   "name": "usbcopypro-encrypt",
   "productName": "usbcopypro-encrypt",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "USB Copy Pro Encryption Tool",
   "main": "src/encrypt-main.js",
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
