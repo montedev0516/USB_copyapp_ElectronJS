@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 set -x
@@ -30,5 +30,7 @@ cd ..
 ./makezip.sh
 
 # finally, run ./install.sh or build the NSIS installer
-/cygdrive/c/Program\ Files\ \(x86\)/NSIS/makensis nsis\\ucp.nsi 2>&1 | tee nsis.log
-mv -v nsis/usbcopypro.exe usbcopypro-`git describe --tag`.exe
+if [ -x /cygdrive/c/Program\ Files\ \(x86\)/NSIS/makensis ] ; then
+    /cygdrive/c/Program\ Files\ \(x86\)/NSIS/makensis nsis\\ucp.nsi 2>&1 | tee nsis.log
+    mv -v nsis/usbcopypro.exe usbcopypro-`git describe --tag`.exe
+fi
