@@ -29,10 +29,13 @@ set -e
 
 set -x
 : 'Copying source to working directory...'
-cp -r src doc package* default_app locator.json es6-shim-server.js dist/
+cp ../repo/file-browser/file-browser*.tgz ./repo/file-browser
+cp ../repo/node-usb-detection/usb-detection*.tgz ./repo/node-usb-detection
+cp -r src doc package* default_app locator.json es6-shim-server.js repo dist/
 : 'Done!'
 
 cd dist
+for npmtgz in `pwd`/repo/*/*.tgz ; do npm cache add $npmtgz ; done
 npm install --production
 cp -v package-lock.json ..
 

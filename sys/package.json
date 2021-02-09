@@ -9,7 +9,7 @@
     "bluebird": "^3.5.3",
     "electron-compile": "^6.4.4",
     "express": "^4.17.1",
-    "file-browser": "file:../repo/file-browser/file-browser-0.2.3.tgz",
+    "file-browser": "file:repo/file-browser/file-browser-0.2.3.tgz",
     "jquery": "^3.3.1",
     "log4js": "^6.1.0",
     "mime-types": "^2.1.22",
@@ -17,7 +17,7 @@
     "on-finished": "^2.3.0",
     "opn": "^5.2.0",
     "tiny-worker": "^2.1.2",
-    "usb-detection": "file:../repo/node-usb-detection/usb-detection-4.9.1.tgz",
+    "usb-detection": "file:repo/node-usb-detection/usb-detection-4.9.1.tgz",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
