@@ -14,6 +14,7 @@ popd
 if [ -z "$1" ] ; then
     # build encryption tool
     cd sys/encrypt
+    rm -rf out
     ./package.sh
 
     # build 32-bit system
