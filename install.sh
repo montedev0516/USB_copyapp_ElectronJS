@@ -1,5 +1,8 @@
 #!/bin/bash
-# run build_everything.sh first
+# run first:
+#   build_everything.sh
+# OR
+#   makezip.sh (makes zipfiles only, no rebuild)
 
 cd `dirname $0`
 
@@ -23,13 +26,10 @@ if [ "$1" = "-f" ] ; then
     if [ "$cont" != "y" ] ; then
         exit 0
     fi
-    rm -fv *.zip || exit 1
     set -x
     sudo rm -r "$INSTALLDIR/"* || exit 1
     set +x
 fi
-
-./makezip.sh || exit 1
 
 croak() {
     echo "ERROR: $1"
