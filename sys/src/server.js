@@ -445,13 +445,16 @@ function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
 }
 
 function openAndCreateStream(fname, bytestart, byteend) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         let nbe = byteend;
         if (nbe === null) {
             nbe = undefined;
         }
         fs.open(fname, 'r', 0o666, (err, nfd) => {
-            if (err) throw new Error(err);
+            if (err) {
+                reject(err);
+                return;
+            }
 
             const input = fs.createReadStream(fname, {
                 fd: nfd,
@@ -525,8 +528,11 @@ function streamFile(match, res, req, encfile) {
                             reqThrottle.req,
                             input,
                         );
-                    }).catch(() => {
-                        // should probably do something here
+                    }).catch((e) => {
+                        logger.error(
+                            'openAndCreateStream error (stream): ' + e
+                        );
+                        res.sendStatus(500);
                     });
                 },
                 10,
@@ -546,7 +552,8 @@ function streamFile(match, res, req, encfile) {
                 res, req, input,
             );
         }).catch((e) => {
-            logger.error('Decryption error: ' + e);
+            logger.error('openAndCreateStream error (nonstream): ' + e);
+            res.sendStatus(500);
         });
     }
 }
@@ -645,6 +652,7 @@ function configure(locator) {
     } else {
         // detect *.lock files, and decrypt if needed
         app.use((req, res) => {
+          try {
             if (!isValid([req, res])) { return; }
 
             const file = decodeURI(req.path);
@@ -663,6 +671,8 @@ function configure(locator) {
                 const match = encfile.match(/\.([^.]*)\.lock$/);
                 if (match) {
                     streamFile(match[1], res, req, encfile);
+                } else {
+                    res.sendStatus(500);
                 }
             } else {
                 let nfile = encfile.replace('.lock', '');
@@ -678,14 +688,18 @@ function configure(locator) {
                     // lockfile not found, return standard file fetch
                     res.sendFile(file, { root: cdir }, (err) => {
                         if (err) {
-                            // This happens if the request is aborted,
-                            // no need to report.
+                            // This happens if the request is aborted.
+                            logger.error('sendFile error: ' + err);
                         }
                     });
                 } else {
                     res.sendStatus(404);
                 }
             }
+          } catch (e) {
+            logger.error('System exception: ' + e);
+            res.sendStatus(404);
+          }
         });
     }
 }

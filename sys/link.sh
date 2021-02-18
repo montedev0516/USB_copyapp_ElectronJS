@@ -16,7 +16,3 @@ fi
 if [ ! -L $link ] ; then 
     /bin/ln -vs usb-detection $link
 fi
-
-if [ ! -L repo ] ; then 
-    /bin/ln -vs ../repo repo
-fi

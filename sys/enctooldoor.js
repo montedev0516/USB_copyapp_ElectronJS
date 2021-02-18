@@ -13,9 +13,9 @@ const algorithm = 'aes-192-cbc';
 const salt = srvcfg.salt;
 const password = '1f5d34fa476946c0';
 const encpass = Buffer.from(password + 'dd' + salt, 'hex');
-const vid='1234';
-const pid='1234';
-const serial='1234';
+const vid='FFFF';
+const pid='5678';
+const serial='';
 
 const cipher = crypto.createCipher(algorithm, encpass);
 
