@@ -38,7 +38,7 @@ croak() {
 
 tag=`git describe --tag`
 
-mkdir -p "$INSTALLDIR/app" || croak "no install dir"
+sudo mkdir -p "$INSTALLDIR/app" || croak "no install dir"
 ZIPSDIR="`pwd`"
 cd "$INSTALLDIR/app"
 sudo unzip $ZIPSDIR/${tag}-app.zip
