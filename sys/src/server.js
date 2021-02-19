@@ -46,6 +46,7 @@ let gUuid = null;
 let gAgent = null;
 
 const app = express();
+app.locals.title = "USB Content System";
 let server;
 
 // dummy variable used to help keep the parent process alive.
@@ -215,7 +216,7 @@ function keepAliveProc() {
     if (exports.keepAlive) {
         setTimeout(() => {
             checkUSB();
-            logger.debug('Server keepAliveProc ping');
+            logger.debug('Server keepAliveProc ping: ' + app.locals.title);
             keepAliveProc();
         }, 750);
     } else {
@@ -351,7 +352,11 @@ function unmask(input, bytestart, byteend, res, req) {
     }
 }
 
-function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
+function decrypt(key, fname, type, bytestartp, byteendp,
+                 response, request, inputStream) {
+    const res = response;
+    const req = request;
+    const input = inputStream;
     try {
         if (pwCache === undefined) {
             pwCache = pwsys.makePassword(
@@ -386,6 +391,7 @@ function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
             req.finished = true;
         };
         input.on('error', streamError);
+        res.on('error', streamError);
 
         // large items have their original lengths cached.
         const base = path.basename(fname);
@@ -430,9 +436,34 @@ function decrypt(key, fname, type, bytestartp, byteendp, res, req, input) {
             const decipher = crypto.createDecipher('aes-192-ofb', pwCache);
             decipher.on('error', streamError);
             res.set(hdr);
-            // Note that here we do not know the content-length,
-            // so this will automatically set Transfer-Encoding to 'chunked'
-            input.pipe(decipher).pipe(res);
+
+            // Using pipes does not seem to work here.  Need to
+            // decrypt to memory first, then send the whole thing with
+            // the proper length.
+
+            input.on('readable', () => {
+                let data;
+                while(data = input.read()) {
+                    decipher.write(data);
+                }
+            });
+            input.on('close', () => {
+                decipher.end();
+            });
+
+            let allData = new Array();
+            decipher.on('readable', () => {
+                let data;
+                while(data = decipher.read()) {
+                    allData.push(data);
+                }
+            });
+            decipher.on('end', () => {
+                let allDataBuf = Buffer.concat(allData);
+                logger.info('pipe complete: ' + fname);
+                logger.info('data size: ' + allDataBuf.length);
+                res.send(allDataBuf);
+            });
         }
     } catch (err) {
         logger.error('Decryption ERROR:');
@@ -470,10 +501,6 @@ function streamFile(match, res, req, encfile) {
     const type = mime.lookup(match);
     const key = req.get('x-api-key');
     const bytestartHdr = req.get('range');
-    const reqThrottle = {
-        available: true,
-        res: null,
-    };
     let bytestart = null;
     let byteend = null;
     if (bytestartHdr) {
@@ -487,62 +514,30 @@ function streamFile(match, res, req, encfile) {
         logger.info('got range, start:' + bytestart +
                     ' end:' + byteend);
 
-        // Don't hammer the streaming system with requests.
-        // BUT use the last one made.  This seems to fit
-        // with the behavior of video.js, especially when
-        // seeking.
-        if (reqThrottle.res !== null &&
-            !reqThrottle.res.headersSent) {
-            reqThrottle.res.sendStatus(503);
-        }
-        reqThrottle.encfile = encfile;
-        reqThrottle.res = res;
-        reqThrottle.req = req;
-        reqThrottle.bytestart = bytestart;
-        reqThrottle.byteend = byteend;
-        reqThrottle.type = type;
-
-        if (reqThrottle.available) {
-            reqThrottle.available = false;
-            setTimeout(
-                () => {
-                    // console.log('calling decrypt, key:' +
-                    //             key);
-                    reqThrottle.available = true;
-
-                    // if we're starting from the beginning,
-                    // only buffer a little, but if we're
-                    // seeking, buffer a lot.
-                    openAndCreateStream(
-                        reqThrottle.encfile,
-                        reqThrottle.bytestart,
-                        reqThrottle.byteend,
-                    ).then((input) => {
-                        decrypt(
-                            key,
-                            reqThrottle.encfile,
-                            reqThrottle.type,
-                            reqThrottle.bytestart,
-                            reqThrottle.byteend,
-                            reqThrottle.res,
-                            reqThrottle.req,
-                            input,
-                        );
-                    }).catch((e) => {
-                        logger.error(
-                            'openAndCreateStream error (stream): ' + e
-                        );
-                        res.sendStatus(500);
-                    });
-                },
-                10,
+        // if we're starting from the beginning,
+        // only buffer a little, but if we're
+        // seeking, buffer a lot.
+        openAndCreateStream(
+            encfile,
+            bytestart,
+            byteend,
+        ).then((input) => {
+            decrypt(
+                key,
+                encfile,
+                type,
+                bytestart,
+                byteend,
+                res,
+                req,
+                input,
             );
-        } else {
-            // Assume this is one of the undetectable
-            // "cancelled" streaming requests made by
-            // the browser.  Not much we can do here.
-            logger.warning('Request was throttled');
-        }
+        }).catch((e) => {
+            logger.error(
+                'openAndCreateStream error (stream): ' + e
+            );
+            res.sendStatus(500);
+        });
     } else {
         openAndCreateStream(encfile)
         .then((input) => {
@@ -700,6 +695,10 @@ function configure(locator) {
             logger.error('System exception: ' + e);
             res.sendStatus(404);
           }
+        });
+        app.use((err, req, res, next) => {
+            logger.error('Middleware error: ' + err);
+            res.sendStatus(500);
         });
     }
 }

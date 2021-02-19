@@ -463,13 +463,14 @@ function createWindow() {
 
     // mainWindow.webContents.openDevTools();
 
+    const apikey =
+        fs.readFileSync(path.join(locator.shared, '.hidfil.sys'))
+          .toString('hex');
     mainWindow
         .webContents.session.webRequest
         .onBeforeSendHeaders((details, callback) => {
             const rh = details.requestHeaders;
-            rh['x-api-key'] =
-                fs.readFileSync(path.join(locator.shared, '.hidfil.sys'))
-                  .toString('hex');
+            rh['x-api-key'] = apikey;
             rh['session-id'] = sessionId;
             callback({ cancel: false, requestHeaders: rh });
         });
