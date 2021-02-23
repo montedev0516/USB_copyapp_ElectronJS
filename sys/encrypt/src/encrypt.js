@@ -225,7 +225,12 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                 if (enccb) enccb(idx, encFiles.length, true);
 
                 // continue on to copy unencrypted files
-                go(0, '', '', '');
+                try {
+                    go(0, '', '', '');
+                } catch (e) {
+                    msgcb('Exception during encryption');
+                    msgcb(e, true);
+                }
 
                 return;
             }
@@ -311,6 +316,24 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         const input = fs.createReadStream(file);
         const output = fs.createWriteStream(fnout);
 
+        function abortEncryption(s, err) {
+            msgcb(s);
+            msgcb('Check Disk Space');
+            msgcb(err, true);
+            unencFiles.length = 0;
+            encFiles.length = 0;
+        }
+
+        input.on('error', (err) => {
+            abortEncryption('Exception during encryption (input)', err);
+        });
+        output.on('error', (err) => {
+            abortEncryption('Exception during encryption (output)', err);
+        });
+        cipher.on('error', (err) => {
+            abortEncryption('Exception during encryption (cipher)', err);
+        });
+
         if (isEnc) {
             // Files over a certain size will be masked, not encrypted.
             // These are the only files available for streaming.
@@ -328,6 +351,10 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                         output.write(c);
                         done();
                     };
+
+                filter.on('error', (err) => {
+                    abortEncryption('Exception during encryption (filter)', err);
+                });
 
                 input.pipe(filter);
             } else {
@@ -379,7 +406,12 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
             kbuf,
         );
 
-        go(0, serial, vers, secret);
+        try {
+            go(0, serial, vers, secret);
+        } catch (e) {
+            msgcb('Exception during encryption');
+            msgcb(e, true);
+        }
     }
 }
 module.exports = main;
