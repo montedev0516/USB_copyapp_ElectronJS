@@ -537,7 +537,7 @@ function checkSpaceCallback(message) {
         return true;
     }
 
-    const choice = dialog.showMessageBoxSyncSync({
+    const choice = dialog.showMessageBoxSync({
         type: 'question',
         buttons: ['Stop', 'Continue', 'Ignore all'],
         defaultId: 0,
