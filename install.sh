@@ -42,8 +42,19 @@ sudo mkdir -p "$INSTALLDIR/app" || croak "no install dir"
 ZIPSDIR="`pwd`"
 cd "$INSTALLDIR/app"
 sudo unzip $ZIPSDIR/${tag}-app.zip
+
 sudo mkdir drive ; cd drive
 sudo unzip $ZIPSDIR/${tag}-drive.zip
+
+OSXAPP=$ZIPSDIR/repo/osx/sys/usbcopypro-darwin-x64/usbcopypro.app
+if [ -d $OSXAPP ] ; then
+    sudo cp -rv $OSXAPP . || exit -1
+fi
+WINAPP=$ZIPSDIR/repo/win32/sys/usbcopypro-win32-ia32
+if [ -d $WINAPP ] ; then
+    sudo cp -rv $WINAPP ./sys/ || exit -1
+fi
+
 cd ../..
 sudo mkdir encryption ; cd encryption
 ENC=$ZIPSDIR/${tag}-encrypt.zip

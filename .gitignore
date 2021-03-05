@@ -7,3 +7,4 @@ nsis/*.exe
 *.exe
 nsis.log
 repo/osx
+repo/win32
