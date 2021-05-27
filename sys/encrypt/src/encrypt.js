@@ -334,6 +334,23 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
             abortEncryption('Exception during encryption (cipher)', err);
         });
 
+        input.on('end', () => {
+            output.end();
+
+            if (isEnc) {
+                if (enccb) enccb(idx + 1, encFiles.length);
+            } else if (unenccb) {
+                unenccb(idx + 1, unencFiles.length);
+            }
+            // process next file
+            try {
+                go(idx + 1, serial, vers, secret, bytes);
+            } catch (e) {
+                msgcb('Exception during encryption');
+                msgcb(e, true);
+            }
+        });
+
         if (isEnc) {
             // Files over a certain size will be masked, not encrypted.
             // These are the only files available for streaming.
@@ -363,22 +380,6 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         } else {
             input.pipe(output);
         }
-        input.on('end', () => {
-            output.end();
-
-            if (isEnc) {
-                if (enccb) enccb(idx + 1, encFiles.length);
-            } else if (unenccb) {
-                unenccb(idx + 1, unencFiles.length);
-            }
-            // process next file
-            try {
-                go(idx + 1, serial, vers, secret, bytes);
-            } catch (e) {
-                msgcb('Exception during encryption');
-                msgcb(e, true);
-            }
-        });
     }
 
     if ((encFiles.length + unencFiles.length) > 0) {
