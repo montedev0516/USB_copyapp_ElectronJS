@@ -9,8 +9,10 @@ rm -rf osx win32 || exit -1
 mkdir osx && cd osx
 unzip -q ../v*-drive-osx.zip
 cd ..
-mkdir win32 && cd win32
-unzip -q ../v*-drive-win32.zip
+if [ -e ../v*-drive-win32.zip ] ; then
+    mkdir win32 && cd win32
+    unzip -q ../v*-drive-win32.zip
+fi
 popd
 
 
