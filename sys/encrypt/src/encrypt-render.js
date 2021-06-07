@@ -822,7 +822,7 @@ function loadUI(enccfgIn) {
     // version
     try {
         const tag = fs.readFileSync(path.join(__dirname, '../.usbgittag'));
-        longVersion = vers.version + '+' + tag;
+        longVersion = vers.version + '+' + tag.toString().trim();
     } catch (e) {
         longVersion = vers.version + '+DEV';
     }

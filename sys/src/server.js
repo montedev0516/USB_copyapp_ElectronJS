@@ -161,7 +161,9 @@ function scanDevices(devices) {
 
     for (let i = 0; i < devices.length; i++) {
         const device = devices[i];
+        logger.info('checking vendor: ' + device.vendorId.toString(16));
         if (isValidVendor(cfg.validVendors, device.vendorId.toString(16))) {
+            logger.info('checking product: ' + device.productId.toString(16));
             usbcfg = {
                 vid: device.vendorId.toString(16),
                 pid: device.productId.toString(16),
