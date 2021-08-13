@@ -20,6 +20,7 @@ else
 fi
 
 if [ "$1" = "-f" ] ; then
+    shift
     echo Removing existing installation at $INSTALLDIR
     echo -n 'Continue (y/N)? '
     read cont
@@ -36,15 +37,21 @@ croak() {
     exit 1
 }
 
-tag=`git describe --tag`
+if [ -z "$1" ] ; then
+    tag=`git describe --tag`
+else
+    tag=$1
+fi
+
+echo Installing version $tag
 
 sudo mkdir -p "$INSTALLDIR/app" || croak "no install dir"
 ZIPSDIR="`pwd`"
 cd "$INSTALLDIR/app"
-sudo unzip $ZIPSDIR/${tag}-app.zip
+sudo unzip $ZIPSDIR/${tag}-app.zip || croak "can't install app"
 
 sudo mkdir drive ; cd drive
-sudo unzip $ZIPSDIR/${tag}-drive.zip
+sudo unzip $ZIPSDIR/${tag}-drive.zip || croak "can't install drive"
 
 OSXAPP=$ZIPSDIR/repo/osx/sys/usbcopypro-darwin-x64/usbcopypro.app
 if [ -d $OSXAPP ] ; then
@@ -59,7 +66,7 @@ cd ../..
 sudo mkdir encryption ; cd encryption
 ENC=$ZIPSDIR/${tag}-encrypt.zip
 if [ -e $ENC ] ; then
-    sudo unzip $ENC
+    sudo unzip $ENC || croak "can't install enctool"
 fi
 
 echo Installed to $INSTALLDIR
