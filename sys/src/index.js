@@ -325,6 +325,7 @@ function onDomReady(win, nurl) {
     // * provide callback for opening external URLs in
     //   the electron browser (insecure), if we have node integration.
     // * add retry loop for the video, if any
+    // TODO: can this be moved to preload.js?
     win.webContents.executeJavaScript(`
         var logger;
         if (typeof(require) === "function") {
@@ -449,6 +450,7 @@ function createWindow() {
         devTools: false,
         webPreferences: {
             plugins: true,
+            preload: path.join(app.getAppPath(), 'src', 'preload.js'),
         },
     });
 
