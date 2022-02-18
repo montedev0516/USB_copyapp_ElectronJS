@@ -286,6 +286,12 @@ app.get('/status', (req, res) => {
         return;
     }
 
+    if (typeof cfg.decryptLoaded === 'undefined') {
+        // we haven't read the config file,
+        // so we can't begin yet.
+        res.sendStatus(503);
+    }
+
     const serialNo = serial.split(':').pop();
 
     if (!valid) {
@@ -360,7 +366,9 @@ function decrypt(key, fname, type, bytestartp, byteendp,
     const req = request;
     const input = inputStream;
     try {
-        if (pwCache === undefined) {
+        if (typeof pwCache === 'undefined' &&
+            serial && firmVers && key)
+        {
             pwCache = pwsys.makePassword(
                 serial, firmVers,
                 cfg.salt, key, bytes,
@@ -690,6 +698,7 @@ function configure(locator) {
                         }
                     });
                 } else {
+                    logger.error('File not found: ' + nfile);
                     res.sendStatus(404);
                 }
             }
@@ -703,6 +712,7 @@ function configure(locator) {
             res.sendStatus(500);
         });
     }
+    cfg.decryptLoaded = true;
 }
 exports.configure = configure;
 
