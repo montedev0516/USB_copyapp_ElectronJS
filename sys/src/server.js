@@ -110,7 +110,7 @@ function startServer() {
         logger.warn('Warning: Ignoring SIGPIPE signal');
     });
 
-    server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
+    server.listen(cfg.SERVER_PORT, '0.0.0.0', (err) => {
         if (err) {
             logger.error('ERROR starting server: ' + err);
         } else {
