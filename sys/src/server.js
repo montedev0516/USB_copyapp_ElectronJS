@@ -46,6 +46,7 @@ let gUuid = null;
 let gAgent = null;
 
 const app = express();
+const nonSSLServer = express();
 app.locals.title = "USB Content System";
 let server;
 
@@ -110,12 +111,17 @@ function startServer() {
         logger.warn('Warning: Ignoring SIGPIPE signal');
     });
 
-    server.listen(cfg.SERVER_PORT, '0.0.0.0', (err) => {
+    server.listen(cfg.SERVER_PORT, '127.0.0.1', (err) => {
         if (err) {
             logger.error('ERROR starting server: ' + err);
         } else {
             logger.info('Listening on ' + cfg.SERVER_PORT);
         }
+    });
+
+    nonSSLServer.listen(cfg.SERVER_PORT + 1, '0.0.0.0', (err) => {
+        logger.error('WOAH THERE');
+        logger.error(err);
     });
 }
 
@@ -710,6 +716,18 @@ function configure(locator) {
         app.use((err, req, res, next) => {
             logger.error('Middleware error: ' + err);
             res.sendStatus(500);
+        });
+
+        nonSSLServer.get('/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg/:id', (req, res) => {
+            logger.info('insert insecure chrome stream here');
+            // NEXT:
+            // add hook to preload.js to send ipc message to render proc
+            // send message from render to server to register a filename to stream
+            // find local IP
+            // launch go-chromecast with the url
+            logger.info(req.path);
+            logger.info(req.params);
+            res.sendStatus(200);
         });
     }
     cfg.decryptLoaded = true;
