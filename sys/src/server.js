@@ -47,7 +47,7 @@ let gAgent = null;
 
 const app = express();
 const nonSSLServer = express();
-app.locals.title = "USB Content System";
+app.locals.title = 'USB Content System';
 let server;
 
 // dummy variable used to help keep the parent process alive.
@@ -435,8 +435,8 @@ function decrypt(key, fname, type, bytestartp, byteendp,
                     originalSize[base];
                 try {
                     res.writeHead(206, hdr);
-                } catch(e) {
-                    logger.error("Error writing headers!");
+                } catch (e) {
+                    logger.error('Error writing headers!');
                     logger.info(e);
                 }
             } else {
@@ -458,24 +458,26 @@ function decrypt(key, fname, type, bytestartp, byteendp,
             // the proper length.
 
             input.on('readable', () => {
-                let data;
-                while(data = input.read()) {
+                let data = input.read();
+                while (data) {
                     decipher.write(data);
+                    data = input.read();
                 }
             });
             input.on('close', () => {
                 decipher.end();
             });
 
-            let allData = new Array();
+            const allData = [];
             decipher.on('readable', () => {
-                let data;
-                while(data = decipher.read()) {
+                let data = decipher.read();
+                while (data) {
                     allData.push(data);
+                    data = decipher.read();
                 }
             });
             decipher.on('end', () => {
-                let allDataBuf = Buffer.concat(allData);
+                const allDataBuf = Buffer.concat(allData);
                 logger.info('pipe complete: ' + fname);
                 logger.info('data size: ' + allDataBuf.length);
                 res.send(allDataBuf);
@@ -550,7 +552,7 @@ function streamFile(match, res, req, encfile) {
             );
         }).catch((e) => {
             logger.error(
-                'openAndCreateStream error (stream): ' + e
+                'openAndCreateStream error (stream): ' + e,
             );
             res.sendStatus(500);
         });
@@ -567,6 +569,53 @@ function streamFile(match, res, req, encfile) {
             res.sendStatus(500);
         });
     }
+}
+
+function processFileRequest(req, res, contentDir, locator, urlPath) {
+  if (!isValid([req, res])) { return; }
+
+  const file = urlPath;
+  let encfile = path.join(contentDir, file + '.lock');
+
+  if (path.basename(encfile) in originalSize) {
+    // large files are not stored in the asar
+    encfile = path.join(locator.shared, 'm', file + '.lock');
+  }
+
+  if (fileStatCache[encfile] === undefined) {
+    fileStatCache[encfile] = fs.existsSync(encfile);
+  }
+
+  if (fileStatCache[encfile]) {
+    const match = encfile.match(/\.([^.]*)\.lock$/);
+    if (match) {
+      streamFile(match[1], res, req, encfile);
+    } else {
+      res.sendStatus(500);
+    }
+  } else {
+    let nfile = encfile.replace('.lock', '');
+    let cdir = contentDir;
+
+    if (path.basename(nfile) in originalSize) {
+      // large files are not stored in the asar
+      cdir = path.join(locator.shared, 'm');
+      nfile = path.join(cdir, file);
+    }
+
+    if (fs.existsSync(nfile)) {
+      // lockfile not found, return standard file fetch
+      res.sendFile(file, { root: cdir }, (err) => {
+        if (err) {
+          // This happens if the request is aborted.
+          logger.error('sendFile error: ' + err);
+        }
+      });
+    } else {
+      logger.error('File not found: ' + nfile);
+      res.sendStatus(404);
+    }
+  }
 }
 
 function configure(locator) {
@@ -664,70 +713,34 @@ function configure(locator) {
         // detect *.lock files, and decrypt if needed
         app.use((req, res) => {
           try {
-            if (!isValid([req, res])) { return; }
-
             const file = decodeURI(req.path);
-            let encfile = path.join(contentDir, file + '.lock');
-
-            if (path.basename(encfile) in originalSize) {
-                // large files are not stored in the asar
-                encfile = path.join(locator.shared, 'm', file + '.lock');
-            }
-
-            if (fileStatCache[encfile] === undefined) {
-                fileStatCache[encfile] = fs.existsSync(encfile);
-            }
-
-            if (fileStatCache[encfile]) {
-                const match = encfile.match(/\.([^.]*)\.lock$/);
-                if (match) {
-                    streamFile(match[1], res, req, encfile);
-                } else {
-                    res.sendStatus(500);
-                }
-            } else {
-                let nfile = encfile.replace('.lock', '');
-                let cdir = contentDir;
-
-                if (path.basename(nfile) in originalSize) {
-                    // large files are not stored in the asar
-                    cdir = path.join(locator.shared, 'm');
-                    nfile = path.join(cdir, file);
-                }
-
-                if (fs.existsSync(nfile)) {
-                    // lockfile not found, return standard file fetch
-                    res.sendFile(file, { root: cdir }, (err) => {
-                        if (err) {
-                            // This happens if the request is aborted.
-                            logger.error('sendFile error: ' + err);
-                        }
-                    });
-                } else {
-                    logger.error('File not found: ' + nfile);
-                    res.sendStatus(404);
-                }
-            }
+            processFileRequest(req, res, contentDir, locator, file);
           } catch (e) {
             logger.error('System exception: ' + e);
             res.sendStatus(404);
           }
         });
-        app.use((err, req, res, next) => {
+
+        app.use((err, req, res) => {
             logger.error('Middleware error: ' + err);
             res.sendStatus(500);
         });
 
-        nonSSLServer.get('/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg/:id', (req, res) => {
+        const nonSSLBase =
+            '/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg';
+        nonSSLServer.get(nonSSLServer + '/:id', (req, res) => {
             logger.info('insert insecure chrome stream here');
             // NEXT:
             // add hook to preload.js to send ipc message to render proc
             // send message from render to server to register a filename to stream
             // find local IP
             // launch go-chromecast with the url
-            logger.info(req.path);
-            logger.info(req.params);
-            res.sendStatus(200);
+            logger.info(`non-SSL: ${req.path}`);
+            logger.info(`non-SSL: ${req.params}`);
+            const file = decodeURI(req.path);
+            const urlPath = file.replace(nonSSLBase, file);
+            logger.info(`non-SSL: path=${urlPath}`);
+            processFileRequest(req, res, contentDir, locator, urlPath);
         });
     }
     cfg.decryptLoaded = true;
