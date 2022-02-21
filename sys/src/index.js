@@ -521,7 +521,15 @@ function createWindow() {
     });
 }
 
-const notPrimary = app.makeSingleInstance(() => {
+app.allowRendererProcessReuse = false;
+
+if (app.requestSingleInstanceLock()) {
+    app.on('ready', createWindow);
+} else {
+    app.exit(0);
+}
+
+app.on('second-instance', (event, argv, cwd) => {
     if (mainWindow) {
         if (mainWindow.isMinimized()) {
             mainWindow.restore();
@@ -530,8 +538,3 @@ const notPrimary = app.makeSingleInstance(() => {
     }
 });
 
-if (notPrimary) {
-    app.exit(0);
-} else {
-    app.on('ready', createWindow);
-}
