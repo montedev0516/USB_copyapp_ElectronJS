@@ -72,6 +72,17 @@ function createServerWorker() {
 
         // eslint-disable-next-line no-undef
         onmessage = (e) => {
+            // startCast message
+            if (e.data.startCast) {
+                wlogger.info('Got startCast signal');
+                server.sendMessage({
+                    startCast: {
+                        targetPath: e.data.startCast.targetPath,
+                    }
+                });
+                return;
+            }
+
             // terminate message
             if (server && e.data.terminate) {
                 if (wlogger) {
@@ -329,51 +340,14 @@ function onDomReady(win, nurl) {
     win.webContents.executeJavaScript(`
         var logger;
         if (typeof(require) === "function") {
-            const {ipcRenderer} = require('electron');
             if (typeof(window.jQuery) === 'undefined') {
                 window.$ = window.jQuery = require('jquery');
             }
-            $("[data-openlocal='true']").click(function(ev) {
-                ev.preventDefault();
-                // this will prevent triggering the onOpenUrl()
-                // call below.
-                ipcRenderer.send('openlocal-message', ev.target.href);
-            });
+            window.api.addLogger();
+            logger = window.logger;
 
-            $("[data-dlenabled='true']").click(function(ev) {
-                ipcRenderer.send('dlenabled-message', ev.target.href);
-            });
-
-            const path = require('path');
-            const log4js = require('log4js');
-            const locator = ipcRenderer.sendSync('getlocator-message');
-
-            if (typeof(locator.logging) !== 'undefined') {
-                log4js.configure({
-                    appenders: {
-                        logs: {
-                            type: 'file',
-                            filename: path.join(locator.logging,
-                                                'ucp-browser.log'),
-                        },
-                    },
-                    categories: {
-                        browser: { appenders: ['logs'], level: 'debug' },
-                        default: { appenders: ['logs'], level: 'debug' },
-                    }
-                });
-                logger = log4js.getLogger('browser');
-            } else {
-                log4js.configure({
-                    appenders: { logs: { type: 'stderr' } },
-                    categories: { default: {
-                        appenders: ['logs'],
-                        level: 'error'
-                    }},
-                });
-                logger = log4js.getLogger();
-            }
-            logger.info('log4js started on page');
+            window.api.addDataHooks(window.jQuery);
+            window.api.addChromecastHooks(window.jQuery);
         }
 
         tb = document.querySelector('viewer-pdf-toolbar');
@@ -438,6 +412,14 @@ function onOpenUrl(ev, nurl) {
     }
 }
 
+function enableCast(targetUrl) {
+    workerThread.postMessage({
+        startCast: {
+            targetPath: targetUrl
+        }
+    });
+}
+
 function createWindow() {
     const locator = findLocator();
 
@@ -489,6 +471,10 @@ function createWindow() {
     electron.ipcMain.on('getlocator-message', (ev) => {
         // eslint-disable-next-line no-param-reassign
         ev.returnValue = locator;
+    });
+    electron.ipcMain.on('usbcast-message', (ev, targetUrl) => {
+        logger.info('YOYOYOYO');
+        enableCast(targetUrl);
     });
 
     // load start page

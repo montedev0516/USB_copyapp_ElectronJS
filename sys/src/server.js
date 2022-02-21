@@ -19,6 +19,7 @@ require.main.server = exports;
 const fileStatCache = {};
 const nonSSLCache = {};
 let pwCache;
+const uuidv4 = require('uuid/v4');
 const path = require('path');
 const express = require('express');
 const fs = require('fs');
@@ -726,9 +727,6 @@ function configure(locator) {
             res.sendStatus(500);
         });
 
-// HACK
-nonSSLCache['/someuidhere']='hoffmans.mp4';
-
         const nonSSLBase =
             '/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg';
         nonSSLServer.get(`${nonSSLBase}/:id`, (req, res) => {
@@ -762,3 +760,23 @@ function lockSession(uuid, agent) {
     gAgent = agent;
 }
 exports.lockSession = lockSession;
+
+function enableCastPath(targetPath) {
+    const castId = uuidv4();
+    nonSSLCache[`/${castId}`] = targetPath;
+    logger.info(`startCast: set up cast ID: ${castId}`);
+    return castId;
+}
+function startCast(uid) {
+
+}
+
+function sendMessage(msg) {
+    if (typeof msg.startCast !== 'undefined') {
+        const targetPath = msg.startCast.targetPath;
+        logger.info(`Got startCast message: ${targetPath}`);
+        const uid = enableCastPath(targetPath);
+        startCast(uid);
+    }
+}
+exports.sendMessage = sendMessage;

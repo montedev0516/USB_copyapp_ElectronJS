@@ -24,5 +24,12 @@ function terminate() {
     }
 }
 
+function sendMessage(msg) {
+    if (server) {
+        server.sendMessage(msg);
+    }
+}
+
 module.exports.go = go;
 module.exports.terminate = terminate;
+module.exports.sendMessage = sendMessage;
