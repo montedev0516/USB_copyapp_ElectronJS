@@ -17,6 +17,7 @@ let firmVers;
 require.main.server = exports;
 
 const fileStatCache = {};
+const nonSSLCache = {};
 let pwCache;
 const path = require('path');
 const express = require('express');
@@ -572,8 +573,6 @@ function streamFile(match, res, req, encfile) {
 }
 
 function processFileRequest(req, res, contentDir, locator, urlPath) {
-  if (!isValid([req, res])) { return; }
-
   const file = urlPath;
   let encfile = path.join(contentDir, file + '.lock');
 
@@ -713,6 +712,7 @@ function configure(locator) {
         // detect *.lock files, and decrypt if needed
         app.use((req, res) => {
           try {
+            if (!isValid([req, res])) { return; }
             const file = decodeURI(req.path);
             processFileRequest(req, res, contentDir, locator, file);
           } catch (e) {
@@ -726,21 +726,31 @@ function configure(locator) {
             res.sendStatus(500);
         });
 
+// HACK
+nonSSLCache['/someuidhere']='hoffmans.mp4';
+
         const nonSSLBase =
             '/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg';
-        nonSSLServer.get(nonSSLServer + '/:id', (req, res) => {
-            logger.info('insert insecure chrome stream here');
+        nonSSLServer.get(`${nonSSLBase}/:id`, (req, res) => {
             // NEXT:
             // add hook to preload.js to send ipc message to render proc
             // send message from render to server to register a filename to stream
             // find local IP
             // launch go-chromecast with the url
             logger.info(`non-SSL: ${req.path}`);
-            logger.info(`non-SSL: ${req.params}`);
+            logger.info(`non-SSL: ${JSON.stringify(req.params)}`);
             const file = decodeURI(req.path);
-            const urlPath = file.replace(nonSSLBase, file);
-            logger.info(`non-SSL: path=${urlPath}`);
-            processFileRequest(req, res, contentDir, locator, urlPath);
+            logger.info(`non-SSL: req.path=${file}`);
+            const urlPathKey = file.replace(nonSSLBase, '');
+            logger.info(`non-SSL: urlPathKey=${urlPathKey}`);
+            const urlPath = nonSSLCache[urlPathKey];
+            if (urlPath) {
+                logger.info(`non-SSL: path=${urlPath}`);
+                processFileRequest(req, res, contentDir, locator, urlPath);
+            } else {
+                logger.error(`non-SSL: path key not found ${urlPathKey}`);
+                res.sendStatus(404);
+            }
         });
     }
     cfg.decryptLoaded = true;
