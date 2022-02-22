@@ -8,6 +8,9 @@ const {
 
 console.log('loading preload.js');
 
+var usbCastUUID;
+var usbCastIP;
+
 if (typeof window.api === 'undefined') {
     window.api = {};
 }
@@ -70,8 +73,11 @@ window.api.addChromecastHooks = (jQuery) => {
     jQuery("[data-usbcast='true']").click(function(ev) {
         const targetUrl = ev.currentTarget.dataset['usbcastSource'];
         logmsg(`usbcast: target ${targetUrl}`);
-        if (targetUrl) {
+        if (targetUrl && usbCastUUID && usbCastIP) {
             ipcRenderer.send('usbcast-message', targetUrl);
+        } else {
+            castInfo = ipcRenderer.sendSync('usbcastlist-message');
+            console.log(castInfo);
         }
     });
     logmsg('addChromecastHooks: added hooks');

@@ -15,7 +15,9 @@ app.commandLine.appendSwitch('ignore-certificate-errors');
 let logger;
 let mainWindow;
 let workerThread;
-const SHOWDEVTOOLSMAGIC = "53a8c544759eb8ee";
+const constants = require('./constants.js');
+const SHOWDEVTOOLSMAGIC = constants.SHOWDEVTOOLSMAGIC;
+const startCastCommandList = constants.startCastCommandList;
 const sessionId = uuidv4();
 
 function showDevtoolsWin() {
@@ -40,7 +42,9 @@ function createServerWorker() {
     const worker = new Worker(() => {
         const ppath = require('path');
         const log4jsw = require('log4js');
-        const SHOWDEVTOOLSMAGIC = "53a8c544759eb8ee";
+        const constants = require('../../../src/constants.js');
+        const SHOWDEVTOOLSMAGIC = constants.SHOWDEVTOOLSMAGIC;
+        const startCastCommandList = constants.startCastCommandList;
         let server;
         let wlogger;
 
@@ -64,7 +68,9 @@ function createServerWorker() {
             } else {
                 log4jsw.configure({
                     appenders: { logs: { type: 'stderr' } },
-                    categories: { default: { appenders: ['logs'], level: 'error' } },
+                    categories: { default: {
+                        appenders: ['logs'], level: 'error'
+                    } },
                 });
                 wlogger = log4jsw.getLogger();
             }
@@ -75,11 +81,29 @@ function createServerWorker() {
             // startCast message
             if (e.data.startCast) {
                 wlogger.info('Got startCast signal');
-                server.sendMessage({
+                const result = server.sendMessage({
                     startCast: {
                         targetPath: e.data.startCast.targetPath,
+                        targetPath: e.data.startCast.castUUID,
+                        targetPath: e.data.startCast.castIP,
                     }
                 });
+                wlogger.info(`Got startCast result: ${result}`);
+                let devices = [];
+                if (result) {
+                    try {
+                        devices = JSON.parse(result);
+                    } catch(e) {
+                        wlogger.error(`startCast JSON parse: ${e.message}`);
+                        devices = [];
+                    }
+                }
+                if (devices instanceof Array && devices.length > 0) {
+                    // command was to list devices
+                    wlogger.info(`Got startCast list result: ${devices}`);
+                    let str = JSON.stringify({devices});
+                    postMessage(`${startCastCommandList}${str}`);
+                }
                 return;
             }
 
@@ -134,7 +158,9 @@ function createServerWorker() {
             // eslint-disable-next-line no-undef
             postMessage('EXCEPTION: ' + e);
         };
-    }, [], {
+    }
+    // comment out this detach section for debugging
+    , [], {
         detach: true,
         stdio: 'ignore',
         esm: true,
@@ -147,14 +173,28 @@ function createServerWorker() {
 
             // Message from worker thread that we're in
             // the dev state, and we should show the dev tools window.
-            if(ev.data == SHOWDEVTOOLSMAGIC) {
+            if(ev.data === SHOWDEVTOOLSMAGIC) {
                 logger.warn('Got SHOWDEVTOOLSMAGIC!');
                 showDevtoolsWin();
                 return;
             }
 
+            if (ev.data.startsWith(startCastCommandList)) {
+                logger.warn('Got startCastCommandList result');
+                let resultJSON = ev.data.replace(startCastCommandList,'');
+                logger.warn(resultJSON);
+                hohoPromFunc(JSON.parse(resultJSON));
+                return;
+            }
+
             throw new Error(ev.data);
         }
+    };
+    worker.onerror = (err) => {
+        if (logger) {
+            logger.error(err);
+        }
+        console.error(err);
     };
 
     return worker;
@@ -197,6 +237,9 @@ function findLocator() {
     if (process.env.ENCTOOLLOC !== undefined) {
         pathDefined = true;
         locatorPath = process.env.ENCTOOLLOC;
+        dir = path.dirname(locatorPath);
+    } else {
+        locatorPath = path.join(dir, locatorFile);
     }
 
     do {
@@ -244,6 +287,8 @@ function findLocator() {
         });
         logger = log4js.getLogger();
     }
+    logger.info('locator: ' + locatorPath);
+    logger.info('dir: ' + dir);
     logger.info('shared: ' + locator.shared);
     logger.info('app: ' + locator.app);
     logger.info('drive: ' + locator.drive);
@@ -412,12 +457,33 @@ function onOpenUrl(ev, nurl) {
     }
 }
 
-function enableCast(targetUrl) {
+function enableCast(targetUrl, usbCastUUID, usbCastIP) {
     workerThread.postMessage({
         startCast: {
-            targetPath: targetUrl
+            targetPath: targetUrl,
+            castUUID: usbCastUUID,
+            castIP: usbCastIP,
         }
     });
+}
+
+var hohoPromFunc;
+async function listCast() {
+
+    let prom = new Promise((resolve, reject) => {
+        hohoPromFunc = (s) => {
+            resolve(s);
+        };
+    });
+    workerThread.postMessage({
+        startCast: {}
+    });
+
+    let rs = await prom;
+    logger.info('YOYOYOYO');
+    logger.info(rs);
+
+    //return [123,456];
 }
 
 function createWindow() {
@@ -472,9 +538,12 @@ function createWindow() {
         // eslint-disable-next-line no-param-reassign
         ev.returnValue = locator;
     });
-    electron.ipcMain.on('usbcast-message', (ev, targetUrl) => {
-        logger.info('YOYOYOYO');
-        enableCast(targetUrl);
+    electron.ipcMain.on('usbcast-message', (ev, target) => {
+        const { targetUrl, usbCastUUID, usbCastIP } = target;
+        enableCast(targetUrl, usbCastUUID, usbCastIP);
+    });
+    electron.ipcMain.on('usbcastlist-message', async (ev) => {
+        ev.returnValue = await listCast();
     });
 
     // load start page

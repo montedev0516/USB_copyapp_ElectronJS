@@ -10,6 +10,7 @@ let originalSize;
 let usbcfg;
 let serial;
 let firmVers;
+let drivePath;
 
 // This is needed by es6-shim-server.js,
 // in order to get the pre-compiled object so
@@ -29,6 +30,9 @@ const mime = require('mime-types');
 const https = require('https');
 const log4js = require('log4js');
 const pwsys = require('./password');
+
+const nonSSLBase =
+    '/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg';
 
 let logger;
 
@@ -621,6 +625,7 @@ function processFileRequest(req, res, contentDir, locator, urlPath) {
 function configure(locator) {
     const cfgpath = path.join(locator.shared, 'usbcopypro.json');
     cfg = JSON.parse(fs.readFileSync(cfgpath));
+    drivePath = locator.drive;
 
     if (typeof locator.logging !== 'undefined') {
         log4js.configure({
@@ -727,14 +732,11 @@ function configure(locator) {
             res.sendStatus(500);
         });
 
-        const nonSSLBase =
-            '/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg';
         nonSSLServer.get(`${nonSSLBase}/:id`, (req, res) => {
-            // NEXT:
-            // add hook to preload.js to send ipc message to render proc
-            // send message from render to server to register a filename to stream
-            // find local IP
-            // launch go-chromecast with the url
+            if (typeof cfg.castBinary === 'undefined') {
+                res.sendStatus(500);
+            }
+
             logger.info(`non-SSL: ${req.path}`);
             logger.info(`non-SSL: ${JSON.stringify(req.params)}`);
             const file = decodeURI(req.path);
@@ -761,22 +763,75 @@ function lockSession(uuid, agent) {
 }
 exports.lockSession = lockSession;
 
+// Returns first local-ish address
+function getLocalIP() {
+    const ifs = os.networkInterfaces();
+    let addr = '';
+    const ifNames = Object.keys(ifs);
+    for (let i = 0; i < ifNames.length && !addr; i++) {
+        const nets = ifs[ifNames[i]];
+        for (let j = 0; j < nets.length && !addr; j++) {
+            const nif = nets[j];
+            logger.info(`local ip: ${nif.address}`);
+            if (nif.family === 'IPv4' &&
+                !nif.internal &&
+                (nif.address.startsWith('192.168.1') ||
+                 nif.address.startsWith('10.')))
+            {
+                addr = nif.address;
+            }
+        }
+    }
+    return addr;
+}
+
 function enableCastPath(targetPath) {
     const castId = uuidv4();
     nonSSLCache[`/${castId}`] = targetPath;
     logger.info(`startCast: set up cast ID: ${castId}`);
     return castId;
 }
-function startCast(uid) {
+function startCast(uid, castUUID, castIP) {
+    if (typeof cfg.castBinary === 'undefined') {
+        logger.info('startCast: warning, castBinary is not enabled');
+        return;
+    }
+    const castPath = path.join(drivePath, cfg.castBinary);
+    if (!fs.existsSync(castPath)) {
+        logger.error(`startCast: can't find cast binary ${castPath}`);
+        throw new Error('cannot find cast binary');
+    }
 
+    logger.info(`startCast: found cast binary ${castPath}`);
+
+    const ip = getLocalIP();
+    const port = cfg.SERVER_PORT + 1;
+
+    if (!ip) {
+        throw new Error('cannot find local IP');
+    }
+
+    const castUrl = `http://${ip}:${port}/${nonSSLBase}/${uid}`;
+    logger.info(`startCast: url -> ${castUrl}`);
+    logger.info(`startCast: uuid ${castUUID}`);
 }
 
 function sendMessage(msg) {
     if (typeof msg.startCast !== 'undefined') {
-        const targetPath = msg.startCast.targetPath;
-        logger.info(`Got startCast message: ${targetPath}`);
-        const uid = enableCastPath(targetPath);
-        startCast(uid);
+        let result = [];
+        const { targetPath, castUUID, castIP } = msg.startCast;
+        if (targetPath) {
+            // start
+            logger.info(`Got startCast message: ${targetPath}`);
+            const uid = enableCastPath(targetPath);
+            startCast(uid, castUUID, castIP);
+        } else {
+            logger.info('Got startCast list command');
+            // list
+            // TODO: implement
+            result = [123,456];
+        }
+        return JSON.stringify(result);
     }
 }
 exports.sendMessage = sendMessage;

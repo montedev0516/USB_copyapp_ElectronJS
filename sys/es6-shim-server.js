@@ -26,7 +26,7 @@ function terminate() {
 
 function sendMessage(msg) {
     if (server) {
-        server.sendMessage(msg);
+        return server.sendMessage(msg);
     }
 }
 
