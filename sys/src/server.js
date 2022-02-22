@@ -29,6 +29,7 @@ const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
 const log4js = require('log4js');
+const { exec } = require('child_process');
 const pwsys = require('./password');
 
 const nonSSLBase =
@@ -814,9 +815,79 @@ function startCast(uid, castUUID, castIP) {
     const castUrl = `http://${ip}:${port}/${nonSSLBase}/${uid}`;
     logger.info(`startCast: url -> ${castUrl}`);
     logger.info(`startCast: uuid ${castUUID}`);
+
+    // ...
+}
+function parseGoChromecastOutput(output) {
+    const lines = output.split(/\r\n|\r|\n/);
+    logger.info(`got ${lines.length} lines`);
+
+    const nameRE = /device_name="([^"]+)"/;
+    const addrRE = /address="([^"]+)"/;
+    const uuidRE = /uuid="([^"]+)"/;
+
+    const results = [];
+    lines.forEach((line) => {
+        if (!line) return;
+        let match;
+        const row = {};
+
+        match = nameRE.exec(line);
+        if (match && match[1]) {
+            [, row.name] = match;
+        }
+
+        match = addrRE.exec(line);
+        if (match && match[1]) {
+            [, row.address] = match;
+        }
+
+        match = uuidRE.exec(line);
+        if (match && match[1]) {
+            [, row.uuid] = match;
+        }
+        results.push(row);
+    });
+
+    return results;
+}
+async function listCast() {
+    if (typeof cfg.castBinary === 'undefined') {
+        logger.info('listCast: warning, castBinary is not enabled');
+        return [];
+    }
+    const castPath = path.join(drivePath, cfg.castBinary);
+    if (!fs.existsSync(castPath)) {
+        logger.error(`listCast: can't find cast binary ${castPath}`);
+        throw new Error('cannot find cast binary');
+    }
+
+    const execStr = `${castPath} ls`;
+    logger.info(`listCast: executing ${execStr}`);
+
+    const output = await new Promise((resolve, reject) => {
+        exec(execStr, (error, stdout, stderr) => {
+            if (error) {
+                logger.error('listCast EXEC: ERROR (error)');
+                logger.error(error);
+                throw new Error(error);
+            }
+            if (stderr) {
+                logger.error('listCast EXEC: ERROR (stderr)');
+                logger.error(stderr);
+                reject(new Error('exec FAILED: ' + stderr));
+                return;
+            }
+            resolve(stdout);
+        });
+    });
+    logger.info('listCast output:');
+    logger.info(output);
+
+    return parseGoChromecastOutput(output);
 }
 
-function sendMessage(msg) {
+async function sendMessage(msg) {
     if (typeof msg.startCast !== 'undefined') {
         let result = [];
         const { targetPath, castUUID, castIP } = msg.startCast;
@@ -828,10 +899,11 @@ function sendMessage(msg) {
         } else {
             logger.info('Got startCast list command');
             // list
-            // TODO: implement
-            result = [123,456];
+            result = await listCast();
         }
         return JSON.stringify(result);
     }
+
+    return '';
 }
 exports.sendMessage = sendMessage;

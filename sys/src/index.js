@@ -6,8 +6,8 @@ const fs = require('fs');
 const opn = require('opn');
 const Worker = require('tiny-worker');
 const log4js = require('log4js');
-
 const electron = require('electron');
+const constants = require('./constants.js');
 
 const { app } = electron;
 app.commandLine.appendSwitch('ignore-certificate-errors');
@@ -16,9 +16,10 @@ let logger;
 let mainWindow;
 let workerThread;
 let startCastCommandListResolve;
-const constants = require('./constants.js');
-const SHOWDEVTOOLSMAGIC = constants.SHOWDEVTOOLSMAGIC;
-const startCastCommandList = constants.startCastCommandList;
+const {
+    SHOWDEVTOOLSMAGIC,
+    startCastCommandList,
+} = constants;
 const sessionId = uuidv4();
 
 function showDevtoolsWin() {
@@ -43,9 +44,12 @@ function createServerWorker() {
     const worker = new Worker(() => {
         const ppath = require('path');
         const log4jsw = require('log4js');
+        // eslint-disable-next-line no-shadow
         const constants = require('../../../src/constants.js');
-        const SHOWDEVTOOLSMAGIC = constants.SHOWDEVTOOLSMAGIC;
-        const startCastCommandList = constants.startCastCommandList;
+        const {
+            SHOWDEVTOOLSMAGIC,
+            startCastCommandList,
+        } = constants;
         let server;
         let wlogger;
 
@@ -69,9 +73,11 @@ function createServerWorker() {
             } else {
                 log4jsw.configure({
                     appenders: { logs: { type: 'stderr' } },
-                    categories: { default: {
-                        appenders: ['logs'], level: 'error'
-                    } },
+                    categories: {
+                        default: {
+                            appenders: ['logs'], level: 'error',
+                        },
+                    },
                 });
                 wlogger = log4jsw.getLogger();
             }
@@ -82,29 +88,33 @@ function createServerWorker() {
             // startCast message
             if (e.data.startCast) {
                 wlogger.info('Got startCast signal');
-                const result = server.sendMessage({
+                server.sendMessage({
                     startCast: {
                         targetPath: e.data.startCast.targetPath,
-                        targetPath: e.data.startCast.castUUID,
-                        targetPath: e.data.startCast.castIP,
+                        castUUID: e.data.startCast.castUUID,
+                        castIP: e.data.startCast.castIP,
+                    },
+                }).then((result) => {
+                    wlogger.info(`Got startCast result: ${result}`);
+                    let devices = [];
+                    if (result) {
+                        try {
+                            devices = JSON.parse(result);
+                        } catch (jsone) {
+                            wlogger.error(
+                                `startCast JSON parse: ${jsone.message}`
+                            );
+                            devices = [];
+                        }
+                    }
+                    if (devices instanceof Array && devices.length > 0) {
+                        // command was to list devices
+                        wlogger.info(`Got startCast list result: ${devices}`);
+                        const str = JSON.stringify({ devices });
+                        // eslint-disable-next-line no-undef
+                        postMessage(`${startCastCommandList}${str}`);
                     }
                 });
-                wlogger.info(`Got startCast result: ${result}`);
-                let devices = [];
-                if (result) {
-                    try {
-                        devices = JSON.parse(result);
-                    } catch(e) {
-                        wlogger.error(`startCast JSON parse: ${e.message}`);
-                        devices = [];
-                    }
-                }
-                if (devices instanceof Array && devices.length > 0) {
-                    // command was to list devices
-                    wlogger.info(`Got startCast list result: ${devices}`);
-                    let str = JSON.stringify({devices});
-                    postMessage(`${startCastCommandList}${str}`);
-                }
                 return;
             }
 
@@ -135,10 +145,10 @@ function createServerWorker() {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
                 server = require(e.data.serverjs);
                 wlogger.info('calling server.go()');
-                let showDevtools = server.go(e.data);
+                const showDevtools = server.go(e.data);
                 if (showDevtools) {
                     wlogger.warn('enctool DETECTED, showing dev tools');
-                    console.log('enctool DETECTED, showing dev tools');
+                    // eslint-disable-next-line no-undef
                     postMessage(SHOWDEVTOOLSMAGIC);
                 }
             } catch (er) {
@@ -159,9 +169,9 @@ function createServerWorker() {
             // eslint-disable-next-line no-undef
             postMessage('EXCEPTION: ' + e);
         };
-    }
+    },
     // comment out this detach section for debugging
-    , [], {
+    [], {
         detach: true,
         stdio: 'ignore',
         esm: true,
@@ -174,7 +184,7 @@ function createServerWorker() {
 
             // Message from worker thread that we're in
             // the dev state, and we should show the dev tools window.
-            if(ev.data === SHOWDEVTOOLSMAGIC) {
+            if (ev.data === SHOWDEVTOOLSMAGIC) {
                 logger.warn('Got SHOWDEVTOOLSMAGIC!');
                 showDevtoolsWin();
                 return;
@@ -182,7 +192,7 @@ function createServerWorker() {
 
             if (ev.data.startsWith(startCastCommandList)) {
                 logger.warn('Got startCastCommandList result');
-                let resultJSON = ev.data.replace(startCastCommandList,'');
+                const resultJSON = ev.data.replace(startCastCommandList, '');
                 logger.warn(resultJSON);
                 startCastCommandListResolve(JSON.parse(resultJSON));
                 return;
@@ -195,7 +205,6 @@ function createServerWorker() {
         if (logger) {
             logger.error(err);
         }
-        console.error(err);
     };
 
     return worker;
@@ -351,7 +360,7 @@ function onDomReady(win, nurl) {
                 // For new windows opened by window.open js, the global
                 // is used.  For <a> links that use data-dlenabled=true,
                 // the IPC command "dlenabled-message" is used.
-                let ldl = mainWindow.dlenabled || dlenabled;
+                const ldl = mainWindow.dlenabled || dlenabled;
                 mainWindow.dlenabled = false;
                 logger.info('win ' + winid +
                             ' DL enabled: ' + ldl);
@@ -382,7 +391,7 @@ function onDomReady(win, nurl) {
     // * provide callback for opening external URLs in
     //   the electron browser (insecure), if we have node integration.
     // * add retry loop for the video, if any
-    // TODO: can this be moved to preload.js?
+    // TODO: can this be (mostly) moved to preload.js?
     win.webContents.executeJavaScript(`
         var logger;
         if (typeof(require) === "function") {
