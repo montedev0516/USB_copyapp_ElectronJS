@@ -15,6 +15,7 @@ app.commandLine.appendSwitch('ignore-certificate-errors');
 let logger;
 let mainWindow;
 let workerThread;
+let startCastCommandListResolve;
 const constants = require('./constants.js');
 const SHOWDEVTOOLSMAGIC = constants.SHOWDEVTOOLSMAGIC;
 const startCastCommandList = constants.startCastCommandList;
@@ -183,7 +184,7 @@ function createServerWorker() {
                 logger.warn('Got startCastCommandList result');
                 let resultJSON = ev.data.replace(startCastCommandList,'');
                 logger.warn(resultJSON);
-                hohoPromFunc(JSON.parse(resultJSON));
+                startCastCommandListResolve(JSON.parse(resultJSON));
                 return;
             }
 
@@ -467,11 +468,10 @@ function enableCast(targetUrl, usbCastUUID, usbCastIP) {
     });
 }
 
-var hohoPromFunc;
 async function listCast() {
 
     let prom = new Promise((resolve, reject) => {
-        hohoPromFunc = (s) => {
+        startCastCommandListResolve = (s) => {
             resolve(s);
         };
     });
@@ -479,11 +479,11 @@ async function listCast() {
         startCast: {}
     });
 
-    let rs = await prom;
-    logger.info('YOYOYOYO');
-    logger.info(rs);
+    let listResult = await prom;
+    logger.info('Received result from cast list:');
+    logger.info(listResult);
 
-    //return [123,456];
+    return listResult.devices;
 }
 
 function createWindow() {
