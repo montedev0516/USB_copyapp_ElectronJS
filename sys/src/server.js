@@ -846,8 +846,14 @@ function parseGoChromecastOutput(output) {
         if (match && match[1]) {
             [, row.uuid] = match;
         }
-        results.push(row);
+        if (row.name && row.address && row.uuid) {
+            results.push(row);
+        }
     });
+
+    if (results.length === 0) {
+        logger.warn('no chromecast devices found');
+    }
 
     return results;
 }
@@ -893,7 +899,7 @@ async function sendMessage(msg) {
         const { targetPath, castUUID, castIP } = msg.startCast;
         if (targetPath) {
             // start
-            logger.info(`Got startCast message: ${targetPath}`);
+            logger.info(`Got startCast start command: ${targetPath}`);
             const uid = enableCastPath(targetPath);
             startCast(uid, castUUID, castIP);
         } else {

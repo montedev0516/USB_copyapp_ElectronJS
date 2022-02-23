@@ -45,6 +45,8 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     srvcfg.fileBrowserEnabled = enccfg.fileBrowserEnabled;
     // salt
     srvcfg.salt = crypto.randomBytes(32).toString('hex');
+    // chromecast
+    srvcfg.castBinary = 'go-chromecast';
 
     msgcb('writing config file...');
     fs.writeFileSync(

@@ -6,10 +6,10 @@ const {
     ipcRenderer
 } = require('electron');
 
-console.log('loading preload.js');
-
+var usbCastTargetUrl;
 var usbCastUUID;
 var usbCastIP;
+let _jQuery;
 
 if (typeof window.api === 'undefined') {
     window.api = {};
@@ -21,6 +21,8 @@ function logmsg(s) {
     }
     console.log(s);
 }
+logmsg('loading preload.js');
+
 
 window.api.addLogger = () => {
     const path = require('path');
@@ -69,15 +71,63 @@ window.api.addDataHooks = (jQuery) => {
     logmsg('addDataHooks: added hooks');
 };
 
+global.usbCastSelect = (el) => {
+    logmsg('usbCastSelect: starting chromecast');
+    const jqel = _jQuery(el);
+    const name = jqel.data('name');
+    usbCastUUID= jqel.data('uuid');
+    usbCastIP = jqel.data('address');
+    logmsg(
+        'usbCastSelect: ' +
+        `${usbCastTargetUrl} ${name} ${usbCastUUID} ${usbCastIP}`
+    );
+    runChromecast(usbCastTargetUrl, usbCastUUID, usbCastIP);
+}
+
+function configureCastSelectModal(selectModal, castInfo) {
+    let content = '';
+    if (castInfo.length == 0) {
+        content = 'ERROR: no chromecast devices found';
+    }
+    castInfo.forEach((e) => {
+        let el =
+            "<div class='usbcastitem' onclick='usbCastSelect(this)'" +
+            `data-name='${e.name}' data-uuid='${e.uuid}' ` +
+            `data-address='${e.address}'` +
+            ">" +
+            e.name +
+            "</div>";
+        content += el;
+    });
+    selectModal.html(content);
+}
+
+function runChromecast(targetUrl, uuid, ipaddr) {
+    logmsg(`usbCast: target ${targetUrl} ${uuid}`);
+    ipcRenderer.send('usbcast-message', targetUrl, uuid, ipaddr);
+}
+
+function listChromecast() {
+    let castInfo = ipcRenderer.sendSync('usbcastlist-message');
+    logmsg('Received back IPC data:');
+    logmsg(castInfo);
+    return castInfo;
+}
+
 window.api.addChromecastHooks = (jQuery) => {
+    _jQuery = jQuery;
     jQuery("[data-usbcast='true']").click(function(ev) {
+        usbCastTargetUrl = undefined;
         const targetUrl = ev.currentTarget.dataset['usbcastSource'];
-        logmsg(`usbcast: target ${targetUrl}`);
+        const selectModal = ev.currentTarget.dataset['usbcastModal'];
         if (targetUrl && usbCastUUID && usbCastIP) {
-            ipcRenderer.send('usbcast-message', targetUrl);
+            runChromecast(targetUrl, usbCastUUID, usbCastIP);
         } else {
-            castInfo = ipcRenderer.sendSync('usbcastlist-message');
-            console.log(castInfo);
+            usbCastTargetUrl = targetUrl;
+            let castInfo = listChromecast();
+            let modal = jQuery('#' + selectModal)
+            configureCastSelectModal(modal, castInfo);
+            modal.show();
         }
     });
     logmsg('addChromecastHooks: added hooks');

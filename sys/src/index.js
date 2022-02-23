@@ -108,8 +108,11 @@ function createServerWorker() {
                         }
                     }
                     if (devices instanceof Array && devices.length > 0) {
+                        wlogger.info(
+                            'Got startCast list ' +
+                            `result, ${devices.length} devices`
+                        );
                         // command was to list devices
-                        wlogger.info(`Got startCast list result: ${devices}`);
                         const str = JSON.stringify({ devices });
                         // eslint-disable-next-line no-undef
                         postMessage(`${startCastCommandList}${str}`);
@@ -549,9 +552,14 @@ function createWindow() {
     });
     electron.ipcMain.on('usbcast-message', (ev, target) => {
         const { targetUrl, usbCastUUID, usbCastIP } = target;
+        logger.info(
+            'received usbcast-message:' +
+            `${targetUrl} ${usbCastUUID} ${usbCastIP}`
+        );
         enableCast(targetUrl, usbCastUUID, usbCastIP);
     });
     electron.ipcMain.on('usbcastlist-message', async (ev) => {
+        logger.info('received usbcastlist-message');
         ev.returnValue = await listCast();
     });
 
