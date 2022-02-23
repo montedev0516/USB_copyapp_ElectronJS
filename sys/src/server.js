@@ -765,7 +765,10 @@ function lockSession(uuid, agent) {
 exports.lockSession = lockSession;
 
 // Returns first local-ish address
-function getLocalIP() {
+// NOTE: the ipString is the starting
+// characters of the string-ified representation
+// of the IPv4 address.  It does not do real netmasking.
+function getLocalIP(ipString) {
     const ifs = os.networkInterfaces();
     let addr = '';
     const ifNames = Object.keys(ifs);
@@ -776,8 +779,7 @@ function getLocalIP() {
             logger.info(`local ip: ${nif.address}`);
             if (nif.family === 'IPv4' &&
                 !nif.internal &&
-                (nif.address.startsWith('192.168.1') ||
-                 nif.address.startsWith('10.')))
+                nif.address.startsWith(ipString))
             {
                 addr = nif.address;
             }
@@ -802,21 +804,47 @@ function startCast(uid, castUUID, castIP) {
         logger.error(`startCast: can't find cast binary ${castPath}`);
         throw new Error('cannot find cast binary');
     }
+    if (!castUUID) {
+        throw new Error('castUUID must be defined');
+    }
+    if (!castIP) {
+        throw new Error('castIP must be defined');
+    }
 
     logger.info(`startCast: found cast binary ${castPath}`);
 
-    const ip = getLocalIP();
+    let network = castIP
+        .split('.')
+        .slice(0, 3)
+        .reduce((s, n) => s + `${n}.`, '');
+
+    const ip = getLocalIP(network);
     const port = cfg.SERVER_PORT + 1;
 
     if (!ip) {
-        throw new Error('cannot find local IP');
+        throw new Error(`cannot find local IP on network ${network}`);
     }
 
-    const castUrl = `http://${ip}:${port}/${nonSSLBase}/${uid}`;
+    const castUrl = `http://${ip}:${port}${nonSSLBase}/${uid}`;
     logger.info(`startCast: url -> ${castUrl}`);
     logger.info(`startCast: uuid ${castUUID}`);
 
-    // ...
+    const execStr = `${castPath} -u ${castUUID} load ${castUrl}`;
+    logger.info(`startCast: executing ${execStr}`);
+    let child = exec(execStr, (error, stdout, stderr) => {
+        if (error) {
+            logger.error('startCast EXEC: ERROR (error)');
+            logger.error(error);
+            throw new Error(error);
+        }
+        if (stderr) {
+            logger.error('startCast EXEC: ERROR (stderr)');
+            logger.error(stderr);
+            throw new Error('exec FAILED: ' + stderr);
+        }
+        logger.info('startCast: process complete');
+        logger.info(stdout);
+    });
 }
 function parseGoChromecastOutput(output) {
     const lines = output.split(/\r\n|\r|\n/);

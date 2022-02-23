@@ -82,6 +82,7 @@ global.usbCastSelect = (el) => {
         `${usbCastTargetUrl} ${name} ${usbCastUUID} ${usbCastIP}`
     );
     runChromecast(usbCastTargetUrl, usbCastUUID, usbCastIP);
+    jqel.parent().hide();
 }
 
 function configureCastSelectModal(selectModal, castInfo) {
@@ -104,8 +105,13 @@ function configureCastSelectModal(selectModal, castInfo) {
 
 function runChromecast(targetUrl, uuid, ipaddr) {
     logmsg(`usbCast: target ${targetUrl} ${uuid}`);
-    ipcRenderer.send('usbcast-message', targetUrl, uuid, ipaddr);
+    ipcRenderer.send('usbcast-message', {
+        targetUrl,
+        usbCastUUID: uuid,
+        usbCastIP: ipaddr,
+    });
 }
+window.api.runChromecast = runChromecast;
 
 function listChromecast() {
     let castInfo = ipcRenderer.sendSync('usbcastlist-message');
@@ -113,11 +119,12 @@ function listChromecast() {
     logmsg(castInfo);
     return castInfo;
 }
+window.api.listChromecast = listChromecast;
 
 window.api.addChromecastHooks = (jQuery) => {
     _jQuery = jQuery;
     jQuery("[data-usbcast='true']").click(function(ev) {
-        usbCastTargetUrl = undefined;
+        logmsg('Starting click handler for data-usbcast');
         const targetUrl = ev.currentTarget.dataset['usbcastSource'];
         const selectModal = ev.currentTarget.dataset['usbcastModal'];
         if (targetUrl && usbCastUUID && usbCastIP) {
