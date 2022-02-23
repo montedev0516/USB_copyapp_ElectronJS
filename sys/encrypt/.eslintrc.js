@@ -1,7 +1,7 @@
 module.exports = {
     "extends": "airbnb-base",
     "rules": {
-        "no-prototype-builtins": 0,
+        "operator-linebreak": 0,
         "no-unused-vars": 1,
         "prefer-template": 0,
         "no-alert": 0,
@@ -12,6 +12,7 @@ module.exports = {
         "import/extensions": 0,
         "import/no-extraneous-dependencies": 0,
         "import/no-unresolved": [2, { "ignore": ["electron"] }],
-        "linebreak-style": 0
+        "linebreak-style": 0,
+        "brace-style": 0
     }
 };

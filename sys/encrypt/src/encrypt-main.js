@@ -2,8 +2,7 @@ const electron = require('electron');
 const url = require('url');
 const path = require('path');
 
-const Menu = electron.Menu;
-const MenuItem = electron.MenuItem;
+const { Menu, MenuItem } = electron;
 
 const { app } = electron;
 
@@ -55,4 +54,3 @@ function createWindow() {
 // diskusage native proc requires no process reuse
 app.allowRendererProcessReuse = false;
 app.on('ready', createWindow);
-

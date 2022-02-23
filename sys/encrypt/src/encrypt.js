@@ -1,11 +1,11 @@
 
 const crypto = require('crypto');
 const fs = require('original-fs');
-const pwsys = require('./password');
 const path = require('path');
 const { exec } = require('child_process');
 const stream = require('stream');
 const disk = require('diskusage');
+const pwsys = require('./password');
 
 const sizes = {};
 
@@ -237,8 +237,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                 return;
             }
             file = encFiles[idx].pathname;
-            dirname = encFiles[idx].dirname;
-            outname = encFiles[idx].outname;
+            ({ dirname, outname } = encFiles[idx]);
         } else {
             if (unenccb) unenccb(idx, unencFiles.length);
 
@@ -256,8 +255,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
                 return;
             }
             file = unencFiles[idx].pathname;
-            dirname = unencFiles[idx].dirname;
-            outname = encFiles[idx].outname;
+            ({ dirname, outname } = encFiles[idx]);
         }
 
         let cipher;
