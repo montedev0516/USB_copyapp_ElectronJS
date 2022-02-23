@@ -5,16 +5,16 @@
 /* global $ */
 /* global document */
 
-const encrypt = require('./encrypt');
 const fs = require('original-fs');
 const fsextra = require('fs-extra');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
 const tmp = require('tmp');
-const vers = require('../package.json');
 const { execFile } = require('child_process');
 const electron = require('electron');
+const encrypt = require('./encrypt');
+const vers = require('../package.json');
 
 const { dialog } = electron.remote;
 const { ipcRenderer } = electron;
@@ -223,13 +223,16 @@ function btnFinalizeClick(ev) {
 
 function findExecPath(enccfg) {
     const execPaths = [
-        path.join(enccfg.sysPath,
+        path.join(
+            enccfg.sysPath,
             'app', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
         ),
-        path.join(enccfg.sysPath,
+        path.join(
+            enccfg.sysPath,
             'app', 'drive', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
         ),
-        path.join(enccfg.sysPath,
+        path.join(
+            enccfg.sysPath,
             'app', 'drive', 'sys', 'usbcopypro-linux-x64', 'usbcopypro',
         ),
     ];
@@ -258,7 +261,8 @@ function btnLaunchClick(ev) {
     }
 
     const execPath = findExecPath(enccfg);
-    const appPath = path.join(enccfg.sysPath,
+    const appPath = path.join(
+        enccfg.sysPath,
         'app', 'sys', 'resources', 'app.asar',
     );
 
@@ -281,10 +285,13 @@ function btnLaunchClick(ev) {
     };
 
     try {
-        const serverCfg = JSON.parse(fs.readFileSync(
-            path.join(sharedPath, 'usbcopypro.json')));
+        const serverCfg = JSON.parse(
+            fs.readFileSync(
+                path.join(sharedPath, 'usbcopypro.json'),
+            ),
+        );
         fs.writeFileSync(tempLocator.fd, JSON.stringify(locData));
-        const salt = serverCfg.salt;
+        const { salt } = serverCfg;
 
         if (!salt) {
             throw new Error('ERROR: usbcopypro.json is invalid');
@@ -293,8 +300,7 @@ function btnLaunchClick(ev) {
         const algorithm = 'aes-192-cbc';
         const password = crypto.randomBytes(16).toString('hex');
         const encpass = Buffer.from(password + 'dd' + salt, 'hex');
-        const vid = enccfg.vid;
-        const pid = enccfg.pid;
+        const { vid, pid } = enccfg;
         const serial = enccfg.descString3;
 
         const cipher = crypto.createCipher(algorithm, encpass);
@@ -854,11 +860,11 @@ function loadUI(enccfgIn) {
     }
 
     // backwards compatibility
-    if (enccfg.hasOwnProperty('inputPath')) {
+    if (Object.prototype.hasOwnProperty.call(enccfg, 'inputPath')) {
         // eslint-disable-next-line no-param-reassign
         enccfg.inPath = enccfg.inputPath;
     }
-    if (enccfg.hasOwnProperty('outputPath')) {
+    if (Object.prototype.hasOwnProperty.call(enccfg, 'outputPath')) {
         // eslint-disable-next-line no-param-reassign
         enccfg.workPath = enccfg.outputPath;
     }
@@ -868,12 +874,16 @@ function loadUI(enccfgIn) {
     $('input[name="outdir"]').val(enccfg.outPath);
     $('input[name="includedir"]').val(enccfg.includePath);
 
-    if (!enccfg.hasOwnProperty('filematch')) {
+    if (!Object.prototype.hasOwnProperty.call(enccfg, 'filematch')) {
         // eslint-disable-next-line no-param-reassign
         enccfg.filematch = [];
     }
 
-    const fileBrowserEnabled = enccfg.hasOwnProperty('fileBrowserEnabled') && enccfg.fileBrowserEnabled === true;
+    const fileBrowserEnabled =
+        Object.prototype.hasOwnProperty.call(
+            enccfg,
+            'fileBrowserEnabled',
+        ) && enccfg.fileBrowserEnabled === true;
 
     $('#displayFileBrowserEnabled').text(fileBrowserEnabled ? 'enabled' : 'disabled');
     $('#fileBrowserEnabled').prop('checked', fileBrowserEnabled);

@@ -10,6 +10,7 @@ let originalSize;
 let usbcfg;
 let serial;
 let firmVers;
+let drivePath;
 
 // This is needed by es6-shim-server.js,
 // in order to get the pre-compiled object so
@@ -17,7 +18,9 @@ let firmVers;
 require.main.server = exports;
 
 const fileStatCache = {};
+const nonSSLCache = {};
 let pwCache;
+const uuidv4 = require('uuid/v4');
 const path = require('path');
 const express = require('express');
 const fs = require('fs');
@@ -26,7 +29,11 @@ const os = require('os');
 const mime = require('mime-types');
 const https = require('https');
 const log4js = require('log4js');
+const { exec } = require('child_process');
 const pwsys = require('./password');
+
+const nonSSLBase =
+    '/L2hvbWUvZGF2ZWsvd29yay91c2Ivc2VjdXJlLXVzYi1jb250ZW50Cg';
 
 let logger;
 
@@ -46,7 +53,8 @@ let gUuid = null;
 let gAgent = null;
 
 const app = express();
-app.locals.title = "USB Content System";
+const nonSSLServer = express();
+app.locals.title = 'USB Content System';
 let server;
 
 // dummy variable used to help keep the parent process alive.
@@ -116,6 +124,11 @@ function startServer() {
         } else {
             logger.info('Listening on ' + cfg.SERVER_PORT);
         }
+    });
+
+    nonSSLServer.listen(cfg.SERVER_PORT + 1, '0.0.0.0', (err) => {
+        logger.error('WOAH THERE');
+        logger.error(err);
     });
 }
 
@@ -286,6 +299,12 @@ app.get('/status', (req, res) => {
         return;
     }
 
+    if (typeof cfg.decryptLoaded === 'undefined') {
+        // we haven't read the config file,
+        // so we can't begin yet.
+        res.sendStatus(503);
+    }
+
     const serialNo = serial.split(':').pop();
 
     if (!valid) {
@@ -360,7 +379,9 @@ function decrypt(key, fname, type, bytestartp, byteendp,
     const req = request;
     const input = inputStream;
     try {
-        if (pwCache === undefined) {
+        if (typeof pwCache === 'undefined' &&
+            serial && firmVers && key)
+        {
             pwCache = pwsys.makePassword(
                 serial, firmVers,
                 cfg.salt, key, bytes,
@@ -421,8 +442,8 @@ function decrypt(key, fname, type, bytestartp, byteendp,
                     originalSize[base];
                 try {
                     res.writeHead(206, hdr);
-                } catch(e) {
-                    logger.error("Error writing headers!");
+                } catch (e) {
+                    logger.error('Error writing headers!');
                     logger.info(e);
                 }
             } else {
@@ -444,24 +465,26 @@ function decrypt(key, fname, type, bytestartp, byteendp,
             // the proper length.
 
             input.on('readable', () => {
-                let data;
-                while(data = input.read()) {
+                let data = input.read();
+                while (data) {
                     decipher.write(data);
+                    data = input.read();
                 }
             });
             input.on('close', () => {
                 decipher.end();
             });
 
-            let allData = new Array();
+            const allData = [];
             decipher.on('readable', () => {
-                let data;
-                while(data = decipher.read()) {
+                let data = decipher.read();
+                while (data) {
                     allData.push(data);
+                    data = decipher.read();
                 }
             });
             decipher.on('end', () => {
-                let allDataBuf = Buffer.concat(allData);
+                const allDataBuf = Buffer.concat(allData);
                 logger.info('pipe complete: ' + fname);
                 logger.info('data size: ' + allDataBuf.length);
                 res.send(allDataBuf);
@@ -536,7 +559,7 @@ function streamFile(match, res, req, encfile) {
             );
         }).catch((e) => {
             logger.error(
-                'openAndCreateStream error (stream): ' + e
+                'openAndCreateStream error (stream): ' + e,
             );
             res.sendStatus(500);
         });
@@ -555,9 +578,55 @@ function streamFile(match, res, req, encfile) {
     }
 }
 
+function processFileRequest(req, res, contentDir, locator, urlPath) {
+  const file = urlPath;
+  let encfile = path.join(contentDir, file + '.lock');
+
+  if (path.basename(encfile) in originalSize) {
+    // large files are not stored in the asar
+    encfile = path.join(locator.shared, 'm', file + '.lock');
+  }
+
+  if (fileStatCache[encfile] === undefined) {
+    fileStatCache[encfile] = fs.existsSync(encfile);
+  }
+
+  if (fileStatCache[encfile]) {
+    const match = encfile.match(/\.([^.]*)\.lock$/);
+    if (match) {
+      streamFile(match[1], res, req, encfile);
+    } else {
+      res.sendStatus(500);
+    }
+  } else {
+    let nfile = encfile.replace('.lock', '');
+    let cdir = contentDir;
+
+    if (path.basename(nfile) in originalSize) {
+      // large files are not stored in the asar
+      cdir = path.join(locator.shared, 'm');
+      nfile = path.join(cdir, file);
+    }
+
+    if (fs.existsSync(nfile)) {
+      // lockfile not found, return standard file fetch
+      res.sendFile(file, { root: cdir }, (err) => {
+        if (err) {
+          // This happens if the request is aborted.
+          logger.error('sendFile error: ' + err);
+        }
+      });
+    } else {
+      logger.error('File not found: ' + nfile);
+      res.sendStatus(404);
+    }
+  }
+}
+
 function configure(locator) {
     const cfgpath = path.join(locator.shared, 'usbcopypro.json');
     cfg = JSON.parse(fs.readFileSync(cfgpath));
+    drivePath = locator.drive;
 
     if (typeof locator.logging !== 'undefined') {
         log4js.configure({
@@ -651,58 +720,41 @@ function configure(locator) {
         app.use((req, res) => {
           try {
             if (!isValid([req, res])) { return; }
-
             const file = decodeURI(req.path);
-            let encfile = path.join(contentDir, file + '.lock');
-
-            if (path.basename(encfile) in originalSize) {
-                // large files are not stored in the asar
-                encfile = path.join(locator.shared, 'm', file + '.lock');
-            }
-
-            if (fileStatCache[encfile] === undefined) {
-                fileStatCache[encfile] = fs.existsSync(encfile);
-            }
-
-            if (fileStatCache[encfile]) {
-                const match = encfile.match(/\.([^.]*)\.lock$/);
-                if (match) {
-                    streamFile(match[1], res, req, encfile);
-                } else {
-                    res.sendStatus(500);
-                }
-            } else {
-                let nfile = encfile.replace('.lock', '');
-                let cdir = contentDir;
-
-                if (path.basename(nfile) in originalSize) {
-                    // large files are not stored in the asar
-                    cdir = path.join(locator.shared, 'm');
-                    nfile = path.join(cdir, file);
-                }
-
-                if (fs.existsSync(nfile)) {
-                    // lockfile not found, return standard file fetch
-                    res.sendFile(file, { root: cdir }, (err) => {
-                        if (err) {
-                            // This happens if the request is aborted.
-                            logger.error('sendFile error: ' + err);
-                        }
-                    });
-                } else {
-                    res.sendStatus(404);
-                }
-            }
+            processFileRequest(req, res, contentDir, locator, file);
           } catch (e) {
             logger.error('System exception: ' + e);
             res.sendStatus(404);
           }
         });
-        app.use((err, req, res, next) => {
+
+        app.use((err, req, res) => {
             logger.error('Middleware error: ' + err);
             res.sendStatus(500);
         });
+
+        nonSSLServer.get(`${nonSSLBase}/:id`, (req, res) => {
+            if (typeof cfg.castBinary === 'undefined') {
+                res.sendStatus(500);
+            }
+
+            logger.info(`non-SSL: ${req.path}`);
+            logger.info(`non-SSL: ${JSON.stringify(req.params)}`);
+            const file = decodeURI(req.path);
+            logger.info(`non-SSL: req.path=${file}`);
+            const urlPathKey = file.replace(nonSSLBase, '');
+            logger.info(`non-SSL: urlPathKey=${urlPathKey}`);
+            const urlPath = nonSSLCache[urlPathKey];
+            if (urlPath) {
+                logger.info(`non-SSL: path=${urlPath}`);
+                processFileRequest(req, res, contentDir, locator, urlPath);
+            } else {
+                logger.error(`non-SSL: path key not found ${urlPathKey}`);
+                res.sendStatus(404);
+            }
+        });
     }
+    cfg.decryptLoaded = true;
 }
 exports.configure = configure;
 
@@ -711,3 +763,181 @@ function lockSession(uuid, agent) {
     gAgent = agent;
 }
 exports.lockSession = lockSession;
+
+// Returns first local-ish address
+// NOTE: the ipString is the starting
+// characters of the string-ified representation
+// of the IPv4 address.  It does not do real netmasking.
+function getLocalIP(ipString) {
+    const ifs = os.networkInterfaces();
+    let addr = '';
+    const ifNames = Object.keys(ifs);
+    for (let i = 0; i < ifNames.length && !addr; i++) {
+        const nets = ifs[ifNames[i]];
+        for (let j = 0; j < nets.length && !addr; j++) {
+            const nif = nets[j];
+            logger.info(`local ip: ${nif.address}`);
+            if (nif.family === 'IPv4' &&
+                !nif.internal &&
+                nif.address.startsWith(ipString))
+            {
+                addr = nif.address;
+            }
+        }
+    }
+    return addr;
+}
+
+function enableCastPath(targetPath) {
+    const castId = uuidv4();
+    nonSSLCache[`/${castId}`] = targetPath;
+    logger.info(`startCast: set up cast ID: ${castId}`);
+    return castId;
+}
+function startCast(uid, castUUID, castIP) {
+    if (typeof cfg.castBinary === 'undefined') {
+        logger.info('startCast: warning, castBinary is not enabled');
+        return;
+    }
+    const castPath = path.join(drivePath, cfg.castBinary);
+    if (!fs.existsSync(castPath)) {
+        logger.error(`startCast: can't find cast binary ${castPath}`);
+        throw new Error('cannot find cast binary');
+    }
+    if (!castUUID) {
+        throw new Error('castUUID must be defined');
+    }
+    if (!castIP) {
+        throw new Error('castIP must be defined');
+    }
+
+    logger.info(`startCast: found cast binary ${castPath}`);
+
+    const network = castIP
+        .split('.')
+        .slice(0, 3)
+        .reduce((s, n) => s + `${n}.`, '');
+
+    const ip = getLocalIP(network);
+    const port = cfg.SERVER_PORT + 1;
+
+    if (!ip) {
+        throw new Error(`cannot find local IP on network ${network}`);
+    }
+
+    const castUrl = `http://${ip}:${port}${nonSSLBase}/${uid}`;
+    logger.info(`startCast: url -> ${castUrl}`);
+    logger.info(`startCast: uuid ${castUUID}`);
+
+    const execStr = `${castPath} -u ${castUUID} load ${castUrl}`;
+    logger.info(`startCast: executing ${execStr}`);
+    exec(execStr, (error, stdout, stderr) => {
+        if (error) {
+            logger.error('startCast EXEC: ERROR (error)');
+            logger.error(error);
+            throw new Error(error);
+        }
+        if (stderr) {
+            logger.error('startCast EXEC: ERROR (stderr)');
+            logger.error(stderr);
+            throw new Error('exec FAILED: ' + stderr);
+        }
+        logger.info('startCast: process complete');
+        logger.info(stdout);
+    });
+}
+function parseGoChromecastOutput(output) {
+    const lines = output.split(/\r\n|\r|\n/);
+    logger.info(`got ${lines.length} lines`);
+
+    const nameRE = /device_name="([^"]+)"/;
+    const addrRE = /address="([^"]+)"/;
+    const uuidRE = /uuid="([^"]+)"/;
+
+    const results = [];
+    lines.forEach((line) => {
+        if (!line) return;
+        let match;
+        const row = {};
+
+        match = nameRE.exec(line);
+        if (match && match[1]) {
+            [, row.name] = match;
+        }
+
+        match = addrRE.exec(line);
+        if (match && match[1]) {
+            [, row.address] = match;
+        }
+
+        match = uuidRE.exec(line);
+        if (match && match[1]) {
+            [, row.uuid] = match;
+        }
+        if (row.name && row.address && row.uuid) {
+            results.push(row);
+        }
+    });
+
+    if (results.length === 0) {
+        logger.warn('no chromecast devices found');
+    }
+
+    return results;
+}
+async function listCast() {
+    if (typeof cfg.castBinary === 'undefined') {
+        logger.info('listCast: warning, castBinary is not enabled');
+        return [];
+    }
+    const castPath = path.join(drivePath, cfg.castBinary);
+    if (!fs.existsSync(castPath)) {
+        logger.error(`listCast: can't find cast binary ${castPath}`);
+        throw new Error('cannot find cast binary');
+    }
+
+    const execStr = `${castPath} ls`;
+    logger.info(`listCast: executing ${execStr}`);
+
+    const output = await new Promise((resolve, reject) => {
+        exec(execStr, (error, stdout, stderr) => {
+            if (error) {
+                logger.error('listCast EXEC: ERROR (error)');
+                logger.error(error);
+                throw new Error(error);
+            }
+            if (stderr) {
+                logger.error('listCast EXEC: ERROR (stderr)');
+                logger.error(stderr);
+                reject(new Error('exec FAILED: ' + stderr));
+                return;
+            }
+            resolve(stdout);
+        });
+    });
+    logger.info('listCast output:');
+    logger.info(output);
+
+    return parseGoChromecastOutput(output);
+}
+
+async function sendMessage(msg) {
+    if (typeof msg.startCast !== 'undefined') {
+        let result = [];
+        const { targetPath, castUUID, castIP } = msg.startCast;
+        if (targetPath) {
+            // start
+            logger.info(`Got startCast start command: ${targetPath}`);
+            const uid = enableCastPath(targetPath);
+            startCast(uid, castUUID, castIP);
+        } else {
+            logger.info('Got startCast list command');
+            // list
+            result = await listCast();
+        }
+        return JSON.stringify(result);
+    }
+
+    return '';
+}
+exports.sendMessage = sendMessage;

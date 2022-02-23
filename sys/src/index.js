@@ -6,8 +6,8 @@ const fs = require('fs');
 const opn = require('opn');
 const Worker = require('tiny-worker');
 const log4js = require('log4js');
-
 const electron = require('electron');
+const constants = require('./constants.js');
 
 const { app } = electron;
 app.commandLine.appendSwitch('ignore-certificate-errors');
@@ -15,7 +15,11 @@ app.commandLine.appendSwitch('ignore-certificate-errors');
 let logger;
 let mainWindow;
 let workerThread;
-const SHOWDEVTOOLSMAGIC = "53a8c544759eb8ee";
+let startCastCommandListResolve;
+const {
+    SHOWDEVTOOLSMAGIC,
+    startCastCommandList,
+} = constants;
 const sessionId = uuidv4();
 
 function showDevtoolsWin() {
@@ -40,7 +44,14 @@ function createServerWorker() {
     const worker = new Worker(() => {
         const ppath = require('path');
         const log4jsw = require('log4js');
-        const SHOWDEVTOOLSMAGIC = "53a8c544759eb8ee";
+        // eslint-disable-next-line no-shadow
+        const constants = require('../../../src/constants.js');
+        const {
+            // eslint-disable-next-line no-shadow
+            SHOWDEVTOOLSMAGIC,
+            // eslint-disable-next-line no-shadow
+            startCastCommandList,
+        } = constants;
         let server;
         let wlogger;
 
@@ -64,7 +75,11 @@ function createServerWorker() {
             } else {
                 log4jsw.configure({
                     appenders: { logs: { type: 'stderr' } },
-                    categories: { default: { appenders: ['logs'], level: 'error' } },
+                    categories: {
+                        default: {
+                            appenders: ['logs'], level: 'error',
+                        },
+                    },
                 });
                 wlogger = log4jsw.getLogger();
             }
@@ -72,6 +87,42 @@ function createServerWorker() {
 
         // eslint-disable-next-line no-undef
         onmessage = (e) => {
+            // startCast message
+            if (e.data.startCast) {
+                wlogger.info('Got startCast signal');
+                server.sendMessage({
+                    startCast: {
+                        targetPath: e.data.startCast.targetPath,
+                        castUUID: e.data.startCast.castUUID,
+                        castIP: e.data.startCast.castIP,
+                    },
+                }).then((result) => {
+                    wlogger.info(`Got startCast result: ${result}`);
+                    let devices = [];
+                    if (result) {
+                        try {
+                            devices = JSON.parse(result);
+                        } catch (jsone) {
+                            wlogger.error(
+                                `startCast JSON parse: ${jsone.message}`,
+                            );
+                            devices = [];
+                        }
+                    }
+                    if (devices instanceof Array && devices.length > 0) {
+                        wlogger.info(
+                            'Got startCast list ' +
+                            `result, ${devices.length} devices`,
+                        );
+                        // command was to list devices
+                        const str = JSON.stringify({ devices });
+                        // eslint-disable-next-line no-undef
+                        postMessage(`${startCastCommandList}${str}`);
+                    }
+                });
+                return;
+            }
+
             // terminate message
             if (server && e.data.terminate) {
                 if (wlogger) {
@@ -99,10 +150,10 @@ function createServerWorker() {
                 // eslint-disable-next-line global-require, import/no-dynamic-require
                 server = require(e.data.serverjs);
                 wlogger.info('calling server.go()');
-                let showDevtools = server.go(e.data);
+                const showDevtools = server.go(e.data);
                 if (showDevtools) {
                     wlogger.warn('enctool DETECTED, showing dev tools');
-                    console.log('enctool DETECTED, showing dev tools');
+                    // eslint-disable-next-line no-undef
                     postMessage(SHOWDEVTOOLSMAGIC);
                 }
             } catch (er) {
@@ -123,7 +174,9 @@ function createServerWorker() {
             // eslint-disable-next-line no-undef
             postMessage('EXCEPTION: ' + e);
         };
-    }, [], {
+    },
+    // comment out this detach section for debugging
+    [], {
         detach: true,
         stdio: 'ignore',
         esm: true,
@@ -136,13 +189,26 @@ function createServerWorker() {
 
             // Message from worker thread that we're in
             // the dev state, and we should show the dev tools window.
-            if(ev.data == SHOWDEVTOOLSMAGIC) {
+            if (ev.data === SHOWDEVTOOLSMAGIC) {
                 logger.warn('Got SHOWDEVTOOLSMAGIC!');
                 showDevtoolsWin();
                 return;
             }
 
+            if (ev.data.startsWith(startCastCommandList)) {
+                logger.warn('Got startCastCommandList result');
+                const resultJSON = ev.data.replace(startCastCommandList, '');
+                logger.warn(resultJSON);
+                startCastCommandListResolve(JSON.parse(resultJSON));
+                return;
+            }
+
             throw new Error(ev.data);
+        }
+    };
+    worker.onerror = (err) => {
+        if (logger) {
+            logger.error(err);
         }
     };
 
@@ -186,6 +252,9 @@ function findLocator() {
     if (process.env.ENCTOOLLOC !== undefined) {
         pathDefined = true;
         locatorPath = process.env.ENCTOOLLOC;
+        dir = path.dirname(locatorPath);
+    } else {
+        locatorPath = path.join(dir, locatorFile);
     }
 
     do {
@@ -233,6 +302,8 @@ function findLocator() {
         });
         logger = log4js.getLogger();
     }
+    logger.info('locator: ' + locatorPath);
+    logger.info('dir: ' + dir);
     logger.info('shared: ' + locator.shared);
     logger.info('app: ' + locator.app);
     logger.info('drive: ' + locator.drive);
@@ -294,7 +365,7 @@ function onDomReady(win, nurl) {
                 // For new windows opened by window.open js, the global
                 // is used.  For <a> links that use data-dlenabled=true,
                 // the IPC command "dlenabled-message" is used.
-                let ldl = mainWindow.dlenabled || dlenabled;
+                const ldl = mainWindow.dlenabled || dlenabled;
                 mainWindow.dlenabled = false;
                 logger.info('win ' + winid +
                             ' DL enabled: ' + ldl);
@@ -325,54 +396,18 @@ function onDomReady(win, nurl) {
     // * provide callback for opening external URLs in
     //   the electron browser (insecure), if we have node integration.
     // * add retry loop for the video, if any
+    // TODO: can this be (mostly) moved to preload.js?
     win.webContents.executeJavaScript(`
         var logger;
         if (typeof(require) === "function") {
-            const {ipcRenderer} = require('electron');
             if (typeof(window.jQuery) === 'undefined') {
                 window.$ = window.jQuery = require('jquery');
             }
-            $("[data-openlocal='true']").click(function(ev) {
-                ev.preventDefault();
-                // this will prevent triggering the onOpenUrl()
-                // call below.
-                ipcRenderer.send('openlocal-message', ev.target.href);
-            });
+            window.api.addLogger();
+            logger = window.logger;
 
-            $("[data-dlenabled='true']").click(function(ev) {
-                ipcRenderer.send('dlenabled-message', ev.target.href);
-            });
-
-            const path = require('path');
-            const log4js = require('log4js');
-            const locator = ipcRenderer.sendSync('getlocator-message');
-
-            if (typeof(locator.logging) !== 'undefined') {
-                log4js.configure({
-                    appenders: {
-                        logs: {
-                            type: 'file',
-                            filename: path.join(locator.logging,
-                                                'ucp-browser.log'),
-                        },
-                    },
-                    categories: {
-                        browser: { appenders: ['logs'], level: 'debug' },
-                        default: { appenders: ['logs'], level: 'debug' },
-                    }
-                });
-                logger = log4js.getLogger('browser');
-            } else {
-                log4js.configure({
-                    appenders: { logs: { type: 'stderr' } },
-                    categories: { default: {
-                        appenders: ['logs'],
-                        level: 'error'
-                    }},
-                });
-                logger = log4js.getLogger();
-            }
-            logger.info('log4js started on page');
+            window.api.addDataHooks(window.jQuery);
+            window.api.addChromecastHooks(window.jQuery);
         }
 
         tb = document.querySelector('viewer-pdf-toolbar');
@@ -437,6 +472,33 @@ function onOpenUrl(ev, nurl) {
     }
 }
 
+function enableCast(targetUrl, usbCastUUID, usbCastIP) {
+    workerThread.postMessage({
+        startCast: {
+            targetPath: targetUrl,
+            castUUID: usbCastUUID,
+            castIP: usbCastIP,
+        },
+    });
+}
+
+async function listCast() {
+    const prom = new Promise((resolve) => {
+        startCastCommandListResolve = (s) => {
+            resolve(s);
+        };
+    });
+    workerThread.postMessage({
+        startCast: {},
+    });
+
+    const listResult = await prom;
+    logger.info('Received result from cast list:');
+    logger.info(listResult);
+
+    return listResult.devices;
+}
+
 function createWindow() {
     const locator = findLocator();
 
@@ -449,6 +511,7 @@ function createWindow() {
         devTools: false,
         webPreferences: {
             plugins: true,
+            preload: path.join(app.getAppPath(), 'src', 'preload.js'),
         },
     });
 
@@ -477,16 +540,31 @@ function createWindow() {
 
     // ipc connectors
     electron.ipcMain.on('openlocal-message', (ev, nurl) => {
-        logger.warn('Warning: Opening external URL in browser ' + url);
+        logger.warn('Warning: Opening external URL in browser ' + nurl);
         mainWindow.loadURL(nurl);
     });
     electron.ipcMain.on('dlenabled-message', (ev, nurl) => {
-        logger.warn('Warning: Download enabled for URL ' + url);
+        logger.warn('Warning: Download enabled for URL ' + nurl);
+        // eslint-disable-next-line no-param-reassign
+        ev.returnValue = 1;
         mainWindow.dlenabled = true;
     });
     electron.ipcMain.on('getlocator-message', (ev) => {
         // eslint-disable-next-line no-param-reassign
         ev.returnValue = locator;
+    });
+    electron.ipcMain.on('usbcast-message', (ev, target) => {
+        const { targetUrl, usbCastUUID, usbCastIP } = target;
+        logger.info(
+            'received usbcast-message:' +
+            `${targetUrl} ${usbCastUUID} ${usbCastIP}`,
+        );
+        enableCast(targetUrl, usbCastUUID, usbCastIP);
+    });
+    electron.ipcMain.on('usbcastlist-message', async (ev) => {
+        logger.info('received usbcastlist-message');
+        // eslint-disable-next-line no-param-reassign
+        ev.returnValue = await listCast();
     });
 
     // load start page
@@ -533,7 +611,15 @@ function createWindow() {
     });
 }
 
-const notPrimary = app.makeSingleInstance(() => {
+app.allowRendererProcessReuse = false;
+
+if (app.requestSingleInstanceLock()) {
+    app.on('ready', createWindow);
+} else {
+    app.exit(0);
+}
+
+app.on('second-instance', () => {
     if (mainWindow) {
         if (mainWindow.isMinimized()) {
             mainWindow.restore();
@@ -541,9 +627,3 @@ const notPrimary = app.makeSingleInstance(() => {
         mainWindow.focus();
     }
 });
-
-if (notPrimary) {
-    app.exit(0);
-} else {
-    app.on('ready', createWindow);
-}
