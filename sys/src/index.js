@@ -47,7 +47,9 @@ function createServerWorker() {
         // eslint-disable-next-line no-shadow
         const constants = require('../../../src/constants.js');
         const {
+            // eslint-disable-next-line no-shadow
             SHOWDEVTOOLSMAGIC,
+            // eslint-disable-next-line no-shadow
             startCastCommandList,
         } = constants;
         let server;
@@ -102,7 +104,7 @@ function createServerWorker() {
                             devices = JSON.parse(result);
                         } catch (jsone) {
                             wlogger.error(
-                                `startCast JSON parse: ${jsone.message}`
+                                `startCast JSON parse: ${jsone.message}`,
                             );
                             devices = [];
                         }
@@ -110,7 +112,7 @@ function createServerWorker() {
                     if (devices instanceof Array && devices.length > 0) {
                         wlogger.info(
                             'Got startCast list ' +
-                            `result, ${devices.length} devices`
+                            `result, ${devices.length} devices`,
                         );
                         // command was to list devices
                         const str = JSON.stringify({ devices });
@@ -476,22 +478,21 @@ function enableCast(targetUrl, usbCastUUID, usbCastIP) {
             targetPath: targetUrl,
             castUUID: usbCastUUID,
             castIP: usbCastIP,
-        }
+        },
     });
 }
 
 async function listCast() {
-
-    let prom = new Promise((resolve, reject) => {
+    const prom = new Promise((resolve) => {
         startCastCommandListResolve = (s) => {
             resolve(s);
         };
     });
     workerThread.postMessage({
-        startCast: {}
+        startCast: {},
     });
 
-    let listResult = await prom;
+    const listResult = await prom;
     logger.info('Received result from cast list:');
     logger.info(listResult);
 
@@ -539,11 +540,13 @@ function createWindow() {
 
     // ipc connectors
     electron.ipcMain.on('openlocal-message', (ev, nurl) => {
-        logger.warn('Warning: Opening external URL in browser ' + url);
+        logger.warn('Warning: Opening external URL in browser ' + nurl);
         mainWindow.loadURL(nurl);
     });
     electron.ipcMain.on('dlenabled-message', (ev, nurl) => {
-        logger.warn('Warning: Download enabled for URL ' + url);
+        logger.warn('Warning: Download enabled for URL ' + nurl);
+        // eslint-disable-next-line no-param-reassign
+        ev.returnValue = 1;
         mainWindow.dlenabled = true;
     });
     electron.ipcMain.on('getlocator-message', (ev) => {
@@ -554,12 +557,13 @@ function createWindow() {
         const { targetUrl, usbCastUUID, usbCastIP } = target;
         logger.info(
             'received usbcast-message:' +
-            `${targetUrl} ${usbCastUUID} ${usbCastIP}`
+            `${targetUrl} ${usbCastUUID} ${usbCastIP}`,
         );
         enableCast(targetUrl, usbCastUUID, usbCastIP);
     });
     electron.ipcMain.on('usbcastlist-message', async (ev) => {
         logger.info('received usbcastlist-message');
+        // eslint-disable-next-line no-param-reassign
         ev.returnValue = await listCast();
     });
 
@@ -615,7 +619,7 @@ if (app.requestSingleInstanceLock()) {
     app.exit(0);
 }
 
-app.on('second-instance', (event, argv, cwd) => {
+app.on('second-instance', () => {
     if (mainWindow) {
         if (mainWindow.isMinimized()) {
             mainWindow.restore();
@@ -623,4 +627,3 @@ app.on('second-instance', (event, argv, cwd) => {
         mainWindow.focus();
     }
 });
-

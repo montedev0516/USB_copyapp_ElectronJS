@@ -813,7 +813,7 @@ function startCast(uid, castUUID, castIP) {
 
     logger.info(`startCast: found cast binary ${castPath}`);
 
-    let network = castIP
+    const network = castIP
         .split('.')
         .slice(0, 3)
         .reduce((s, n) => s + `${n}.`, '');
@@ -831,7 +831,7 @@ function startCast(uid, castUUID, castIP) {
 
     const execStr = `${castPath} -u ${castUUID} load ${castUrl}`;
     logger.info(`startCast: executing ${execStr}`);
-    let child = exec(execStr, (error, stdout, stderr) => {
+    exec(execStr, (error, stdout, stderr) => {
         if (error) {
             logger.error('startCast EXEC: ERROR (error)');
             logger.error(error);
