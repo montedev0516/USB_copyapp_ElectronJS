@@ -1,7 +1,0 @@
-{
-    "shared": "/home/davek/work/t/encrypt/out/shared",
-    "app": ".",
-    "drive": ".\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe",
-    "logging": "/tmp"
-}
-

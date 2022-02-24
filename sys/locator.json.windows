@@ -1,0 +1,7 @@
+{
+    "shared": "/home/davidd/work/t/encrypt/out/shared",
+    "app": ".",
+    "drive": "./drive",
+    "logging": "/tmp"
+}
+
