@@ -46,7 +46,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
     // salt
     srvcfg.salt = crypto.randomBytes(32).toString('hex');
     // chromecast
-    srvcfg.castBinary = 'go-chromecast';
+    srvcfg.castBinary = 'go-chromecast.exe';
 
     msgcb('writing config file...');
     fs.writeFileSync(

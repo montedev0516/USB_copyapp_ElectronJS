@@ -57,6 +57,13 @@ if [ -x launcher/Release/launcher.exe ] ; then
     cp launcher/Release/launcher.exe drive/Windows_Users_Start.exe
 fi
 
+if [ -x ./sys/drive/go-chromecast.exe ] ; then
+    cp -v sys/drive/go-chromecast.exe drive/sys/$drive/
+else
+    echo ERROR: chromecast binary not found
+    exit 1
+fi
+
 cp -v "launcher/Start For Windows.lnk" drive/
 
 git describe --long > drive/gittag-drive.txt
