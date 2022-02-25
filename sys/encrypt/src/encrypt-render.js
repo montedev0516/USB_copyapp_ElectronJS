@@ -281,7 +281,7 @@ function btnLaunchClick(ev) {
     const locData = {
         shared: sharedPath,
         app: appPath,
-        drive: '.\\drive\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
+        drive: '.\\drive\\sys\\usbcopypro-win32-ia32',
     };
 
     try {
