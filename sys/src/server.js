@@ -831,7 +831,7 @@ async function startCast(uid, castUUID, castIP) {
     logger.info(`startCast: url -> ${castUrl}`);
     logger.info(`startCast: uuid ${castUUID}`);
 
-    const execStr = `${castPath} -u ${castUUID} load ${castUrl}`;
+    const execStr = `"${castPath}" -u ${castUUID} load ${castUrl}`;
     logger.info(`startCast: executing ${execStr}`);
     const output = await new Promise((resolve, reject) => {
         exec(execStr, (error, stdout, stderr) => {
@@ -902,7 +902,7 @@ async function listCast() {
         throw new Error('cannot find cast binary');
     }
 
-    const execStr = `${castPath} ls`;
+    const execStr = `"${castPath}" ls`;
     logger.info(`listCast: executing ${execStr}`);
 
     const output = await new Promise((resolve, reject) => {
