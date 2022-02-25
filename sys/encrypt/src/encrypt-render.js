@@ -249,6 +249,7 @@ function findExecPath(enccfg) {
 
 function btnLaunchClick(ev) {
     const tempLocator = tmp.fileSync();
+    const logDir = tmp.dirSync();
     const enccfg = saveUI();
 
     $(ev.target)
@@ -274,7 +275,8 @@ function btnLaunchClick(ev) {
     messageCallback(
         'Launching test application with encrypted data</br>' +
         'Locator: ' + tempLocator.name + '</br>' +
-        'Executable: ' + execPath,
+        'Executable: ' + execPath + '</br>' +
+        'Logfiles: ' + logDir.name,
     );
 
     const sharedPath = path.join(enccfg.outPath, 'shared');
@@ -282,6 +284,7 @@ function btnLaunchClick(ev) {
         shared: sharedPath,
         app: appPath,
         drive: '.\\drive\\sys\\usbcopypro-win32-ia32',
+        logging: logDir.name,
     };
 
     try {
