@@ -127,7 +127,7 @@ function startServer() {
     });
 
     nonSSLServer.listen(cfg.SERVER_PORT + 1, '0.0.0.0', (err) => {
-        logger.error('nonSSL server started');
+        logger.info('non-SSL server started');
         if (err) {
             logger.error(err);
         }
@@ -906,7 +906,8 @@ async function listCast() {
             if (error) {
                 logger.error('listCast EXEC: ERROR (error)');
                 logger.error(error);
-                throw new Error(error);
+                reject(new Error(error));
+                return;
             }
             if (stderr) {
                 logger.error('listCast EXEC: ERROR (stderr)');

@@ -125,6 +125,10 @@ function createServerWorker() {
                         // eslint-disable-next-line no-undef
                         postMessage(`${startCastCommandList}${str}`);
                     }
+                })
+                .catch((er) => {
+                    wlogger.error('startCast ERROR:');
+                    wlogger.error(er);
                 });
                 return;
             }
