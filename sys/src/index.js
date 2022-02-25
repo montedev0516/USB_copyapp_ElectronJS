@@ -44,14 +44,14 @@ function createServerWorker() {
     const worker = new Worker(() => {
         const ppath = require('path');
         const log4jsw = require('log4js');
+
+        // This cannot require() anything because
+        // it doesn't know about any of the compilation caching.
+        // So the constants are passed in as arguments.
         // eslint-disable-next-line no-shadow
-        const constants = require('../../../src/constants.js');
-        const {
-            // eslint-disable-next-line no-shadow
-            SHOWDEVTOOLSMAGIC,
-            // eslint-disable-next-line no-shadow
-            startCastCommandList,
-        } = constants;
+        const SHOWDEVTOOLSMAGIC = process.argv[2];
+        const startCastCommandList = process.argv[3];
+
         let server;
         let wlogger;
 
@@ -87,6 +87,12 @@ function createServerWorker() {
 
         // eslint-disable-next-line no-undef
         onmessage = (e) => {
+            if (!e.data) {
+                wlogger.error('ERROR (worker): signal with no data');
+                wlogger.error('ERROR (worker): ' + e);
+                return;
+            }
+
             // startCast message
             if (e.data.startCast) {
                 wlogger.info('Got startCast signal');
@@ -175,16 +181,21 @@ function createServerWorker() {
             postMessage('EXCEPTION: ' + e);
         };
     },
-    // comment out this detach section for debugging
-    [], {
+    [SHOWDEVTOOLSMAGIC, startCastCommandList], {
+        // comment out these for debugging to console
         detach: true,
         stdio: 'ignore',
-        esm: true,
     });
     worker.onmessage = (ev) => {
+        if (!ev.data) {
+            wlogger.error('ERROR (index): signal with no data');
+            wlogger.error('ERROR (index): ' + ev);
+            return;
+        }
+
         if (ev.data.length > 0) {
             if (logger) {
-                logger.error('WORKER: ' + ev.data);
+                logger.warn('WORKER message: ' + ev.data);
             }
 
             // Message from worker thread that we're in
