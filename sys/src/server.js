@@ -127,8 +127,10 @@ function startServer() {
     });
 
     nonSSLServer.listen(cfg.SERVER_PORT + 1, '0.0.0.0', (err) => {
-        logger.error('WOAH THERE');
-        logger.error(err);
+        logger.error('nonSSL server started');
+        if (err) {
+            logger.error(err);
+        }
     });
 }
 
