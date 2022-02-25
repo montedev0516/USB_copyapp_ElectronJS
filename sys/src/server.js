@@ -804,7 +804,7 @@ async function startCast(uid, castUUID, castIP) {
     const castPath = path.join(drivePath, cfg.castBinary);
     if (!fs.existsSync(castPath)) {
         logger.error(`startCast: can't find cast binary ${castPath}`);
-        throw new Error('cannot find cast binary');
+        throw new Error(`cannot find cast binary ${castPath}`);
     }
     if (!castUUID) {
         throw new Error('castUUID must be defined');
@@ -899,7 +899,7 @@ async function listCast() {
     const castPath = path.join(drivePath, cfg.castBinary);
     if (!fs.existsSync(castPath)) {
         logger.error(`listCast: can't find cast binary ${castPath}`);
-        throw new Error('cannot find cast binary');
+        throw new Error(`cannot find cast binary ${castPath}`);
     }
 
     const execStr = `"${castPath}" ls`;
