@@ -129,6 +129,7 @@ function createServerWorker() {
                 .catch((er) => {
                     wlogger.error('startCast ERROR:');
                     wlogger.error(er);
+                    postMessage('startCast ERROR: ' + er.toString());
                 });
                 return;
             }

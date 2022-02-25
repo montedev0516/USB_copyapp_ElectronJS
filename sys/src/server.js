@@ -796,7 +796,7 @@ function enableCastPath(targetPath) {
     logger.info(`startCast: set up cast ID: ${castId}`);
     return castId;
 }
-function startCast(uid, castUUID, castIP) {
+async function startCast(uid, castUUID, castIP) {
     if (typeof cfg.castBinary === 'undefined') {
         logger.info('startCast: warning, castBinary is not enabled');
         return;
@@ -833,20 +833,24 @@ function startCast(uid, castUUID, castIP) {
 
     const execStr = `${castPath} -u ${castUUID} load ${castUrl}`;
     logger.info(`startCast: executing ${execStr}`);
-    exec(execStr, (error, stdout, stderr) => {
-        if (error) {
-            logger.error('startCast EXEC: ERROR (error)');
-            logger.error(error);
-            throw new Error(error);
-        }
-        if (stderr) {
-            logger.error('startCast EXEC: ERROR (stderr)');
-            logger.error(stderr);
-            throw new Error('exec FAILED: ' + stderr);
-        }
-        logger.info('startCast: process complete');
-        logger.info(stdout);
+    const output = await new Promise((resolve, reject) => {
+        exec(execStr, (error, stdout, stderr) => {
+            if (error) {
+                logger.error('startCast EXEC: ERROR (error)');
+                logger.error(error);
+                reject(new Error(error));
+            }
+            if (stderr) {
+                logger.error('startCast EXEC: ERROR (stderr)');
+                logger.error(stderr);
+                reject(new Error('exec FAILED: ' + stderr));
+            }
+            logger.info('startCast: process complete');
+            logger.info(stdout);
+            resolve(stdout);
+        })
     });
+    return output;
 }
 function parseGoChromecastOutput(output) {
     const lines = output.split(/\r\n|\r|\n/);
@@ -932,7 +936,7 @@ async function sendMessage(msg) {
             // start
             logger.info(`Got startCast start command: ${targetPath}`);
             const uid = enableCastPath(targetPath);
-            startCast(uid, castUUID, castIP);
+            result = await startCast(uid, castUUID, castIP);
         } else {
             logger.info('Got startCast list command');
             // list
