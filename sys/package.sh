@@ -62,7 +62,7 @@ ARCH=""
 if [ "`uname -s`" = "CYGWIN_NT-10.0" ] ; then
     ARCH="--arch=ia32"
 fi
-../node_modules/.bin/electron-forge package $ARCH
+npx electron-forge package $ARCH
 
 if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
     dir=${SYSNAME}-linux-x64
@@ -89,7 +89,9 @@ tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
 cd $_pwd/dist/out/$dir
 
 # blank compiled JS files
-find ./resources/app/src -type f -exec sh -c 'echo -n > {}' \;
+find ./resources/app/src \
+    \( -type f -a \! -name preload.js \) \
+    -exec sh -c 'echo blanking {} ; echo -n > {}' \;
 
 # no readmes
 find . -iname \*.md -delete
