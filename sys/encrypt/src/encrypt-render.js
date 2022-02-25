@@ -283,7 +283,10 @@ function btnLaunchClick(ev) {
     const locData = {
         shared: sharedPath,
         app: appPath,
-        drive: '.\\drive\\sys\\usbcopypro-win32-ia32',
+        drive: path.join(
+            enccfg.sysPath,
+            'app', 'drive', 'sys', 'usbcopypro-win32-ia32',
+        ),
         logging: logDir.name,
     };
 
