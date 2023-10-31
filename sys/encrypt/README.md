@@ -13,7 +13,7 @@
   * Extract the original, unencrypted content files into the `input` directory; make sure that the `input` directory contains an `index.html` file which loads the content (for instance with a `video` tag); see example below under "Notes".
 2. Run the encryption UI:
 ```
-$(npm bin)/electron ./encrypt/src/encrypt-main.js
+npx electron ./encrypt/src/encrypt-main.js
 ```
 The UI shows a form where you should enter the directory paths of the `input`, `working` and `shared` directories.
 
@@ -74,6 +74,19 @@ Here is an example of an `index.html` file. Note that this is NOT the same as th
 ```
 
 In this example, the `input` directory would contain a file "somevideo.mp4" which gets loaded by the index.html page.
+
+## BUILD ERRORS
+
+gyp doesn't really work.
+see https://github.com/nodejs/node-gyp/issues/2673#issuecomment-1165324060
+You need to add this block to `./node_modules/diskusage/binding.gyp`
+
+```
+    'variables' : {
+        'openssl_fips': '',
+    },
+
+```
 
 ## Packaging of the encryption utility (optional)
 1. Package with electron forge:

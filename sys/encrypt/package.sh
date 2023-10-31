@@ -4,7 +4,10 @@ set -e
 
 git describe --long > .usbgittag 
 
-$(npm bin)/electron-forge package
+# HACK!
+patch -N -p1 < openssl-fips.patch || :
+
+npx electron-forge package
 
 OUTDIR=out/usbcopypro-encrypt-win32-x64
 

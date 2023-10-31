@@ -1,0 +1,10 @@
+--- ./node_modules/diskusage/binding.gyp.orig	2023-10-31 11:48:53.374013762 -0400
++++ ./node_modules/diskusage/binding.gyp	2023-10-31 11:48:56.078035433 -0400
+@@ -1,4 +1,7 @@
+ {
++'variables' : {
++'openssl_fips': '',
++},
+   'targets': [
+     {
+       'target_name': 'diskusage',
