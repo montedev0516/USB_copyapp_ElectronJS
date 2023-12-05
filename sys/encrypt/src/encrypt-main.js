@@ -2,9 +2,13 @@ const electron = require('electron');
 const url = require('url');
 const path = require('path');
 
+// this uses electron remote for dialogs
+require('@electron/remote/main').initialize();
+
 const { Menu, MenuItem } = electron;
 
 const { app } = electron;
+
 
 let mainWindow;
 
@@ -18,6 +22,7 @@ function createWindow() {
         height: 700,
         webPreferences: {
             nodeIntegration: true,
+            contextIsolation: false,
         },
     });
 
@@ -27,7 +32,10 @@ function createWindow() {
         slashes: true,
     }));
 
-    // mainWindow.webContents.openDevTools();
+    //mainWindow.webContents.openDevTools();
+
+    // needed to display remote dialog windows
+    require('@electron/remote/main').enable(mainWindow.webContents);
 
     mainWindow.on('closed', () => {
         mainWindow = null;

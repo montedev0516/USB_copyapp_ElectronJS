@@ -16,7 +16,7 @@ const electron = require('electron');
 const encrypt = require('./encrypt');
 const vers = require('../package.json');
 
-const { dialog } = electron.remote;
+const { dialog } = require('@electron/remote');
 const { ipcRenderer } = electron;
 
 require('jquery-ui');
