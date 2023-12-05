@@ -1,4 +1,3 @@
-
 const crypto = require('crypto');
 const fs = require('original-fs');
 const path = require('path');
@@ -158,7 +157,7 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
 
     function makeAsar() {
         // eslint-disable-next-line global-require
-        const asar = require('asar');
+        const asar = require('@electron/asar');
 
         msgcb('writing file size information');
         fs.writeFileSync(
@@ -169,19 +168,14 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         const outfile = path.join(outPath, 'content.asar');
         msgcb('creating asar file: ' + outfile);
         try {
-            asar.createPackage(
-                enccfg.workPath,
-                outfile,
-                // next step: certificate
-                (err) => {
-                    if (err) {
-                        msgcb(err, true);
-                    } else {
-                        asar.uncacheAll();
-                        makeCertificate();
-                    }
-                },
-            );
+            asar.createPackage(enccfg.workPath, outfile).then(() => {
+              // next step: certificate
+              asar.uncacheAll();
+              makeCertificate();
+            }).catch((e) => {
+              msgcb('Async exception creating ASAR package!');
+              msgcb(e, true);
+            });
         } catch (e) {
             msgcb('Exception creating ASAR package!');
             msgcb(e, true);
