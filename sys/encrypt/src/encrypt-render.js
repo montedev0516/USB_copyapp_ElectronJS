@@ -840,6 +840,7 @@ function loadUI(enccfgIn) {
     }
 
     $('#version-info').text(longVersion);
+    $('#electron-info').text(process.versions.electron);
 
     // location of the content app installed on the system
     const enccfg = checkSetSystemPath(enccfgIn);
