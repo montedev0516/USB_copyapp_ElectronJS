@@ -3,7 +3,7 @@ const fs = require('node:fs/promises');
 
 module.exports = {
   packagerConfig: {
-    asar: true,
+    asar: false,
   },
   rebuildConfig: {},
   makers: [

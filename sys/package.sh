@@ -5,7 +5,7 @@
 #
 
 SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
-export NODE_ENV=production
+#export NODE_ENV=production
 
 cd `dirname $0` || exit
 _pwd=`pwd`
@@ -31,12 +31,13 @@ set -x
 : 'Copying source to working directory...'
 cp ../repo/file-browser/file-browser*.tgz ./repo/file-browser
 cp ../repo/node-usb-detection/usb-detection*.tgz ./repo/node-usb-detection
-cp -r src doc package* default_app locator.json es6-shim-server.js repo dist/
+cp -r src doc package.json package-lock.json default_app locator.json \
+      es6-shim-server.js repo forge.config.js dist/
 : 'Done!'
 
 cd dist
 for npmtgz in `pwd`/repo/*/*.tgz ; do npm cache add $npmtgz ; done
-npm install --production
+npm install
 cp -v package-lock.json ..
 
 if [ -n "$obf" ] ; then
@@ -105,7 +106,7 @@ if [ $suffix = darwin ] ; then
 else
     mv resources ..
     mkdir resources
-    mv ../resources/electron.asar ./resources
+#    mv ../resources/electron.asar ./resources
     mv ../resources/app/default_app.asar ./resources
     cd ../resources
 fi

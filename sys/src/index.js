@@ -1,4 +1,3 @@
-
 const path = require('path');
 const url = require('url');
 const uuidv4 = require('uuid/v4');
@@ -528,6 +527,8 @@ function createWindow() {
         webPreferences: {
             plugins: true,
             preload: path.join(app.getAppPath(), 'src', 'preload.js'),
+            nodeIntegration: true,
+            contextIsolation: false,
         },
     });
 
