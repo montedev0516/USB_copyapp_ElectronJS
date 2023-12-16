@@ -1,15 +1,13 @@
 
 const path = require('path');
-const electronCompile = require('electron-compile');
 
 let server;
 function go(data) {
     const initScript = path.resolve(__dirname, 'src', 'server.js');
     let inDev = false;
 
-    electronCompile.init(__dirname, initScript);
+    server = require(initScript);
 
-    server = require.main.server;
     server.keepAlive = true;
 
     server.configure(data.locator);
