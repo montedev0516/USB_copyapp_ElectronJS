@@ -1,4 +1,4 @@
-const {app, dialog} = require('electron')
+const {app, dialog, Menu} = require('electron')
 
 const fs = require('fs');
 const Module = require('module');
@@ -38,7 +38,8 @@ const file = path.resolve(locatorPath, locator.app);
 
 function loadApplicationPackage (packagePath) {
   try {
-    // Override app name and version.
+    // Override app name and version and menu.
+    Menu.setApplicationMenu(null);
     packagePath = path.resolve(packagePath)
     const packageJsonPath = path.join(packagePath, 'package.json')
     if (fs.existsSync(packageJsonPath)) {
@@ -65,7 +66,7 @@ function loadApplicationPackage (packagePath) {
 
     // Run the app.
     console.log('Running app at ' + packagePath);
-    require(path.join(packagePath, 'es6-shim'));
+    require(path.join(packagePath, 'src', 'index.js'));
   } catch (e) {
     console.error('App threw an error during load')
     console.error(e.stack || e)
