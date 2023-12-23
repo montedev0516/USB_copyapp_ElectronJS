@@ -89,11 +89,6 @@ tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
 
 cd $_pwd/dist/out/$dir
 
-# blank compiled JS files
-find ./resources/app/src \
-    \( -type f -a \! -name preload.js \) \
-    -exec sh -c 'echo blanking {} ; echo -n > {}' \;
-
 # no readmes
 find . -iname \*.md -delete
 
