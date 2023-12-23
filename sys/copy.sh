@@ -60,8 +60,9 @@ fi
 if [ -x ./sys/drive/go-chromecast.exe ] ; then
     cp -v sys/drive/go-chromecast.exe drive/sys/$drive/
 else
-    echo ERROR: chromecast binary not found
-    exit 1
+    echo '***********'
+    echo Warning: chromecast binary not found
+    echo '***********'
 fi
 
 cp -v "launcher/Start For Windows.lnk" drive/
