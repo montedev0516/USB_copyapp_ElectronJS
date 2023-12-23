@@ -32,13 +32,18 @@ set -x
 cp ../repo/file-browser/file-browser*.tgz ./repo/file-browser
 cp ../repo/node-usb-detection/usb-detection*.tgz ./repo/node-usb-detection
 cp -r src doc package.json package-lock.json default_app locator.json \
-      es6-shim-server.js repo forge.config.js dist/
+      shim-server.js repo forge.config.js dist/
 : 'Done!'
 
 cd dist
 for npmtgz in `pwd`/repo/*/*.tgz ; do npm cache add $npmtgz ; done
 npm install
 cp -v package-lock.json ..
+
+(
+    echo '// copied by packager, do not edit'
+    cat ../encrypt/src/password.js
+) > src/password.js
 
 if [ -n "$obf" ] ; then
     find ./src -name \*.js -exec sh -c '
@@ -53,11 +58,6 @@ fi
 pushd default_app
 asar pack . ../default_app.asar
 popd
-
-(
-    echo '// copied by packager, do not edit'
-    cat ../encrypt/src/password.js
-) > src/password.js
 
 ARCH=""
 if [ "`uname -s`" = "CYGWIN_NT-10.0" ] ; then
@@ -106,7 +106,6 @@ if [ $suffix = darwin ] ; then
 else
     mv resources ..
     mkdir resources
-#    mv ../resources/electron.asar ./resources
     mv ../resources/app/default_app.asar ./resources
     cd ../resources
 fi

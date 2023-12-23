@@ -535,7 +535,7 @@ function createWindow() {
     // Start the server in a separate thread.
     workerThreadRestart(
         0,
-        path.join(__dirname, '..', 'es6-shim-server.js'),
+        path.join(__dirname, '..', 'shim-server.js'),
         locator,
         sessionId,
         mainWindow.webContents.session.getUserAgent(),
