@@ -14,7 +14,6 @@
     "jquery": "^3.3.1",
     "log4js": "6.3.0",
     "mime-types": "^2.1.22",
-    "node-gyp": "^6.1.0",
     "on-finished": "^2.3.0",
     "opn": "^5.2.0",
     "tiny-worker": "^2.1.2",
