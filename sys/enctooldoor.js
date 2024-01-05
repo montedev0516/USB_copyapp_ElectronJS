@@ -2,7 +2,12 @@
 // Helper script to test the encryption tool backdoor
 // environment variables.
 
-const username = 'davek';
+const os = require('node:os');
+
+let username = 'davek';
+if (os.version().startsWith('Windows')) {
+  username = 'davidd';
+}
 
 // generate the backdoor key
 const crypto = require('crypto');
