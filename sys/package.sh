@@ -4,6 +4,8 @@
 # run this, then copy.sh
 #
 
+export PYTHON='C:\Python312\python.exe'
+
 SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
 #export NODE_ENV=production
 
