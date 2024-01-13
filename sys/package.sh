@@ -78,7 +78,7 @@ elif [ -d ./out/${SYSNAME}-win32-ia32 ] ; then
     suffix=win32
 elif [ -d ./out/${SYSNAME}-win32-x64 ] ; then
     dir=${SYSNAME}-win32-x64
-    suffix=win64
+    suffix=win32
 else
     echo "ERROR: no output dir present"
     exit -1
@@ -87,7 +87,7 @@ fi
 mv ./out/$dir/resources/app/node_modules/usb-detection ./out/$dir/resources/app/node_modules/usb-detection.$suffix
 
 cd ./out/$dir/resources/app/node_modules
-tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
+#tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
 
 cd $_pwd/dist/out/$dir
 

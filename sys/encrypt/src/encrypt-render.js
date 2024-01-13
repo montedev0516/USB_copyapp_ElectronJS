@@ -198,7 +198,7 @@ function btnFinalizeClick(ev) {
                             shared: './shared',
                             app: './sys/resources/app.asar',
                             drive:
-                              '.\\sys\\usbcopypro-win32-ia32\\usbcopypro.exe',
+                              '.\\sys\\usbcopypro-win32-x64\\usbcopypro.exe',
                         };
                         const locPath =
                             path.join(enccfg.outPath, 'locator.json');
@@ -225,11 +225,11 @@ function findExecPath(enccfg) {
     const execPaths = [
         path.join(
             enccfg.sysPath,
-            'app', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
+            'app', 'sys', 'usbcopypro-win32-x64', 'usbcopypro.exe',
         ),
         path.join(
             enccfg.sysPath,
-            'app', 'drive', 'sys', 'usbcopypro-win32-ia32', 'usbcopypro.exe',
+            'app', 'drive', 'sys', 'usbcopypro-win32-x64', 'usbcopypro.exe',
         ),
         path.join(
             enccfg.sysPath,
@@ -285,7 +285,7 @@ function btnLaunchClick(ev) {
         app: appPath,
         drive: path.join(
             enccfg.sysPath,
-            'app', 'drive', 'sys', 'usbcopypro-win32-ia32',
+            'app', 'drive', 'sys', 'usbcopypro-win32-x64',
         ),
         logging: logDir.name,
     };
