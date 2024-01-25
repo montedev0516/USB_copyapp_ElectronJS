@@ -1,5 +1,5 @@
 {
-    "shared": "/home/davidd/work/t/encrypt/out/shared",
+    "shared": "/Users/troy/work/t/encrypt/out/shared",
     "app": ".",
     "drive": "./drive",
     "logging": "/tmp"

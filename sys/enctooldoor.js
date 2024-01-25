@@ -4,7 +4,7 @@
 
 const os = require('node:os');
 
-let username = 'davek';
+let username = 'troy';
 if (os.version().startsWith('Windows')) {
   username = 'davidd';
 }
@@ -15,7 +15,7 @@ const fs = require('fs');
 
 const srvcfg = JSON.parse(
     fs.readFileSync(
-        `/home/${username}/work/t/encrypt/out/shared/usbcopypro.json`
+        `/Users/${username}/work/t/encrypt/out/shared/usbcopypro.json`
     )
 );
 
@@ -41,7 +41,7 @@ console.log('export ENCTOOLBACKPW=' + password);
 console.log('export ENCTOOLBACK=' + enc);
 console.log(
     'export ENCTOOLLOC=' +
-    `/home/${username}/work/usb/secure-usb-content/sys/locator.json`
+    `/Users/${username}/work/usb/secure-usb-content/sys/locator.json`
 );
 /*
 unset ENCTOOLLOC ENCTOOLBACKPW ENCTOOLBACK
