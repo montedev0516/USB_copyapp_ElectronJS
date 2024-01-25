@@ -87,7 +87,7 @@ fi
 mv ./out/$dir/resources/app/node_modules/usb-detection ./out/$dir/resources/app/node_modules/usb-detection.$suffix
 
 cd ./out/$dir/resources/app/node_modules
-#tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
+tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
 
 cd $_pwd/dist/out/$dir
 

@@ -9,6 +9,8 @@ rm -rf osx win32 || exit -1
 mkdir osx && cd osx
 unzip -q ../v*-drive-osx.zip
 cd ..
+
+# extract windows build if any
 if [ -e ../v*-drive-win32.zip ] ; then
     mkdir win32 && cd win32
     unzip -q ../v*-drive-win32.zip
@@ -22,7 +24,7 @@ if [ -z "$1" ] ; then
     rm -rf out
     ./package.sh
 
-    # build 32-bit system
+    # build content system
     cd ..
     rm -rf dist
     ./package.sh
