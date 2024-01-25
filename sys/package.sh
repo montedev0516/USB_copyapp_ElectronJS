@@ -97,7 +97,7 @@ find . -iname \*.md -delete
 if [ $suffix = darwin ] ; then
     mv Resources ../../../resources
     mkdir resources
-    mv ../../../resources/electron.asar ../../../resources/*.lproj ../../../resources/*.icns ./resources
+    mv ../../../resources/*.lproj ./resources
     mv ../../../resources/app/default_app.asar ./resources
     cd ../../../resources
 else
