@@ -485,6 +485,15 @@ function onOpenUrl(ev, nurl) {
         ev.preventDefault();
         systemOpenUrl(nurl);
     }
+
+    if (nurl.match(/pdf$/i)) {
+        ev.preventDefault();
+        mainWindow.webContents.loadURL('file://' +
+            path.resolve(
+                __dirname,
+                `pdfjs/web/viewer.html?file=${nurl}`,
+            ));
+    }
 }
 
 function enableCast(targetUrl, usbCastUUID, usbCastIP) {
@@ -525,7 +534,7 @@ function createWindow() {
         show: false,
         devTools: false,
         webPreferences: {
-            plugins: true,
+            plugins: false,
             preload: path.join(app.getAppPath(), 'src', 'preload.js'),
             nodeIntegration: true,
             contextIsolation: false,
@@ -601,7 +610,7 @@ function createWindow() {
             height: 600,
             icon: path.join(__dirname, 'img/appicon.png'),
             webPreferences: {
-                plugins: true,
+                plugins: false,
             },
         });
         win.loadURL(nurl);
