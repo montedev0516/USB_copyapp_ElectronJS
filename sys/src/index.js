@@ -357,40 +357,6 @@ function onDomReady(win, nurl) {
 
     win.webContents.session.removeAllListeners('will-download');
     win.webContents.session.on('will-download', (event, item, webContents) => {
-        // Insert the PDF viewer.  This should not be required
-        // after Electron 9.
-        if (item.getMimeType() === 'application/pdf' &&
-            item.getURL().indexOf('blob:file:') !== 0)
-        {
-            event.preventDefault();
-
-            const winid = webContents.id;
-
-            webContents.loadURL('file://' +
-                path.resolve(
-                    __dirname,
-                    `pdfjs/web/viewer.html?file=${item.getURL()}`,
-                ));
-
-            mainWindow.webContents.executeJavaScript(`
-                global['_dlenabled'] = global['dlenabled']||false;
-                global['dlenabled'] = false;
-                global['_dlenabled'];
-            `).then((dlenabled) => {
-                // For new windows opened by window.open js, the global
-                // is used.  For <a> links that use data-dlenabled=true,
-                // the IPC command "dlenabled-message" is used.
-                const ldl = mainWindow.dlenabled || dlenabled;
-                mainWindow.dlenabled = false;
-                logger.info('win ' + winid +
-                            ' DL enabled: ' + ldl);
-                const wc = electron.webContents.fromId(winid);
-                wc.dlenabled = ldl;
-            });
-
-            return;
-        }
-
         if (webContents.dlenabled) {
             // allow it
             return;
@@ -425,15 +391,9 @@ function onDomReady(win, nurl) {
             window.api.addChromecastHooks(window.jQuery);
         }
 
-        tb = document.querySelector('viewer-pdf-toolbar');
-        if (tb) {
-            tb.style.display = 'none';
-            const nt = '${title}';
-            if (nt) {
-                window.addEventListener('pdf-loaded', () => {
-                    document.title = nt;
-                });
-            }
+        if (!${mainWindow.dlenabled}) {
+          tb = document.querySelector('#toolbarViewerRight');
+          if (tb) tb.style.display = 'none';
         }
 
         vtb = document.querySelector('video');
