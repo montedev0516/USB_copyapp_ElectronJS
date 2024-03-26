@@ -33,7 +33,7 @@ fi
 mkdir app/sys
 
 pushd sys/dist/out
-tar cf - $app | pv | ( cd ../../../app/sys ; tar xf - )
+tar cf - $app | ( cd ../../../app/sys ; tar xf - )
 
 [ ! -d ../../../drive ] && mkdir ../../../drive
 cp -v resources/locator.json ../../../drive/

@@ -6,6 +6,7 @@
   "repository": "git@github.com:chromahoen/secure-usb-content.git",
   "dependencies": {
     "@electron/asar": "^3.2.8",
+    "@electron/osx-sign": "^1.0.5",
     "@electron/remote": "^2.1.0",
     "babel-preset-react": "^6.24.1",
     "bluebird": "^3.5.3",

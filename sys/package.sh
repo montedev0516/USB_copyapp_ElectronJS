@@ -95,17 +95,20 @@ cd $_pwd/dist/out/$dir
 find . -iname \*.md -delete
 
 if [ $suffix = darwin ] ; then
-    mv Resources ../../../resources
-    mkdir resources
-    mv ../../../resources/*.lproj ./resources
-    mv ../../../resources/app/default_app.asar ./resources
-    cd ../../../resources
+    pushd ../..
+    npx electron-osx-sign ${SYSNAME}.app --identity='Developer ID Application: Medical Media Ventures, INC (8NPTH57255)' --no-gatekeeper-assess
+    popd
+    #mv Resources ../../../resources
+    #mkdir resources
+    #mv ../../../resources/*.lproj ./resources
+    #mv ../../../resources/app/default_app.asar ./resources
+    #cd ../../../resources
 else
     mv resources ..
     mkdir resources
     mv ../resources/app/default_app.asar ./resources
     cd ../resources
 fi
-mv ./app/locator.json .
-asar p app app.asar
-rm -r app
+#mv ./app/locator.json .
+#asar p app app.asar
+#rm -r app
