@@ -109,6 +109,6 @@ else
     mv ../resources/app/default_app.asar ./resources
     cd ../resources
 fi
-#mv ./app/locator.json .
-#asar p app app.asar
-#rm -r app
+mv ./app/locator.json .
+asar p app app.asar
+rm -r app
