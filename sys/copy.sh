@@ -4,6 +4,8 @@
 # run package.sh first
 #
 
+set -e
+
 SYSNAME=`node -e "c=require('./package.json'); console.log(c.name)"`
 
 cd `dirname $0`/..
@@ -11,6 +13,8 @@ cd `dirname $0`/..
 rm -rf app/* drive/*
 
 [ ! -d app ] && mkdir app
+
+DARWIN=0
 
 if [ `uname -s` = "Linux" ] ; then
     drive="${SYSNAME}-linux-x64"
@@ -20,11 +24,10 @@ elif [ `uname -s` = "CYGWIN_NT-6.1" ] ; then
     app="resources/app.asar"
 elif [ `uname -s` = "CYGWIN_NT-10.0-19045" ] ; then
     drive="${SYSNAME}-win32-x64"
-#    drive="${SYSNAME}-win32-ia32"
     app="resources/app.asar"
 elif [ `uname -s` = "Darwin" ] ; then
     drive="${SYSNAME}-darwin-x64"
-    app="resources/app.asar"
+    DARWIN=1
 else
     echo ERROR: unknown system `uname -s`
     exit 1
@@ -33,6 +36,22 @@ fi
 mkdir app/sys
 
 pushd sys/dist/out
+
+#
+# OSX App
+#
+if [ $DARWIN = 1 ] ; then
+    cd "$drive"
+    tar cf - "${SYSNAME}.app" | ( cd ../../../../app/sys ; tar xf - )
+    popd
+    rm "./app/sys/${SYSNAME}.app/Contents/Resources/app/locator.json"
+    echo '{ "shared": "./shared", "app": ".", "drive": "./drive" }' > ./app/sys/locator.json
+    exit
+fi
+
+#
+# Windows App
+#
 tar cf - $app | ( cd ../../../app/sys ; tar xf - )
 
 [ ! -d ../../../drive ] && mkdir ../../../drive
@@ -44,11 +63,6 @@ cp -v ../doc/*.pdf ../../../app/doc
 if [ -n "$drive" ] ; then
     mkdir ../../../drive/sys
     cp -r $drive ../../../drive/sys/
-    # remove duplicates from OSX build
-    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/Electron Framework.framework/Versions'
-    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/Mantle.framework/Versions'
-    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/ReactiveCocoa.framework/Versions'
-    rm -rf '../../../drive/sys/usbcopypro-darwin-x64/usbcopypro.app/Contents/Frameworks/Squirrel.framework/Versions'
 fi
 
 popd

@@ -67,48 +67,43 @@ if [ "`uname -s`" = "CYGWIN_NT-10.0" ] ; then
 fi
 npx electron-forge package $ARCH
 
-if [ -d ./out/${SYSNAME}-linux-x64 ] ; then
-    dir=${SYSNAME}-linux-x64
+if [ -d "./out/${SYSNAME}-linux-x64" ] ; then
+    dir="${SYSNAME}-linux-x64"
     suffix=linux
-elif [ -d ./out/${SYSNAME}-darwin-x64 ] ; then
-    dir=${SYSNAME}-darwin-x64/${SYSNAME}.app/Contents
+elif [ -d "./out/${SYSNAME}-darwin-x64" ] ; then
+    dir="${SYSNAME}-darwin-x64/${SYSNAME}.app/Contents"
     suffix=darwin
-elif [ -d ./out/${SYSNAME}-win32-ia32 ] ; then
-    dir=${SYSNAME}-win32-ia32
+elif [ -d "./out/${SYSNAME}-win32-ia32" ] ; then
+    dir="${SYSNAME}-win32-ia32"
     suffix=win32
-elif [ -d ./out/${SYSNAME}-win32-x64 ] ; then
-    dir=${SYSNAME}-win32-x64
+elif [ -d "./out/${SYSNAME}-win32-x64" ] ; then
+    dir="${SYSNAME}-win32-x64"
     suffix=win32
 else
     echo "ERROR: no output dir present"
     exit -1
 fi
 
-mv ./out/$dir/resources/app/node_modules/usb-detection ./out/$dir/resources/app/node_modules/usb-detection.$suffix
+mv "./out/$dir/resources/app/node_modules/usb-detection" "./out/$dir/resources/app/node_modules/usb-detection.$suffix"
 
-cd ./out/$dir/resources/app/node_modules
+cd "./out/$dir/resources/app/node_modules"
 tar xf $_pwd/../repo/contrib/usb-detection.tar.xz
 
-cd $_pwd/dist/out/$dir
+cd "$_pwd/dist/out/$dir"
 
 # no readmes
 find . -iname \*.md -delete
 
 if [ $suffix = darwin ] ; then
     pushd ../..
-    npx electron-osx-sign ${SYSNAME}.app --identity='Developer ID Application: Medical Media Ventures, INC (8NPTH57255)' --no-gatekeeper-assess
+    npx electron-osx-sign "${SYSNAME}.app" --identity='Developer ID Application: Medical Media Ventures, INC (8NPTH57255)' --no-gatekeeper-assess
     popd
-    #mv Resources ../../../resources
-    #mkdir resources
-    #mv ../../../resources/*.lproj ./resources
-    #mv ../../../resources/app/default_app.asar ./resources
-    #cd ../../../resources
 else
     mv resources ..
     mkdir resources
     mv ../resources/app/default_app.asar ./resources
     cd ../resources
+    mv ./app/locator.json .
+    asar p app app.asar
+    rm -r app
 fi
-mv ./app/locator.json .
-asar p app app.asar
-rm -r app
