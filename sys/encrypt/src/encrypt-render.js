@@ -145,8 +145,8 @@ function btnFinalizeClick(ev) {
     }
 
     const driveFullPath = path.join(enccfg.sysPath, 'app', 'drive');
-    const macFullPath = path.join(enccfg.sysPath,
-                                  'app', 'drive', 'usbcopypro.app');
+    //const macFullPath = path.join(enccfg.sysPath,
+    //                              'app', 'drive', 'usbcopypro.app');
     const sysFullPath = path.join(enccfg.sysPath, 'app', 'sys');
 
     messageCallback('Copying system<br>' +
@@ -176,19 +176,23 @@ function btnFinalizeClick(ev) {
                         });
                     };
                 const p2 = (resolve, reject) => {
-                    fsextra.copy(macFullPath,
-                                 path.join(enccfg.outPath, 'usbcopypro.app'),
-                                 (err2) => {
-                            if (err2) {
-                                messageCallback(err2, true);
-                                reject();
-                            } else {
-                                messageCallback('OSX System Copy complete');
-                                setTimeout(() => {
-                                    resolve();
-                                }, 1000);
-                            }
-                        });
+                    // OSX build removed from packaging for now.  It
+                    // requires a DMG to install correctly, which is not
+                    // part of this process.
+                    //fsextra.copy(macFullPath,
+                    //             path.join(enccfg.outPath, 'usbcopypro.app'),
+                    //             (err2) => {
+                    //        if (err2) {
+                    //            messageCallback(err2, true);
+                    //            reject();
+                    //        } else {
+                    //            messageCallback('OSX System Copy complete');
+                    //            setTimeout(() => {
+                    //                resolve();
+                    //            }, 1000);
+                    //        }
+                    //    });
+                      resolve();
                     };
                 new Promise(p1)
                     .then(() => new Promise(p2))

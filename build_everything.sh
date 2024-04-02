@@ -3,12 +3,13 @@
 set -e
 set -x
 
-# extract OSX build if any
 pushd repo/
-rm -rf osx win32 || exit -1
-mkdir osx && cd osx
-unzip -q ../v*-drive-osx.zip
-cd ..
+
+# extract OSX build if any
+#rm -rf osx win32 || exit -1
+#mkdir osx && cd osx
+#unzip -q ../v*-drive-osx.zip
+#cd ..
 
 # extract windows build if any
 if [ -e ../v*-drive-win32.zip ] ; then
