@@ -440,19 +440,27 @@ function systemOpenUrl(nurl) {
     opn(nurl);
 }
 
+function isPdf(nurl) {
+    return nurl.match(/pdf$/i);
+}
+
+function getPdfViewerUrl(nurl) {
+    return 'file://' +
+        path.resolve(
+            __dirname,
+            `pdfjs/web/viewer.html?file=${nurl}`,
+        );
+}
+
 function onOpenUrl(ev, nurl) {
     if (!nurl.match(/^https:\/\/localhost/)) {
         ev.preventDefault();
         systemOpenUrl(nurl);
     }
 
-    if (nurl.match(/pdf$/i)) {
+    if (isPdf(nurl)) {
         ev.preventDefault();
-        mainWindow.webContents.loadURL('file://' +
-            path.resolve(
-                __dirname,
-                `pdfjs/web/viewer.html?file=${nurl}`,
-            ));
+        mainWindow.webContents.loadURL(getPdfViewerUrl(nurl));
     }
 }
 
@@ -563,8 +571,8 @@ function createWindow() {
     mainWindow.webContents.on('dom-ready', () => onDomReady(mainWindow));
     mainWindow.webContents.on('will-navigate', onOpenUrl);
 
-    mainWindow.webContents.on('new-window', (event, nurl) => {
-        event.preventDefault();
+    mainWindow.webContents.setWindowOpenHandler(ev => {
+        let nurl = ev.url;
         const win = new electron.BrowserWindow({
             width: 800,
             height: 600,
@@ -573,12 +581,13 @@ function createWindow() {
                 plugins: false,
             },
         });
-        win.loadURL(nurl);
-
         win.webContents.on('dom-ready', () => onDomReady(win, nurl));
-        win.webContents.on('will-navigate', onOpenUrl);
-
         mainWindow.newGuest = win;
+        if (isPdf(nurl)) {
+          win.loadURL(getPdfViewerUrl(nurl));
+        }
+        // always use manually created window
+        return { action:'deny' };
     });
 
     mainWindow.on('closed', () => {
