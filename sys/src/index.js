@@ -582,6 +582,8 @@ function createWindow() {
             },
         });
         win.webContents.on('dom-ready', () => onDomReady(win, nurl));
+        win.webContents.on('will-navigate', onOpenUrl);
+
         mainWindow.newGuest = win;
         if (isPdf(nurl)) {
           win.loadURL(getPdfViewerUrl(nurl));
