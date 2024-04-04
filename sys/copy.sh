@@ -52,7 +52,7 @@ fi
 #
 # Windows App
 #
-tar cf - $app | ( cd ../../../app/sys ; tar xf - )
+tar cf - "$app" | ( cd ../../../app/sys ; tar xf - )
 
 [ ! -d ../../../drive ] && mkdir ../../../drive
 cp -v resources/locator.json ../../../drive/
@@ -62,7 +62,7 @@ cp -v ../doc/*.pdf ../../../app/doc
 
 if [ -n "$drive" ] ; then
     mkdir ../../../drive/sys
-    cp -r $drive ../../../drive/sys/
+    cp -r "$drive" ../../../drive/sys/
 fi
 
 popd
@@ -72,7 +72,7 @@ if [ -x launcher/Release/launcher.exe ] ; then
 fi
 
 if [ -x ./sys/drive/go-chromecast.exe ] ; then
-    cp -v sys/drive/go-chromecast.exe drive/sys/$drive/
+    cp -v sys/drive/go-chromecast.exe "drive/sys/$drive/"
 else
     echo '***********'
     echo Warning: chromecast binary not found
