@@ -1,5 +1,5 @@
 {
-  "name": "USB Secured Content",
+  "name": "usbcopypro",
   "version": "3.1.0",
   "description": "USBCopyPro Content System",
   "main": "./src/index.js",
