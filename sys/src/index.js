@@ -587,7 +587,14 @@ function createWindow() {
         mainWindow.newGuest = win;
         if (isPdf(nurl)) {
           win.loadURL(getPdfViewerUrl(nurl));
+        } else {
+          // NOTE: this will require extensive testing
+          // to make sure this doesn't circumvent all the "download"
+          // blockers we put in, and will probably require a preload.js
+          // to finally be written.
+          //win.loadURL(nurl);
         }
+
         // always use manually created window
         return { action:'deny' };
     });
