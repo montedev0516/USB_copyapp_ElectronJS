@@ -96,6 +96,7 @@ find . -iname \*.md -delete
 
 if [ $suffix = darwin ] ; then
     pushd ../..
+    mv "${SYSNAME}.app/Contents/Resources/app/locator.json" .
     npx electron-osx-sign "${SYSNAME}.app" --identity='Developer ID Application: Medical Media Ventures, INC (8NPTH57255)' --no-gatekeeper-assess
     popd
 else
