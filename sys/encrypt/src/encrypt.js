@@ -265,10 +265,10 @@ function main(enccfg, _msgcb, enccb, unenccb, donecb, checkSpaceCB) {
         let useMask = false;
         // Automatically allow streaming of certain files.
         // TODO: this list should be defined in the UI somehow.
-        if (file.match(/\.mp4$/) || file.match(/\.m4v$/)) {
+        if (file.match(/\.mp4$/) || file.match(/\.m4v$/) || file.match(/\.mp3$/) || file.match(/\.pdf$/)) {
             useMask = true;
         }
-        if (useMask || (fstat.size > 32 * 1024 * 1024)) {
+        if (useMask) {
             sizes[path.basename(fnout)] = fstat.size;
             useMask = true;
         }

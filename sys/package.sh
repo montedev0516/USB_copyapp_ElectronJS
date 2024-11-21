@@ -19,7 +19,8 @@ fi
 
 mkdir dist
 
-# note this requires uglify-es@3
+# note this requires uglify-js
+#              and   @electron/asar
 obf=`which uglifyjs`
 
 if [ -z "$obf" ] ; then
@@ -38,7 +39,10 @@ cp -r src doc package.json package-lock.json default_app locator.json \
 : 'Done!'
 
 cd dist
-for npmtgz in `pwd`/repo/*/*.tgz ; do npm cache add $npmtgz ; done
+
+npm cache add 'F:\electron\Troy\copypro_master\sys\dist\repo\file-browser\file-browser-0.2.3.tgz'
+npm cache add 'F:\electron\Troy\copypro_master\sys\dist\repo\node-usb-detection\usb-detection-4.9.1.tgz'
+
 npm install
 cp -v package-lock.json ..
 
@@ -96,7 +100,6 @@ find . -iname \*.md -delete
 
 if [ $suffix = darwin ] ; then
     pushd ../..
-    mv "${SYSNAME}.app/Contents/Resources/app/locator.json" .
     npx electron-osx-sign "${SYSNAME}.app" --identity='Developer ID Application: Medical Media Ventures, INC (8NPTH57255)' --no-gatekeeper-assess
     popd
 else
