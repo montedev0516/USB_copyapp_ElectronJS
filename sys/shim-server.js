@@ -1,5 +1,6 @@
 
 const path = require('path');
+require('dotenv').config();
 
 let server;
 function go(data) {
