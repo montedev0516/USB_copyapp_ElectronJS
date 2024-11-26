@@ -50,38 +50,42 @@ function newMaskHTML(name, i) {
         '</div>';
 }
 
-function messageCallback(s, isError, append) {
-    if (isError) {
-        if (append) {
-            $('#errors')
-                .append(s);
-        } else {
-            $('#errors')
-                .html(s);
-        }
-        $('#errors')
-            .show();
-    } else if (s) {
-        if (append) {
-            $('#messages')
-                .append(s);
-        } else {
-            $('#messages')
-                .html(s);
-        }
-    } else {
-        $('#messages')
-            .html('');
-        $('#errors')
-            .html('')
-            .hide();
+function messageCallback(s, type, append) {
+    switch (type) {
+        case 'status':
+            $('#status').html(s);
+            $('#messages').html('').hide();
+            $('#errors').html('').hide();
+            break;
+        case 'message':
+            if (append) {
+                $('#messages').append(s);
+            } else {
+                $('#messages').html(s);
+            }
+            $('#messages').show();
+            $('#errors').hide();
+            break;
+        case 'error':
+            if (append) {
+                $('#errors').append(s);
+            } else {
+                $('#errors').html(s).show();
+            }
+            $('#errors').show();
+            $('#messages').hide();
+            break;
+        default:
+            $('#messages').html('');
+            $('#errors').html('').hide();
+            break;
     }
 }
 
 function saveUI() {
-    $('#btn-save-config')[0].innerHTML = 'Saving...';
+    // $('#btn-save-config')[0].innerHTML = 'Saving...';
 
-    const pname = $("input[name='save-as']").val();
+    // const pname = $("input[name='save-as']").val();
     const vid = $("input[name='vid']").val();
     const pid = $("input[name='pid']").val();
     const descString3 = $("input[name='serial']").val();
@@ -125,9 +129,9 @@ function saveUI() {
         JSON.stringify(enccfg),
     );
 
-    setTimeout(() => {
-        $('#btn-save-config')[0].innerHTML = 'Save';
-    }, 300);
+    // setTimeout(() => {
+    //     $('#btn-save-config')[0].innerHTML = 'Save';
+    // }, 300);
 
     return enccfg;
 }
@@ -140,7 +144,7 @@ function btnFinalizeClick(ev) {
               '&nbsp;Finalizing...');
 
     if (!enccfg.sysPath) {
-        messageCallback('ERROR: no system path', true);
+        messageCallback('ERROR: no system path', 'error');
         return;
     }
 
@@ -151,24 +155,24 @@ function btnFinalizeClick(ev) {
 
     messageCallback('Copying system<br>' +
         sysFullPath + ' -><br>' +
-        enccfg.outPath);
+        enccfg.outPath, 'status');
 
     try {
         process.noAsar = true;
         fsextra.copy(driveFullPath, enccfg.outPath, (err1) => {
             if (err1) {
-                messageCallback(err1, true);
+                messageCallback(err1, 'error');
             } else {
-                messageCallback('Electron Copy complete');
+                messageCallback('Electron Copy complete','message');
                 const p1 = (resolve, reject) => {
                     fsextra.copy(sysFullPath,
                                  path.join(enccfg.outPath, 'sys'),
                                  (err2) => {
                             if (err2) {
-                                messageCallback(err2, true);
+                                messageCallback(err2, 'error');
                                 reject();
                             } else {
-                                messageCallback('System Copy complete');
+                                messageCallback('System Copy complete', 'status');
                                 setTimeout(() => {
                                     resolve();
                                 }, 1000);
@@ -207,19 +211,19 @@ function btnFinalizeClick(ev) {
                         const locPath =
                             path.join(enccfg.outPath, 'locator.json');
                         fs.writeFileSync(locPath, JSON.stringify(locData));
-                        messageCallback('Locator created...');
+                        messageCallback('Locator created...', 'message');
                         setTimeout(() => {
                             $(ev.target).html('Finalize');
                             messageCallback('Complete!<br>' +
                                             'Data prepared at: <code>' +
-                                            enccfg.outPath + '<code>');
+                                            enccfg.outPath + '<code>', 'message');
                         }, 1000);
                     })
                     .catch(() => {});
             }
         });
     } catch (e) {
-        messageCallback('Copy sys ERROR: ' + e.message, true);
+        messageCallback('Copy sys ERROR: ' + e.message, 'error');
         $(ev.target).html('Finalize');
         throw e;
     }
@@ -261,7 +265,7 @@ function btnLaunchClick(ev) {
               '&nbsp;Launching...');
 
     if (!enccfg.sysPath) {
-        messageCallback('ERROR: no system path', true);
+        messageCallback('ERROR: no system path', 'error');
         return;
     }
 
@@ -272,15 +276,15 @@ function btnLaunchClick(ev) {
     );
 
     if (!fs.existsSync(execPath)) {
-        messageCallback('ERROR: executable not found "' + execPath + '"', true);
+        messageCallback('ERROR: executable not found "' + execPath + '"', error);
         return;
     }
 
     messageCallback(
-        'Launching test application with encrypted data</br>' +
-        'Locator: ' + tempLocator.name + '</br>' +
-        'Executable: ' + execPath + '</br>' +
-        'Logfiles: ' + logDir.name,
+        '<span className="text-gray-400 select-none">→</span> Launching test application with encrypted data</br>' +
+        '<span className="text-gray-400 select-none">→</span> Locator: ' + tempLocator.name + '</br>' +
+        '<span className="text-gray-400 select-none">→</span> Executable: ' + execPath + '</br>' +
+        '<span className="text-gray-400 select-none">→</span> Logfiles: ' + logDir.name,
     );
 
     const sharedPath = path.join(enccfg.outPath, 'shared');
@@ -333,34 +337,34 @@ function btnLaunchClick(ev) {
         const child = execFile(execPath, [], {
             env: newenv,
         }, (error, stdout, stderr) => {
-            messageCallback('</br>Process exited.', false, true);
+            messageCallback('Process exited.', 'status');
             if (error) {
-                messageCallback(error, true);
+                messageCallback(error, 'error');
             } else {
-                const s = '</br>Launch complete.</br>' +
-                'stdout:</br><samp>' + stdout + '</samp></br>' +
-                'stderr:</br><samp>' + stderr + '</samp>';
-                messageCallback(s, false, true);
+                const s = '<span className="text-gray-400 select-none">→</span> Launch complete.</br>' +
+                '<span className="text-gray-400 select-none">→</span> stdout:</br><span className="text-gray-400 select-none">→</span><samp>' + stdout + '</samp></br>' +
+                '<span className="text-gray-400 select-none">→</span> stderr:</br><span className="text-gray-400 select-none">→</span><samp>' + stderr + '</samp>';
+                messageCallback(s, 'message', true);
                 $(ev.target).html('Launch');
             }
         });
 
         if (!child) {
-            messageCallback('ERROR spaning process', true);
+            messageCallback('ERROR spaning process', 'error');
         } else {
             setTimeout(() => {
                 $(ev.target).html('Running');
                 messageCallback(
                     '</br>' +
-                    '<samp>export ENCTOOLBACKPW=' + password + '</samp></br>' +
-                    '<samp>export ENCTOOLBACK=' + enc + '</samp></br>' +
-                    '<samp>export ENCTOOLLOC=' + tempLocator.name +
-                    '</samp></br>', false, true,
+                    '<span className="text-gray-400 select-none">→</span> <samp>export ENCTOOLBACKPW=' + password + '</samp></br>' +
+                    '<span className="text-gray-400 select-none">→</span> <samp>export ENCTOOLBACK=' + enc + '</samp></br>' +
+                    '<span className="text-gray-400 select-none">→</span> <samp>export ENCTOOLLOC=' + tempLocator.name +
+                    '<span className="text-gray-400 select-none">→</span> </samp></br>', 'message', true,
                 );
             }, 1000);
         }
     } catch (e) {
-        messageCallback('Launch ERROR: ' + e.message, true);
+        messageCallback('Launch ERROR: ' + e.message, 'error');
         throw e;
     }
 }
@@ -380,12 +384,12 @@ function addNewMask() {
 
 function validatePath(somePath, anotherPath, yetAnotherPath, desc) {
     if (somePath.trim().length === 0) {
-        messageCallback('Please enter the ' + desc + ' directory', true);
+        messageCallback('Please enter the ' + desc + ' directory', 'error');
         return false;
     }
 
     if (somePath.trim() === anotherPath.trim() || somePath.trim() === yetAnotherPath.trim()) {
-        messageCallback('The ' + desc + ' directory should be different from the other two directories', true);
+        messageCallback('The ' + desc + ' directory should be different from the other two directories', 'error');
         return false;
     }
 
@@ -405,7 +409,7 @@ function checkDirectoryEmpty(dir, desc) {
         if (files.length > 0) {
             ok = false;
 
-            messageCallback('The ' + desc + ' directory should be empty', true);
+            messageCallback('The ' + desc + ' directory should be empty', 'error');
         }
     }
 
@@ -421,7 +425,7 @@ function checkDirectoryNotEmpty(dir, desc) {
         if (files.length === 0) {
             ok = false;
 
-            messageCallback('The ' + desc + ' directory should not be empty', true);
+            messageCallback('The ' + desc + ' directory should not be empty', 'error');
         }
     }
 
@@ -436,22 +440,22 @@ function validateNumber(num, desc) {
     const value = num.trim().toLowerCase();
 
     if (value === '') {
-        messageCallback('The ' + desc + ' should not be empty', true);
+        messageCallback('The ' + desc + ' should not be empty', 'error');
         return false;
     }
 
     if (value.length > 4) {
-        messageCallback('The ' + desc + ' should not be longer than 4 chars', true);
+        messageCallback('The ' + desc + ' should not be longer than 4 chars', 'error');
         return false;
     }
 
     if (!isAlphaNumeric(value)) {
-        messageCallback('The ' + desc + ' should only contain hex chars: letters (a to f) or digits', true);
+        messageCallback('The ' + desc + ' should only contain hex chars: letters (a to f) or digits', 'error');
         return false;
     }
 
     if (value > 'ffff') {
-        messageCallback('The ' + desc + ' should not exceed the value "ffff"', true);
+        messageCallback('The ' + desc + ' should not exceed the value "ffff"', 'error');
         return false;
     }
 
@@ -503,10 +507,10 @@ function encCallback(idx, total, isDone) {
     $('#progress').progressbar('option', 'value', idx);
 
     const hidx = idx + 1;
-    messageCallback('Encrypting: ' + hidx + ' / ' + total);
+    messageCallback('Encrypting: ' + hidx + ' / ' + total, 'status');
 
     if (isDone) {
-        messageCallback('Encrypting complete');
+        messageCallback('Encrypting complete', 'status');
         barHidden = true;
         $('#progress').hide();
     }
@@ -520,10 +524,10 @@ function unencCallback(idx, total, isDone) {
     $('#progress').progressbar('option', 'value', idx);
 
     const hidx = idx + 1;
-    messageCallback('Copying: ' + hidx + ' / ' + total);
+    messageCallback('Copying: ' + hidx + ' / ' + total, 'status');
 
     if (isDone) {
-        messageCallback('Copying complete');
+        messageCallback('Copying complete', 'status');
         barHidden = true;
         $('#progress').hide();
     }
@@ -531,18 +535,18 @@ function unencCallback(idx, total, isDone) {
 
 function doneCallback(runAborted) {
     if (workingDirObj) {
-        messageCallback('Clearing working dir...');
+        messageCallback('Clearing working dir...', 'status');
         workingDirObj.removeCallback();
         workingDirObj = undefined;
     }
-    messageCallback('Encryption complete');
+    messageCallback('Encryption complete', 'status');
 
     // eslint-disable-next-line no-use-before-define
     toggleButton(true);
 
     if (runAborted) {
         barHidden = true;
-        messageCallback('The run was aborted');
+        messageCallback('The run was aborted', 'status');
         $('#progress').hide();
     }
 }
@@ -586,7 +590,7 @@ function runEncrypt() {
         const enccfg = saveUI();
 
         if (workingDirObj !== undefined) {
-            messageCallback('Clearing working dir...');
+            messageCallback('Clearing working dir...', 'status');
             workingDirObj.removeCallback();
             workingDirObj = undefined;
         }
@@ -596,7 +600,7 @@ function runEncrypt() {
         if (validate(enccfg)) {
             setBtnEnabled(false);
             $('#errors').hide();
-            messageCallback('Starting...');
+            messageCallback('Starting...', 'status');
 
             setTimeout(() => {
                 try {
@@ -608,15 +612,15 @@ function runEncrypt() {
                         unencCallback, doneCallback, checkSpaceCallback,
                     );
                 } catch (e) {
-                    messageCallback('Exception running encryption!');
-                    messageCallback(e, true);
+                    messageCallback('Exception running encryption!', 'status');
+                    messageCallback(e, 'error');
                     doneCallback(false);
                 }
             }, 333);
         }
     } catch (e) {
-        messageCallback('Exception during setup!');
-        messageCallback(e, true);
+        messageCallback('Exception during setup!', 'status');
+        messageCallback(e, 'error');
         doneCallback(false);
     }
 }
@@ -695,7 +699,7 @@ function clearDir(directory, removeDir) {
             fs.rmdirSync(directory);
         }
     } catch (e) {
-        messageCallback(e, true);
+        messageCallback(e, 'error');
         ok = false;
     }
 
@@ -704,7 +708,7 @@ function clearDir(directory, removeDir) {
 
 function clearOutputDir(directory) {
     if (directory && directory.trim().length > 3 && fs.existsSync(directory)) {
-        messageCallback('Clearing output dir ...');
+        messageCallback('Clearing output dir ...', 'status');
 
         return clearDir(directory, false);
     }
@@ -733,7 +737,7 @@ function askClearOutputDir() {
                     title: 'Output dir was cleared',
                     message: 'The output dir was cleared successfully',
                 });
-                messageCallback('Output dir cleared');
+                messageCallback('Output dir cleared', 'status');
             } else {
                 dialog.showMessageBoxSync({
                     type: 'warning',
@@ -830,7 +834,7 @@ function loadUI(enccfgIn) {
     $('#btn-select-outdir').off('click');
     $('#btn-select-includedir').off('click');
     $('#btn-clear-outdir').off('click');
-    $('#btn-save-config').off('click');
+    // $('#btn-save-config').off('click');
     $('#presets-select').off('change');
     $('#fileBrowserEnabled').off('change');
 
@@ -926,13 +930,13 @@ function loadUI(enccfgIn) {
     $('#btn-clear-outdir').on('click', () => {
         askClearOutputDir();
     });
-    $('#btn-save-config').on('click', () => {
-        const cfg = saveUI();
-        loadUI(cfg);
-    });
+    // $('#btn-save-config').on('click', () => {
+    //     const cfg = saveUI();
+    //     loadUI(cfg);
+    // });
     $('#presets-select').on('change', restorePreset());
 
-    messageCallback('Encryption Tool version ' + longVersion + ' ready');
+    messageCallback('Encryption Tool version ' + longVersion + ' ready', 'status');
 }
 
 ipcRenderer.on('showabout', () => {

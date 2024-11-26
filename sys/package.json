@@ -18,9 +18,10 @@
         "mime-types": "^2.1.22",
         "on-finished": "^2.3.0",
         "opn": "^5.2.0",
+        "postcss": "^8.4.49",
+        "tailwind": "^4.0.0",
         "tiny-worker": "^2.1.2",
         "usb-detection": "file:repo/node-usb-detection/usb-detection-4.9.1.tgz",
-        "usbcopypro": "file:",
         "uuid": "^3.2.1"
     },
     "devDependencies": {

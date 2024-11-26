@@ -20,6 +20,7 @@ function createWindow() {
     mainWindow = new electron.BrowserWindow({
         width: 800,
         height: 700,
+        icon: path.join(__dirname, './img/appicon.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
@@ -31,8 +32,7 @@ function createWindow() {
         protocol: 'file:',
         slashes: true,
     }));
-
-    //mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
 
     // needed to display remote dialog windows
     require('@electron/remote/main').enable(mainWindow.webContents);
