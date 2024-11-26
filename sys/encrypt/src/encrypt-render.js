@@ -939,6 +939,10 @@ function loadUI(enccfgIn) {
     messageCallback('Encryption Tool version ' + longVersion + ' ready', 'status');
 }
 
+function showAbout() {
+    $('#aboutbox').modal();
+}
+
 ipcRenderer.on('showabout', () => {
     $('#aboutbox').modal();
 });
@@ -955,5 +959,6 @@ $(() => {
     loadUI(enccfg);
 });
 
+module.exports.showAbout = showAbout;
 module.exports.delMask = delMask;
 module.exports.addNewMask = addNewMask;

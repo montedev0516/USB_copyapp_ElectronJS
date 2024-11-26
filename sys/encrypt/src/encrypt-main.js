@@ -32,7 +32,7 @@ function createWindow() {
         protocol: 'file:',
         slashes: true,
     }));
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
 
     // needed to display remote dialog windows
     require('@electron/remote/main').enable(mainWindow.webContents);
