@@ -763,28 +763,28 @@ function loadUIParams(enccfg) {
     $('input[name="serial"]').val(enccfg.descString3);
 }
 
-function restorePreset() {
-    const restorePresetFn = () => {
-        const v = $('#presets-select').val();
-        if (typeof v === 'undefined' || v === '') {
-            return;
-        }
-        const p = presets[v];
+// function restorePreset() {
+//     const restorePresetFn = () => {
+//         const v = $('#presets-select').val();
+//         if (typeof v === 'undefined' || v === '') {
+//             return;
+//         }
+//         const p = presets[v];
 
-        if (typeof p === 'undefined') {
-            return;
-        }
+//         if (typeof p === 'undefined') {
+//             return;
+//         }
 
-        const enccfg = {};
-        enccfg.vid = p.vid;
-        enccfg.pid = p.pid;
-        enccfg.descString3 = p.descString3;
+//         const enccfg = {};
+//         enccfg.vid = p.vid;
+//         enccfg.pid = p.pid;
+//         enccfg.descString3 = p.descString3;
 
-        loadUIParams(enccfg);
-        $("input[name='save-as']").val(v);
-    };
-    return restorePresetFn;
-}
+//         loadUIParams(enccfg);
+//         $("input[name='save-as']").val(v);
+//     };
+//     return restorePresetFn;
+// }
 
 function getSystemPath(sysPath) {
     const checkList = [
@@ -835,7 +835,7 @@ function loadUI(enccfgIn) {
     $('#btn-select-includedir').off('click');
     $('#btn-clear-outdir').off('click');
     // $('#btn-save-config').off('click');
-    $('#presets-select').off('change');
+    // $('#presets-select').off('change');
     $('#fileBrowserEnabled').off('change');
 
     $('#messages').show();
@@ -859,20 +859,20 @@ function loadUI(enccfgIn) {
         ({ presets } = enccfg);
     }
 
-    const keys = Object.keys(presets);
-    const jqselect = $('#presets-select');
-    jqselect.empty();
-    jqselect.append('<option value="">Presets...</option>');
-    for (let i = 0; i < keys.length; i++) {
-        if (keys[i].trim().length === 0) {
-            delete presets[keys[i]];
-        } else {
-            const opt = document.createElement('option');
-            opt.innerHTML = keys[i];
-            opt.value = keys[i];
-            jqselect[0].appendChild(opt);
-        }
-    }
+    // const keys = Object.keys(presets);
+    // const jqselect = $('#presets-select');
+    // jqselect.empty();
+    // jqselect.append('<option value="">Presets...</option>');
+    // for (let i = 0; i < keys.length; i++) {
+    //     if (keys[i].trim().length === 0) {
+    //         delete presets[keys[i]];
+    //     } else {
+    //         const opt = document.createElement('option');
+    //         opt.innerHTML = keys[i];
+    //         opt.value = keys[i];
+    //         jqselect[0].appendChild(opt);
+    //     }
+    // }
 
     // backwards compatibility
     if (Object.prototype.hasOwnProperty.call(enccfg, 'inputPath')) {
@@ -934,7 +934,7 @@ function loadUI(enccfgIn) {
     //     const cfg = saveUI();
     //     loadUI(cfg);
     // });
-    $('#presets-select').on('change', restorePreset());
+    // $('#presets-select').on('change', restorePreset());
 
     messageCallback('Encryption Tool version ' + longVersion + ' ready', 'status');
 }

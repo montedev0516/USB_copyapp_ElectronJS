@@ -22,6 +22,7 @@
         "tailwind": "^4.0.0",
         "tiny-worker": "^2.1.2",
         "usb-detection": "file:repo/node-usb-detection/usb-detection-4.9.1.tgz",
+        "usbcopypro": "file:",
         "uuid": "^3.2.1"
     },
     "devDependencies": {
